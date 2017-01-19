@@ -28,10 +28,12 @@ type ArchiverSuite struct {
 }
 
 func (s *ArchiverSuite) SetupSuite() {
+	assert := assert.New(s.T())
 	fixtures.Init()
 
 	s.tmpDir = filepath.Join(os.TempDir(), "test_data")
-	os.RemoveAll(s.tmpDir)
+	err := os.RemoveAll(s.tmpDir)
+	assert.NoError(err)
 
 	s.lastCommit = plumbing.NewHash("6ecf0ef2c2dffb796033e5a02219af86ec6584e5")
 
@@ -48,7 +50,8 @@ func (s *ArchiverSuite) TearDownSuite() {
 	err := fixtures.Clean()
 	assert.NoError(err)
 
-	os.RemoveAll(s.tmpDir)
+	err = os.RemoveAll(s.tmpDir)
+	assert.NoError(err)
 }
 
 func (s *ArchiverSuite) TestArchiver_CreateLocalRepository() {

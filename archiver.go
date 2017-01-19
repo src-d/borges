@@ -114,6 +114,10 @@ func (a *Archiver) cleanRepoDir(j *Job, dir string) {
 	}
 }
 
+// createLocalRepository creates a new repository with some predefined references
+// hardcoded into his storage. This is intended to be able to do a partial fetch.
+// Having the references into the storage we will only download new objects, not
+// the entire repository.
 func (a *Archiver) createLocalRepository(dir string, j *Job, rs []*Reference) (*git.Repository, error) {
 	strg, err := a.filesystemStorageWithReferences(dir, rs)
 	if err != nil {
@@ -136,10 +140,6 @@ func (a *Archiver) createLocalRepository(dir string, j *Job, rs []*Reference) (*
 	return repo, nil
 }
 
-// filesystemStorageWithReferences creates a new filesystem.Storage but with some
-// references. This is intended to be able to do a partial fetch. Having the
-// references into the storage we will only download new objects, not the entire
-// repository.
 func (a *Archiver) filesystemStorageWithReferences(
 	dir string, rs []*Reference) (*filesystem.Storage, error) {
 	if err := os.MkdirAll(dir, os.FileMode(0755)); err != nil {
