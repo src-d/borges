@@ -1,0 +1,40 @@
+build:
+  test:
+    image: golang:1.7
+    commands:
+      - make dependencies
+      - make test-coverage
+  packages:
+    image: golang:1.7
+    commands:
+      - make packages
+    when:
+      event: tag
+  docker_push:
+    image: quay.io/srcd/docker-ci
+    privileged: true
+    commands:
+      - make docker-push
+    when:
+      event: tag
+
+publish:
+  github_release:
+    api_key: 08763897c930b3ff7f7cebf8da45935350a96b7d
+    files: artifacts/*.tar.gz
+    when:
+      event: tag
+    
+compose:
+  beanstalkd:
+    image: schickling/beanstalkd
+
+notify:
+  slack:
+    webhook_url: https://hooks.slack.com/services/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
+    channel: eng-notifications
+    username: drone 
+    when:
+      success: false
+      failure: true
+      change: true
