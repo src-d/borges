@@ -10,6 +10,7 @@ import (
 	"srcd.works/core.v0"
 	"srcd.works/core.v0/model"
 	"srcd.works/go-errors.v0"
+	"srcd.works/go-git.v4"
 )
 
 var (
@@ -94,4 +95,8 @@ func CreateRepositoryTable() {
 	if err != nil {
 		panic(err)
 	}
+}
+
+type RepositoryStorage interface {
+	Repository(ic model.SHA1) *git.Repository
 }

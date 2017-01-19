@@ -3,6 +3,8 @@ package main
 import (
 	"github.com/src-d/borges"
 
+	rcore "srcd.works/core-retrieval.v0"
+	"srcd.works/core.v0"
 	"srcd.works/framework.v0/queue"
 )
 
@@ -29,7 +31,11 @@ func (c *consumerCmd) Execute(args []string) error {
 		return err
 	}
 
-	wp := borges.NewArchiverWorkerPool(c.startNotifier, c.stopNotifier, c.warnNotifier)
+	wp := borges.NewArchiverWorkerPool(
+		core.ModelRepositoryStore(),
+		rcore.FilesystemRootedTransactioner(),
+		core.TemporaryFilesystem(),
+		c.startNotifier, c.stopNotifier, c.warnNotifier)
 	wp.SetWorkerCount(c.WorkersCount)
 
 	ac := borges.NewConsumer(q, wp)
