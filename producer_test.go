@@ -17,7 +17,7 @@ type ProducerSuite struct {
 }
 
 func (s *ProducerSuite) newProducer() *Producer {
-	return NewProducer(s.queue)
+	return NewProducer(NewMentionJobIter(), s.queue)
 }
 
 func (s *ProducerSuite) TestProducer_StarStop() {

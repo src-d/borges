@@ -30,7 +30,8 @@ func (c *producerCmd) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	c.p = borges.NewProducer(q)
+
+	c.p = borges.NewProducer(borges.NewMentionJobIter(), q)
 	c.p.Notifiers.Done = c.notifier
 	c.p.Start()
 	return nil
