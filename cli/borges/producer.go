@@ -39,8 +39,8 @@ func (c *producerCmd) Execute(args []string) error {
 
 func (c *producerCmd) notifier(j *borges.Job, err error) {
 	if err != nil {
-		logger.Error("job queue error", "RepositoryID", j.RepositoryID, "error", err)
+		logger.Error("job queue error", "RepositoryID", j.RepositoryID, "URL", j.URL, "error", err)
 	} else {
-		logger.Info("job queued", "RepositoryID", j.RepositoryID, "error", err)
+		logger.Info("job queued", "RepositoryID", j.RepositoryID, "URL", j.URL, "error", err)
 	}
 }
