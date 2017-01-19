@@ -1,7 +1,7 @@
 package main
 
 import (
-	"srcd.works/borges"
+	"github.com/src-d/borges"
 
 	"srcd.works/framework/queue"
 )
