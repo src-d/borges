@@ -79,7 +79,16 @@ type Reference struct {
 // SHA1 is a SHA-1 hash.
 type SHA1 [20]byte
 
-// String represetnation from this SHA1
+func NewSHA1(s string) SHA1 {
+	b, _ := hex.DecodeString(s)
+
+	var h SHA1
+	copy(h[:], b)
+
+	return h
+}
+
+// String representation from this SHA1
 func (h SHA1) String() string {
 	return hex.EncodeToString(h[:])
 }
