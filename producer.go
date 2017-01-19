@@ -60,19 +60,18 @@ func (p *Producer) start() {
 			continue
 		}
 
-		job := queue.NewJob()
-		if err := job.Encode(j); err != nil {
-			p.notifyDone(j, err)
-			continue
-		}
-
-		if err := p.queue.Publish(job); err != nil {
-			p.notifyDone(j, err)
-			continue
-		}
-
-		p.notifyDone(j, nil)
+		err = p.add(j)
+		p.notifyDone(j, err)
 	}
+}
+
+func (p *Producer) add(j *Job) error {
+	qj := queue.NewJob()
+	if err := qj.Encode(j); err != nil {
+		return err
+	}
+
+	return p.queue.Publish(qj)
 }
 
 func (p *Producer) stop() {
