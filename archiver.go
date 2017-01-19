@@ -8,7 +8,6 @@ import (
 
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/config"
-	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/storage/filesystem"
 	osfs "srcd.works/go-billy.v1/os"
 	"srcd.works/go-errors.v0"
@@ -147,22 +146,15 @@ func (a *Archiver) filesystemStorageWithReferences(
 		return nil, err
 	}
 
-	for _, rr := range a.toRepositoryReferences(rs) {
-		if err := strg.ReferenceStorage.SetReference(rr); err != nil {
+	for _, rr := range rs {
+		if err := strg.ReferenceStorage.
+			SetReference(rr.GitReference()); err != nil {
+
 			return nil, err
 		}
 	}
 
 	return strg, nil
-}
-
-func (a *Archiver) toRepositoryReferences(refs []*Reference) []*plumbing.Reference {
-	var result []*plumbing.Reference
-	for _, r := range refs {
-		hr := plumbing.NewHashReference(plumbing.ReferenceName(r.Name), plumbing.Hash(r.Hash))
-		result = append(result, hr)
-	}
-	return result
 }
 
 func (a *Archiver) notifyStart(j *Job) {
