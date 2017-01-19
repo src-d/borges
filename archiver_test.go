@@ -1,6 +1,7 @@
 package borges
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -8,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"gopkg.in/src-d/go-git.v4"
+	"gopkg.in/src-d/go-git.v4/fixtures"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
 )
@@ -26,8 +28,9 @@ type ArchiverSuite struct {
 }
 
 func (s *ArchiverSuite) SetupSuite() {
-	s.tmpDir = filepath.Join(os.TempDir(), "test_data")
+	fixtures.Init()
 
+	s.tmpDir = filepath.Join(os.TempDir(), "test_data")
 	os.RemoveAll(s.tmpDir)
 
 	s.lastCommit = plumbing.NewHash("6ecf0ef2c2dffb796033e5a02219af86ec6584e5")
@@ -35,8 +38,17 @@ func (s *ArchiverSuite) SetupSuite() {
 	s.a = &Archiver{}
 
 	s.j = &Job{
-		URL: "git@github.com:git-fixtures/basic.git",
+		URL: fmt.Sprintf("file://%s", fixtures.Basic().One().DotGit().Base()),
 	}
+}
+
+func (s *ArchiverSuite) TearDownSuite() {
+	assert := assert.New(s.T())
+
+	err := fixtures.Clean()
+	assert.NoError(err)
+
+	os.RemoveAll(s.tmpDir)
 }
 
 func (s *ArchiverSuite) TestArchiver_CreateLocalRepository() {
@@ -58,17 +70,17 @@ func (s *ArchiverSuite) TestArchiver_CreateLocalRepository() {
 
 	c, err := repo.Commit(s.lastCommit)
 	assert.Nil(c)
-	assert.NotNil(err)
+	assert.Error(err)
 
 	err = repo.Fetch(&git.FetchOptions{})
-	assert.Nil(err)
+	assert.NoError(err)
 
 	c, err = repo.Commit(s.lastCommit)
-	assert.Nil(err)
+	assert.NoError(err)
 	assert.NotNil(c)
 
 	iter, err := repo.Objects()
-	assert.Nil(err)
+	assert.NoError(err)
 	assert.NotNil(iter)
 
 	count := 0
