@@ -3,7 +3,7 @@ package borges
 import (
 	"sync"
 
-	"srcd.works/framework/queue"
+	"srcd.works/framework.v0/queue"
 )
 
 // A WorkerJob is a job to be passed to the worker. It contains the Job itself

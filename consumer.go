@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"srcd.works/framework/queue"
+	"srcd.works/framework.v0/queue"
 )
 
 // Consumer consumes jobs from a queue and uses multiple workers to process
