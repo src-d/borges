@@ -3,7 +3,7 @@ package main
 import (
 	"srcd.works/borges"
 
-	"srcd.works/framework/queue"
+	"srcd.works/framework.v0/queue"
 )
 
 const (

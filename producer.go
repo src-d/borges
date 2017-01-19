@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"srcd.works/framework/queue"
+	"srcd.works/framework.v0/queue"
 )
 
 // Producer is a service to generate jobs and put them to the queue.

@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"srcd.works/framework/queue"
+	"srcd.works/framework.v0/queue"
 )
 
 func TestConsumerSuite(t *testing.T) {
