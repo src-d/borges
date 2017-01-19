@@ -142,10 +142,6 @@ func (a *Archiver) createLocalRepository(dir string, j *Job, rs []*Reference) (*
 
 func (a *Archiver) filesystemStorageWithReferences(
 	dir string, rs []*Reference) (*filesystem.Storage, error) {
-	if err := os.MkdirAll(dir, os.FileMode(0755)); err != nil {
-		return nil, err
-	}
-
 	strg, err := filesystem.NewStorage(osfs.New(dir))
 	if err != nil {
 		return nil, err
