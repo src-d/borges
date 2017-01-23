@@ -54,7 +54,7 @@ func (s *ArchiverSuite) TearDownSuite() {
 	assert.NoError(err)
 }
 
-func (s *ArchiverSuite) TestArchiver_CreateLocalRepository() {
+func (s *ArchiverSuite) TestCreateLocalRepository() {
 	assert := assert.New(s.T())
 
 	repo, err := s.a.createLocalRepository(s.tmpDir, s.j, []*Reference{
