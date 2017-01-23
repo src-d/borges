@@ -26,7 +26,7 @@ func (s *ConsumerSuite) newConsumer() *Consumer {
 func (s *ConsumerSuite) TestConsumer_StartStop_EmptyQueue() {
 	assert := assert.New(s.T())
 	c := s.newConsumer()
-	c.SetWorkerCount(1)
+	c.WorkerPool.SetWorkerCount(1)
 	go c.Start()
 
 	time.Sleep(time.Millisecond * 100)
@@ -40,39 +40,33 @@ func (s *ConsumerSuite) TestConsumer_StartStop() {
 	c := s.newConsumer()
 
 	processed := 0
-	c.do = func(*WorkerContext, *Job) error {
+	done := make(chan struct{}, 1)
+	c.WorkerPool.do = func(*WorkerContext, *Job) error {
 		processed++
 		if processed > 1 {
 			assert.Fail("too many jobs processed")
-		}
-
-		c.Stop()
-		return nil
-	}
-
-	done := make(chan struct{}, 1)
-	relevantQueueErrorCount := 0
-	c.Notifiers.QueueError = func(err error) {
-		fmt.Println("processed", processed, "errCount", relevantQueueErrorCount)
-		if processed != 1 {
-			return
+			done <- struct{}{}
 		}
 
 		done <- struct{}{}
-		assert.True(ErrAlreadyStopped.Is(err))
-
+		return nil
 	}
 
-	for i := 0; i < 2; i++ {
+	c.Notifiers.QueueError = func(err error) {
+		assert.Fail("no error expected:", err.Error())
+	}
+
+	for i := 0; i < 1; i++ {
 		job := queue.NewJob()
 		assert.NoError(job.Encode(&Job{RepositoryID: uint64(i)}))
 		assert.NoError(s.queue.Publish(job))
 	}
 
-	c.SetWorkerCount(1)
+	c.WorkerPool.SetWorkerCount(1)
 	go c.Start()
 
-	assert.NoError(timeoutChan(done, time.Second*2))
+	assert.NoError(timeoutChan(done, time.Second*10))
+	c.Stop()
 	assert.False(c.IsRunning())
 	assert.Equal(1, processed)
 }

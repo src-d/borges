@@ -1,7 +1,6 @@
 package borges
 
 import (
-	"sync"
 	"time"
 
 	"srcd.works/framework.v0/queue"
@@ -13,21 +12,20 @@ type Consumer struct {
 	Notifiers struct {
 		QueueError func(error)
 	}
-	*WorkerPool
+	WorkerPool *WorkerPool
+	Queue      queue.Queue
 
-	queue     queue.Queue
-	running   bool
-	startOnce *sync.Once
-	stopOnce  *sync.Once
+	running bool
+	close   bool
+	quit    chan struct{}
+	iter    queue.JobIter
 }
 
 // NewConsumer creates a new consumer.
 func NewConsumer(queue queue.Queue, pool *WorkerPool) *Consumer {
 	return &Consumer{
 		WorkerPool: pool,
-		queue:      queue,
-		startOnce:  &sync.Once{},
-		stopOnce:   &sync.Once{},
+		Queue:      queue,
 	}
 }
 
@@ -36,14 +34,35 @@ func (c *Consumer) IsRunning() bool {
 	return c.running
 }
 
-// Start initializes the consumer and starts it.
+// Start initializes the consumer and starts it, blocking until it is stopped.
 func (c *Consumer) Start() {
-	c.startOnce.Do(c.start)
+	c.close = false
+	c.running = true
+	defer func() { c.running = false }()
+	c.quit = make(chan struct{})
+	defer func() { close(c.quit) }()
+	for {
+		if err := c.consumeQueue(c.Queue); err != nil {
+			c.notifyQueueError(err)
+			c.closeIter()
+		}
+
+		if c.close {
+			break
+		}
+
+		c.backoff()
+	}
+
+	return
 }
 
-// Stop stops the consumer.
+// Stop stops the consumer. Note that it does not close the underlying queue
+// and worker pool. It blocks until the consumer has actually stopped.
 func (c *Consumer) Stop() {
-	c.stopOnce.Do(c.stop)
+	c.close = true
+	c.closeIter()
+	<-c.quit
 }
 
 func (c *Consumer) backoff() {
@@ -57,49 +76,69 @@ func (c *Consumer) reject(j *queue.Job, origErr error) {
 	}
 }
 
-func (c *Consumer) start() {
-	c.running = true
-	defer func() { c.running = false }()
-	for {
-		iter, err := c.queue.Consume()
-		if err != nil {
-			c.notifyQueueError(err)
-			c.backoff()
-			continue
-		}
-
-		j, err := iter.Next()
-		if err != nil {
-			c.notifyQueueError(err)
-			c.backoff()
-			if err := iter.Close(); err != nil {
-				c.notifyQueueError(err)
-			}
-
-			continue
-		}
-
-		if !c.running {
-			err = ErrAlreadyStopped.New("cannot deliver job")
-			c.notifyQueueError(err)
-			break
-		}
-
-		job := &Job{}
-		if err := j.Decode(job); err != nil {
-			c.reject(j, err)
-			continue
-		}
-
-		c.Do(&WorkerJob{job, j})
+func (c *Consumer) consumeQueue(q queue.Queue) error {
+	var err error
+	c.iter, err = c.Queue.Consume()
+	if err != nil {
+		return err
 	}
 
-	return
+	if err := c.consumeJobIter(c.iter); err != nil {
+		if err == queue.ErrAlreadyClosed {
+			c.iter = nil
+			if c.close {
+				return nil
+			}
+
+			return err
+		}
+
+		c.closeIter()
+		return err
+	}
+
+	return nil
 }
 
-func (c *Consumer) stop() {
-	c.running = false
-	c.WorkerPool.Close()
+func (c *Consumer) consumeJobIter(iter queue.JobIter) error {
+	for {
+		j, err := iter.Next()
+		if err == queue.ErrEmptyJob {
+			c.notifyQueueError(err)
+			continue
+		}
+
+		if err != nil {
+			return err
+		}
+
+		if err := c.consumeJob(j); err != nil {
+			c.Notifiers.QueueError(err)
+		}
+	}
+}
+
+func (c *Consumer) consumeJob(j *queue.Job) error {
+	job := &Job{}
+	if err := j.Decode(job); err != nil {
+		c.reject(j, err)
+		return err
+	}
+
+	c.WorkerPool.Do(&WorkerJob{job, j})
+	return nil
+}
+
+func (c *Consumer) closeIter() {
+	if c.iter == nil {
+		return
+	}
+
+	if err := c.iter.Close(); err != nil {
+		c.notifyQueueError(err)
+	}
+
+	c.iter = nil
 }
 
 func (c *Consumer) notifyQueueError(err error) {
