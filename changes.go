@@ -72,7 +72,7 @@ func NewChanges(oldReferences []*Reference, repository *git.Repository) (Changes
 	}
 
 	for _, r := range refsByName {
-		deleteCommand(r, changes)
+		changes.Delete(r)
 	}
 
 	return changes, nil
@@ -107,7 +107,7 @@ func addChangesBetweenOldAndNewReferences(
 			FirstSeenAt: now,
 			UpdatedAt:   now,
 		}
-		newCommand(newReference, c)
+		c.Add(newReference)
 
 		return nil
 	}
@@ -121,7 +121,7 @@ func addChangesBetweenOldAndNewReferences(
 			FirstSeenAt: ref.FirstSeenAt,
 			UpdatedAt:   now,
 		}
-		updateCommand(ref, updateReference, c)
+		c.Update(ref, updateReference)
 	}
 
 	delete(oldRefs, rReference.Name().String())
@@ -129,34 +129,16 @@ func addChangesBetweenOldAndNewReferences(
 	return nil
 }
 
-func deleteCommand(oldR *Reference, c Changes) {
-	addCommand(oldR.Init, &Command{
-		New: nil,
-		Old: oldR,
-	}, c)
+func (c Changes) Delete(old *Reference) {
+	c[old.Init] = append(c[old.Init], &Command{Old: old})
 }
 
-func updateCommand(oldR *Reference, newR *Reference, c Changes) {
-	addCommand(oldR.Init, &Command{
-		New: newR,
-		Old: oldR,
-	}, c)
+func (c Changes) Update(old, new *Reference) {
+	c[new.Init] = append(c[new.Init], &Command{Old: old, New: new})
 }
 
-func newCommand(newR *Reference, c Changes) {
-	addCommand(newR.Init, &Command{
-		New: newR,
-		Old: nil,
-	}, c)
-}
-
-func addCommand(ic SHA1, c *Command, changes Changes) {
-	_, ok := changes[ic]
-	if !ok {
-		changes[ic] = make([]*Command, 0)
-	}
-
-	changes[ic] = append(changes[ic], c)
+func (c Changes) Add(new *Reference) {
+	c[new.Init] = append(c[new.Init], &Command{New: new})
 }
 
 func rootCommits(r *git.Repository, from plumbing.Hash) ([]SHA1, error) {
