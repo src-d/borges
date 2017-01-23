@@ -8,7 +8,8 @@ import (
 
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/config"
-	"gopkg.in/src-d/go-git.v4/plumbing"
+	"gopkg.in/src-d/go-git.v4/storage/filesystem"
+	osfs "srcd.works/go-billy.v1/os"
 	"srcd.works/go-errors.v0"
 )
 
@@ -50,29 +51,23 @@ func (a *Archiver) Do(j *Job) error {
 }
 
 func (a *Archiver) do(j *Job) error {
-	r, err := a.getRepositoryModel(j)
-	if err != nil {
-		return err
-	}
-
-	haves, err := a.getHaves(r)
-	if err != nil {
-		return err
-	}
-
 	dir, err := a.newRepoDir(j)
 	if err != nil {
 		return err
 	}
 	defer a.cleanRepoDir(j, dir)
 
-	gr, err := a.createLocalRepository(dir, j)
+	r, err := a.getRepositoryModel(j)
 	if err != nil {
 		return err
 	}
 
-	err = a.fetch(r, gr, haves)
+	gr, err := createLocalRepository(dir, j, r.References)
 	if err != nil {
+		return err
+	}
+
+	if err := gr.Fetch(&git.FetchOptions{}); err != nil {
 		return err
 	}
 
@@ -104,29 +99,6 @@ func (a *Archiver) getRepositoryModel(j *Job) (*Repository, error) {
 	return &Repository{ID: j.RepositoryID}, nil
 }
 
-func (a *Archiver) getHaves(r *Repository) ([]plumbing.Hash, error) {
-	//TODO
-	return nil, nil
-}
-
-func (a *Archiver) fetch(r *Repository, gr *git.Repository, haves []plumbing.Hash) error {
-	remote, err := gr.CreateRemote(&config.RemoteConfig{
-		Name: git.DefaultRemoteName,
-		URL:  r.Endpoints[0],
-	})
-	if err != nil {
-		return err
-	}
-
-	//TODO
-
-	if err := remote.Fetch(&git.FetchOptions{}); err != nil {
-		return nil
-	}
-
-	return gr.Fetch(&git.FetchOptions{})
-}
-
 func (a *Archiver) newRepoDir(j *Job) (string, error) {
 	dir := filepath.Join(a.TempDir, "repos",
 		strconv.FormatUint(j.RepositoryID, 10),
@@ -139,10 +111,6 @@ func (a *Archiver) cleanRepoDir(j *Job, dir string) {
 	if err := os.RemoveAll(dir); err != nil {
 		a.Notifiers.Warn(j, ErrCleanRepositoryDir.Wrap(err))
 	}
-}
-
-func (a *Archiver) createLocalRepository(dir string, j *Job) (*git.Repository, error) {
-	return git.NewFilesystemRepository(dir)
 }
 
 func (a *Archiver) notifyStart(j *Job) {
@@ -167,6 +135,50 @@ func (a *Archiver) notifyWarn(j *Job, err error) {
 	}
 
 	a.Notifiers.Warn(j, err)
+}
+
+// createLocalRepository creates a new repository with some predefined references
+// hardcoded into his storage. This is intended to be able to do a partial fetch.
+// Having the references into the storage we will only download new objects, not
+// the entire repository.
+func createLocalRepository(dir string, j *Job, rs []*Reference) (*git.Repository, error) {
+	strg, err := filesystemStorageWithReferences(dir, rs)
+	if err != nil {
+		return nil, err
+	}
+
+	repo, err := git.NewRepository(strg)
+	if err != nil {
+		return nil, err
+	}
+
+	c := &config.RemoteConfig{
+		Name: "origin",
+		URL:  j.URL,
+	}
+	if _, err := repo.CreateRemote(c); err != nil {
+		return nil, err
+	}
+
+	return repo, nil
+}
+
+func filesystemStorageWithReferences(
+	dir string, rs []*Reference) (*filesystem.Storage, error) {
+	strg, err := filesystem.NewStorage(osfs.New(dir))
+	if err != nil {
+		return nil, err
+	}
+
+	for _, rr := range rs {
+		if err := strg.ReferenceStorage.
+			SetReference(rr.GitReference()); err != nil {
+
+			return nil, err
+		}
+	}
+
+	return strg, nil
 }
 
 // NewArchiverWorkerPool creates a new WorkerPool that uses an Archiver to

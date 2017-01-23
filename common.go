@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"time"
 
+	"gopkg.in/src-d/go-git.v4/plumbing"
 	"srcd.works/go-errors.v0"
 )
 
@@ -76,10 +77,26 @@ type Reference struct {
 	FirstSeenAt time.Time
 }
 
+func (r *Reference) GitReference() *plumbing.Reference {
+	return plumbing.NewHashReference(
+		plumbing.ReferenceName(r.Name),
+		plumbing.Hash(r.Hash),
+	)
+}
+
 // SHA1 is a SHA-1 hash.
 type SHA1 [20]byte
 
-// String represetnation from this SHA1
+func NewSHA1(s string) SHA1 {
+	b, _ := hex.DecodeString(s)
+
+	var h SHA1
+	copy(h[:], b)
+
+	return h
+}
+
+// String representation from this SHA1
 func (h SHA1) String() string {
 	return hex.EncodeToString(h[:])
 }
