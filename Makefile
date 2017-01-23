@@ -1,7 +1,7 @@
 # Package configuration
 PROJECT = borges 
 COMMANDS = cli/borges
-CODECOV_TOKEN = 232aa99b-da28-45dd-af33-0be97208ec76
+CODECOV_TOKEN = fd8d47d9-6c72-409f-99fa-a8ba93631860
 
 # Including devops Makefile
 MAKEFILE = Makefile.main
