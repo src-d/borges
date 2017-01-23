@@ -1,6 +1,7 @@
 package borges
 
 import (
+	"encoding/hex"
 	"time"
 
 	"srcd.works/go-errors.v0"
@@ -77,3 +78,8 @@ type Reference struct {
 
 // SHA1 is a SHA-1 hash.
 type SHA1 [20]byte
+
+// String represetnation from this SHA1
+func (h SHA1) String() string {
+	return hex.EncodeToString(h[:])
+}

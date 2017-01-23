@@ -9,7 +9,6 @@ import (
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/config"
 	"gopkg.in/src-d/go-git.v4/plumbing"
-	"gopkg.in/src-d/go-git.v4/plumbing/protocol/packp"
 	"srcd.works/go-errors.v0"
 )
 
@@ -77,7 +76,7 @@ func (a *Archiver) do(j *Job) error {
 		return err
 	}
 
-	changesPerFirstCommit, err := a.getChanges(r.References, gr)
+	changesPerFirstCommit, err := NewChanges(r.References, gr)
 	if err != nil {
 		return err
 	}
@@ -144,12 +143,6 @@ func (a *Archiver) cleanRepoDir(j *Job, dir string) {
 
 func (a *Archiver) createLocalRepository(dir string, j *Job) (*git.Repository, error) {
 	return git.NewFilesystemRepository(dir)
-}
-
-func (a *Archiver) getChanges(oldRefs []*Reference, gr *git.Repository) (
-	map[plumbing.Hash][]*packp.Command, error) {
-	//TODO
-	return map[plumbing.Hash][]*packp.Command{}, nil
 }
 
 func (a *Archiver) notifyStart(j *Job) {
