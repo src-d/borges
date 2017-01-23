@@ -59,6 +59,11 @@ func (c *Command) Action() Action {
 // create command. If a new reference has more than one init commit, at least
 // one create command per init commit will be created.
 func NewChanges(oldReferences []*models.Reference, repository *git.Repository) (Changes, error) {
+	now := time.Now()
+	return newChanges(now, oldReferences, repository)
+}
+
+func newChanges(now time.Time, oldReferences []*models.Reference, repository *git.Repository) (Changes, error) {
 	refIter, err := repository.References()
 	if err != nil {
 		return nil, err
@@ -67,7 +72,7 @@ func NewChanges(oldReferences []*models.Reference, repository *git.Repository) (
 	refsByName := refsByName(oldReferences)
 	changes := make(Changes)
 	err = refIter.ForEach(func(r *plumbing.Reference) error {
-		return addChangesBetweenOldAndNewReferences(changes, r, refsByName, repository)
+		return addChangesBetweenOldAndNewReferences(now, changes, r, refsByName, repository)
 	})
 	if err != nil {
 		return nil, err
@@ -81,11 +86,11 @@ func NewChanges(oldReferences []*models.Reference, repository *git.Repository) (
 }
 
 func addChangesBetweenOldAndNewReferences(
+	now time.Time,
 	c Changes,
 	rReference *plumbing.Reference,
 	oldRefs map[string]*models.Reference,
 	r *git.Repository) error {
-	now := time.Now()
 
 	if rReference.Type() != plumbing.HashReference || rReference.IsRemote() {
 		return nil
@@ -101,13 +106,17 @@ func addChangesBetweenOldAndNewReferences(
 	// If we don't have the reference or the init commit has changed,
 	// we will create a new reference
 	if ref == nil || roots[0] != ref.Init {
+		createdAt := now
+		if ref != nil {
+			createdAt = ref.CreatedAt
+		}
 		newReference := &models.Reference{
 			Name:  rReference.Name().String(),
 			Hash:  models.SHA1(rReference.Hash()),
 			Init:  roots[0],
 			Roots: roots,
 			Timestamps: kallax.Timestamps{
-				CreatedAt: now,
+				CreatedAt: createdAt,
 				UpdatedAt: now,
 			},
 		}
