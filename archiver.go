@@ -62,7 +62,7 @@ func (a *Archiver) do(j *Job) error {
 		return err
 	}
 
-	gr, err := a.createLocalRepository(dir, j, r.References)
+	gr, err := createLocalRepository(dir, j, r.References)
 	if err != nil {
 		return err
 	}
@@ -113,50 +113,6 @@ func (a *Archiver) cleanRepoDir(j *Job, dir string) {
 	}
 }
 
-// createLocalRepository creates a new repository with some predefined references
-// hardcoded into his storage. This is intended to be able to do a partial fetch.
-// Having the references into the storage we will only download new objects, not
-// the entire repository.
-func (a *Archiver) createLocalRepository(dir string, j *Job, rs []*Reference) (*git.Repository, error) {
-	strg, err := a.filesystemStorageWithReferences(dir, rs)
-	if err != nil {
-		return nil, err
-	}
-
-	repo, err := git.NewRepository(strg)
-	if err != nil {
-		return nil, err
-	}
-
-	c := &config.RemoteConfig{
-		Name: "origin",
-		URL:  j.URL,
-	}
-	if _, err := repo.CreateRemote(c); err != nil {
-		return nil, err
-	}
-
-	return repo, nil
-}
-
-func (a *Archiver) filesystemStorageWithReferences(
-	dir string, rs []*Reference) (*filesystem.Storage, error) {
-	strg, err := filesystem.NewStorage(osfs.New(dir))
-	if err != nil {
-		return nil, err
-	}
-
-	for _, rr := range rs {
-		if err := strg.ReferenceStorage.
-			SetReference(rr.GitReference()); err != nil {
-
-			return nil, err
-		}
-	}
-
-	return strg, nil
-}
-
 func (a *Archiver) notifyStart(j *Job) {
 	if a.Notifiers.Start == nil {
 		return
@@ -179,6 +135,50 @@ func (a *Archiver) notifyWarn(j *Job, err error) {
 	}
 
 	a.Notifiers.Warn(j, err)
+}
+
+// createLocalRepository creates a new repository with some predefined references
+// hardcoded into his storage. This is intended to be able to do a partial fetch.
+// Having the references into the storage we will only download new objects, not
+// the entire repository.
+func createLocalRepository(dir string, j *Job, rs []*Reference) (*git.Repository, error) {
+	strg, err := filesystemStorageWithReferences(dir, rs)
+	if err != nil {
+		return nil, err
+	}
+
+	repo, err := git.NewRepository(strg)
+	if err != nil {
+		return nil, err
+	}
+
+	c := &config.RemoteConfig{
+		Name: "origin",
+		URL:  j.URL,
+	}
+	if _, err := repo.CreateRemote(c); err != nil {
+		return nil, err
+	}
+
+	return repo, nil
+}
+
+func filesystemStorageWithReferences(
+	dir string, rs []*Reference) (*filesystem.Storage, error) {
+	strg, err := filesystem.NewStorage(osfs.New(dir))
+	if err != nil {
+		return nil, err
+	}
+
+	for _, rr := range rs {
+		if err := strg.ReferenceStorage.
+			SetReference(rr.GitReference()); err != nil {
+
+			return nil, err
+		}
+	}
+
+	return strg, nil
 }
 
 // NewArchiverWorkerPool creates a new WorkerPool that uses an Archiver to
