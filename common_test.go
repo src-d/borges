@@ -36,17 +36,12 @@ func (s *BaseQueueSuite) TearDownTest() {
 }
 
 func (s *BaseQueueSuite) connectQueue() {
-	t := s.T()
+	assert := assert.New(s.T())
 	var err error
 	s.broker, err = queue.NewBeanstalkBroker(testBeanstalkAddress)
-	if err != nil {
-		t.Skip("could not connect to beanstalk at", testBeanstalkAddress, err)
-	}
-
+	assert.NoError(err)
 	s.queue, err = s.broker.Queue(testQueue)
-	if err != nil {
-		t.Skip("error getting queue", testQueue)
-	}
+	assert.NoError(err)
 }
 
 func drainQueue(q queue.Queue) error {
