@@ -6,6 +6,7 @@ import (
 
 	"github.com/src-d/borges"
 
+	"gopkg.in/src-d/go-git.v4/utils/ioutil"
 	"srcd.works/framework.v0/queue"
 )
 
@@ -20,11 +21,10 @@ type producerCmd struct {
 	BeanstalkTube string `long:"tube" default:"borges" description:"beanstalk tube name"`
 	Source        string `long:"source" default:"mentions" description:"source to produce jobs from (mentions, file)"`
 	File          string `long:"file" description:"path to a file to read URLs from, used with --source=file"`
-
-	p *borges.Producer
 }
 
 func (c *producerCmd) Execute(args []string) error {
+	var err error
 	b, err := queue.NewBeanstalkBroker(c.BeanstalkURL)
 	if err != nil {
 		return err
@@ -40,11 +40,12 @@ func (c *producerCmd) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
+	defer ioutil.CheckClose(ji, &err)
 
-	c.p = borges.NewProducer(ji, q)
-	c.p.Notifiers.Done = c.notifier
-	c.p.Start()
-	return nil
+	p := borges.NewProducer(ji, q)
+	p.Notifiers.Done = c.notifier
+	p.Start()
+	return err
 }
 
 func (c *producerCmd) jobIter() (borges.JobIter, error) {

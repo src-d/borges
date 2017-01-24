@@ -2,6 +2,7 @@ package borges
 
 import (
 	"io"
+	"io/ioutil"
 	"strings"
 	"testing"
 
@@ -13,7 +14,7 @@ func TestLineJobIter(t *testing.T) {
 
 	text := `git://foo/bar.git
 https://foo/baz.git`
-	r := strings.NewReader(text)
+	r := ioutil.NopCloser(strings.NewReader(text))
 	iter := NewLineJobIter(r)
 
 	j, err := iter.Next()
@@ -36,7 +37,7 @@ https://foo/baz.git`
 func TestLineJobIterEmpty(t *testing.T) {
 	assert := assert.New(t)
 
-	r := strings.NewReader("")
+	r := ioutil.NopCloser(strings.NewReader(""))
 	iter := NewLineJobIter(r)
 
 	j, err := iter.Next()
@@ -52,7 +53,7 @@ func TestLineJobIterNonAbsoluteURL(t *testing.T) {
 	assert := assert.New(t)
 
 	text := "foo"
-	r := strings.NewReader(text)
+	r := ioutil.NopCloser(strings.NewReader(text))
 	iter := NewLineJobIter(r)
 
 	j, err := iter.Next()
@@ -72,7 +73,7 @@ func TestLineJobIterBadURL(t *testing.T) {
 	assert := assert.New(t)
 
 	text := "://"
-	r := strings.NewReader(text)
+	r := ioutil.NopCloser(strings.NewReader(text))
 	iter := NewLineJobIter(r)
 
 	j, err := iter.Next()

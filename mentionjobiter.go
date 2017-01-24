@@ -13,3 +13,8 @@ func (i *mentionJobIter) Next() (*Job, error) {
 	url := "git://github.com/git-fixtures/basic.git"
 	return &Job{RepositoryID: 0, URL: url}, nil
 }
+
+func (i *mentionJobIter) Close() error {
+	//TODO: this is still a stub implementation
+	return nil
+}

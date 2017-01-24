@@ -9,12 +9,13 @@ import (
 
 type lineJobIter struct {
 	*bufio.Scanner
+	r io.ReadCloser
 }
 
 // NewLineJobIter returns a JobIter that returns jobs generated from a reader
 // with a list of repository URLs, one per line.
-func NewLineJobIter(r io.Reader) JobIter {
-	return &lineJobIter{bufio.NewScanner(r)}
+func NewLineJobIter(r io.ReadCloser) JobIter {
+	return &lineJobIter{Scanner: bufio.NewScanner(r), r: r}
 }
 
 func (i *lineJobIter) Next() (*Job, error) {
@@ -37,4 +38,9 @@ func (i *lineJobIter) Next() (*Job, error) {
 	}
 
 	return &Job{RepositoryID: 0, URL: line}, nil
+}
+
+// Close closes the underlying reader.
+func (i *lineJobIter) Close() error {
+	return i.r.Close()
 }

@@ -2,6 +2,7 @@ package borges
 
 import (
 	"encoding/hex"
+	"io"
 	"time"
 
 	"gopkg.in/src-d/go-git.v4/plumbing"
@@ -24,6 +25,7 @@ type Job struct {
 
 // JobIter is an iterator of Job.
 type JobIter interface {
+	io.Closer
 	// Next returns the next job. It returns io.EOF if there are no more
 	// jobs. If there are no more jobs at the moment, but there can be
 	// in the future, it returns an error of kind ErrWaitForJobs.
