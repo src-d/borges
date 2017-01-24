@@ -266,6 +266,45 @@ var ChangesFixtures = []*ChangesFixture{{
 		},
 	},
 }, {
+	TestName:      "all references are deleted",
+	NewRepository: emptyRepository,
+	OldReferences: []*Reference{
+		fixtureReferences.ByName("refs/heads/master"),
+		fixtureReferences.ByName("refs/heads/branch"),
+		fixtureReferences.ByName("refs/heads/1"),
+		fixtureReferences.ByName("refs/heads/2"),
+		fixtureReferences.ByName("refs/heads/3"),
+		fixtureReferences.ByName("refs/heads/functionalityOne"),
+		fixtureReferences.ByName("refs/heads/functionalityTwo"),
+		fixtureReferences.ByName("refs/heads/rootReference"),
+		fixtureReferences.ByName("refs/tags/v1.0.0"),
+	},
+	Expected: Changes{
+		NewSHA1("b029517f6300c2da0f4b651b8642506cd6aaf45d"): []*Command{
+			testDeleteCommand(fixtureReferences.ByName("refs/heads/master")),
+			testDeleteCommand(fixtureReferences.ByName("refs/heads/branch")),
+			testDeleteCommand(fixtureReferences.ByName("refs/tags/v1.0.0")),
+		},
+		NewSHA1("8ec19d64748c54c6d047f30c81b4c444a8232b41"): []*Command{
+			testDeleteCommand(fixtureReferences.ByName("refs/heads/1")),
+		},
+		NewSHA1("04fffad6eacd4512554cb22ca3a0d6b8a38a96cc"): []*Command{
+			testDeleteCommand(fixtureReferences.ByName("refs/heads/2")),
+		},
+		NewSHA1("058cec4b81e8f0a9c3763e0671bbfba0666a4b33"): []*Command{
+			testDeleteCommand(fixtureReferences.ByName("refs/heads/3")),
+		},
+		NewSHA1("5e4661353b435315edb0aab7a472bd43c82fed5c"): []*Command{
+			testDeleteCommand(fixtureReferences.ByName("refs/heads/functionalityOne")),
+		},
+		NewSHA1("8829746417d76e7a64e540e906abcb7970679e47"): []*Command{
+			testDeleteCommand(fixtureReferences.ByName("refs/heads/functionalityTwo")),
+		},
+		NewSHA1("a135c3e77219a8eaf166a643f6ce3192e97b7e5e"): []*Command{
+			testDeleteCommand(fixtureReferences.ByName("refs/heads/rootReference")),
+		},
+	},
+}, {
 	TestName:      "all references are up to date",
 	NewRepository: defaultRepository,
 	OldReferences: []*models.Reference{
