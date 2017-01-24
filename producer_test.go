@@ -32,7 +32,7 @@ func (s *ProducerSuite) TestStarStop() {
 
 	go p.Start()
 
-	time.Sleep(time.Millisecond * 1000)
+	time.Sleep(time.Millisecond * 100)
 	assert.True(p.IsRunning())
 
 	iter, err := s.queue.Consume()
@@ -51,7 +51,7 @@ func (s *ProducerSuite) TestStarStop_noNotifier() {
 
 	go p.Start()
 
-	time.Sleep(time.Millisecond * 1000)
+	time.Sleep(time.Millisecond * 100)
 	assert.True(p.IsRunning())
 
 	iter, err := s.queue.Consume()
