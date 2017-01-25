@@ -1,6 +1,7 @@
 package borges
 
 import (
+	"io"
 	"sync"
 	"time"
 
@@ -13,6 +14,7 @@ type Producer struct {
 		Done func(*Job, error)
 	}
 
+	jobIter   JobIter
 	queue     queue.Queue
 	running   bool
 	startOnce *sync.Once
@@ -21,8 +23,9 @@ type Producer struct {
 }
 
 // NewProducer creates a new producer.
-func NewProducer(queue queue.Queue) *Producer {
+func NewProducer(jobIter JobIter, queue queue.Queue) *Producer {
 	return &Producer{
+		jobIter:   jobIter,
 		queue:     queue,
 		startOnce: &sync.Once{},
 		stopOnce:  &sync.Once{},
@@ -54,39 +57,38 @@ func (p *Producer) start() {
 			break
 		}
 
-		j, err := p.next()
+		j, err := p.jobIter.Next()
+		if err == io.EOF {
+			break
+		}
+
+		if ErrWaitForJobs.Is(err) {
+			time.Sleep(time.Millisecond * 500)
+			continue
+		}
+
 		if err != nil {
 			//TODO: error handling
 			continue
 		}
 
-		job := queue.NewJob()
-		if err := job.Encode(j); err != nil {
-			p.notifyDone(j, err)
-			continue
-		}
-
-		if err := p.queue.Publish(job); err != nil {
-			p.notifyDone(j, err)
-			continue
-		}
-
-		p.notifyDone(j, nil)
+		err = p.add(j)
+		p.notifyDone(j, err)
 	}
+}
+
+func (p *Producer) add(j *Job) error {
+	qj := queue.NewJob()
+	if err := qj.Encode(j); err != nil {
+		return err
+	}
+
+	return p.queue.Publish(qj)
 }
 
 func (p *Producer) stop() {
 	p.running = false
 	p.wg.Wait()
-}
-
-var n uint64
-
-func (p *Producer) next() (*Job, error) {
-	//TODO: Add logic.
-	n++
-	time.Sleep(time.Millisecond * 500)
-	return &Job{RepositoryID: n}, nil
 }
 
 func (p *Producer) notifyDone(j *Job, err error) {

@@ -17,10 +17,10 @@ type ProducerSuite struct {
 }
 
 func (s *ProducerSuite) newProducer() *Producer {
-	return NewProducer(s.queue)
+	return NewProducer(NewMentionJobIter(), s.queue)
 }
 
-func (s *ProducerSuite) TestProducer_StarStop() {
+func (s *ProducerSuite) TestStarStop() {
 	assert := assert.New(s.T())
 	p := s.newProducer()
 
@@ -32,7 +32,7 @@ func (s *ProducerSuite) TestProducer_StarStop() {
 
 	go p.Start()
 
-	time.Sleep(time.Millisecond * 1000)
+	time.Sleep(time.Millisecond * 100)
 	assert.True(p.IsRunning())
 
 	iter, err := s.queue.Consume()
@@ -43,4 +43,22 @@ func (s *ProducerSuite) TestProducer_StarStop() {
 	p.Stop()
 	assert.False(p.IsRunning())
 	assert.True(doneCalled > 1)
+}
+
+func (s *ProducerSuite) TestStarStop_noNotifier() {
+	assert := assert.New(s.T())
+	p := s.newProducer()
+
+	go p.Start()
+
+	time.Sleep(time.Millisecond * 100)
+	assert.True(p.IsRunning())
+
+	iter, err := s.queue.Consume()
+	j, err := iter.Next()
+	assert.NoError(err)
+	assert.NotNil(j)
+
+	p.Stop()
+	assert.False(p.IsRunning())
 }
