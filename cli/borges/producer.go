@@ -17,21 +17,19 @@ const (
 )
 
 type producerCmd struct {
-	BeanstalkURL  string `long:"beanstalk" default:"127.0.0.1:11300" description:"beanstalk url server"`
-	BeanstalkTube string `long:"tube" default:"borges" description:"beanstalk tube name"`
-	Source        string `long:"source" default:"mentions" description:"source to produce jobs from (mentions, file)"`
-	File          string `long:"file" description:"path to a file to read URLs from, used with --source=file"`
+	cmd
+	Source string `long:"source" default:"mentions" description:"source to produce jobs from (mentions, file)"`
+	File   string `long:"file" description:"path to a file to read URLs from, used with --source=file"`
 }
 
 func (c *producerCmd) Execute(args []string) error {
-	var err error
-	b, err := queue.NewBeanstalkBroker(c.BeanstalkURL)
+	b, err := queue.NewBroker(c.Broker)
 	if err != nil {
 		return err
 	}
 
 	defer b.Close()
-	q, err := b.Queue(c.BeanstalkTube)
+	q, err := b.Queue(c.Queue)
 	if err != nil {
 		return err
 	}

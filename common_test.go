@@ -10,8 +10,8 @@ import (
 )
 
 const (
-	testBeanstalkAddress = "localhost:11300"
-	testQueue            = "borges_test_tube"
+	testBrokerURI   = "amqp://localhost:5672"
+	testQueuePrefix = "borges_test_queue"
 )
 
 type BaseQueueSuite struct {
@@ -23,7 +23,7 @@ type BaseQueueSuite struct {
 
 func (s *BaseQueueSuite) SetupSuite() {
 	assert := assert.New(s.T())
-	s.queueName = fmt.Sprintf("%s_%d", testQueue, time.Now().UnixNano())
+	s.queueName = fmt.Sprintf("%s_%d", testQueuePrefix, time.Now().UnixNano())
 	s.connectQueue()
 	assert.NoError(s.broker.Close())
 }
@@ -40,7 +40,7 @@ func (s *BaseQueueSuite) TearDownTest() {
 func (s *BaseQueueSuite) connectQueue() {
 	assert := assert.New(s.T())
 	var err error
-	s.broker, err = queue.NewBeanstalkBroker(testBeanstalkAddress)
+	s.broker, err = queue.NewBroker(testBrokerURI)
 	assert.NoError(err)
 	s.queue, err = s.broker.Queue(s.queueName)
 	assert.NoError(err)

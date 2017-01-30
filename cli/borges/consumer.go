@@ -13,19 +13,18 @@ const (
 )
 
 type consumerCmd struct {
-	BeanstalkURL  string `long:"beanstalk" default:"127.0.0.1:11300" description:"beanstalk url server"`
-	BeanstalkTube string `long:"tube" default:"borges" description:"beanstalk tube name"`
-	WorkersCount  int    `long:"workers" default:"8" description:"number of workers"`
+	cmd
+	WorkersCount int `long:"workers" default:"8" description:"number of workers"`
 }
 
 func (c *consumerCmd) Execute(args []string) error {
-	b, err := queue.NewBeanstalkBroker(c.BeanstalkURL)
+	b, err := queue.NewBroker(c.Broker)
 	if err != nil {
 		return err
 	}
 
 	defer b.Close()
-	q, err := b.Queue(c.BeanstalkTube)
+	q, err := b.Queue(c.Queue)
 	if err != nil {
 		return err
 	}
