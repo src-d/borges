@@ -6,8 +6,8 @@ import (
 
 	"github.com/src-d/borges"
 
-	"gopkg.in/src-d/go-git.v4/utils/ioutil"
 	"srcd.works/framework.v0/queue"
+	"srcd.works/go-git.v4/utils/ioutil"
 )
 
 const (
