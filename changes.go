@@ -58,6 +58,20 @@ func (c *Command) Action() Action {
 // is different, then the changes will contain a delete command and a
 // create command. If a new reference has more than one init commit, at least
 // one create command per init commit will be created.
+//
+// Here are all possible cases for up to one reference.
+// We use the notation a<11,01> to refer to reference 'a', pointing to hash
+// '11' with initial commit '01'.
+//
+// 	Old		New		Changes
+//	---		---		-------
+//	Ø		Ø		Ø
+//	Ø		a<11,01>	01 -> c<a,11>
+//	a<11,01>	Ø		01 -> d<a,11>
+//	a<11,01>	a<12,01>	01 -> u<a,11,12>
+//	a<11,01>	a<11,02>	01 -> d<a,11> | 02 -> c<a,11> (invalid)
+//	a<11,01>	a<12,02>	01 -> d<a,11> | 02 -> c<a,12>
+//
 func NewChanges(oldReferences []*models.Reference, repository *git.Repository) (Changes, error) {
 	now := time.Now()
 	return newChanges(now, oldReferences, repository)
