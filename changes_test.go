@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"srcd.works/core.v0/models"
 	"srcd.works/go-billy.v1/memfs"
 	"srcd.works/go-git.v4"
 	"srcd.works/go-git.v4/storage/filesystem"
@@ -136,7 +137,7 @@ func (s *ChangesSuite) TestNewChanges_AllReferencesAreOld() {
 	s.check(&changesTest{
 		Repository:      s.r,
 		InitCommitCount: 0,
-		OldReferences: []*Reference{
+		OldReferences: []*models.Reference{
 			getByName("refs/heads/master", s.specs).ToRef(),
 			getByName("refs/heads/branch", s.specs).ToRef(),
 
@@ -159,7 +160,7 @@ func (s *ChangesSuite) TestNewChanges_TwoOldReferences() {
 	s.check(&changesTest{
 		Repository:      s.r,
 		InitCommitCount: 6,
-		OldReferences: []*Reference{
+		OldReferences: []*models.Reference{
 			getByName("refs/heads/master", s.specs).ToRef(),
 			getByName("refs/heads/1", s.specs).ToRef(),
 		},
@@ -183,7 +184,7 @@ func (s *ChangesSuite) TestNewChanges_UpdateAReference() {
 	s.check(&changesTest{
 		Repository:      s.r,
 		InitCommitCount: 7,
-		OldReferences: []*Reference{
+		OldReferences: []*models.Reference{
 			getByName("refs/heads/master", s.specs).WithHead(s.aHash).ToRef(),
 		},
 		Expected: []*refFixture{
@@ -209,7 +210,7 @@ func (s *ChangesSuite) TestNewChanges_RootCommitChanges() {
 	s.check(&changesTest{
 		Repository:      s.r,
 		InitCommitCount: 8,
-		OldReferences: []*Reference{
+		OldReferences: []*models.Reference{
 			refRootChange.ToRef(),
 		},
 		Expected: []*refFixture{
@@ -239,7 +240,7 @@ func (s *ChangesSuite) TestNewChanges_RootCommitsChangeFromTwoToOne() {
 	s.check(&changesTest{
 		Repository:      s.r,
 		InitCommitCount: 8,
-		OldReferences: []*Reference{
+		OldReferences: []*models.Reference{
 			refRootChange.ToRef(),
 		},
 		Expected: []*refFixture{
@@ -275,7 +276,7 @@ func (s *ChangesSuite) TestNewChanges_EmptyRepositoryPreviousReferences() {
 	s.check(&changesTest{
 		Repository:      newEmptyRepository(),
 		InitCommitCount: 1,
-		OldReferences: []*Reference{
+		OldReferences: []*models.Reference{
 			getByName("refs/heads/master", s.specs).ToRef(),
 		},
 		Expected: []*refFixture{
@@ -327,7 +328,7 @@ func (s *ChangesSuite) check(ct *changesTest) {
 type changesTest struct {
 	Repository      *git.Repository
 	InitCommitCount int
-	OldReferences   []*Reference
+	OldReferences   []*models.Reference
 	Expected        []*refFixture
 }
 
@@ -377,9 +378,9 @@ func (rs *refFixture) WithRoots(roots ...string) *refFixture {
 	}
 }
 
-func (rs *refFixture) ToRef() *Reference {
+func (rs *refFixture) ToRef() *models.Reference {
 	roots := rs.toHash(rs.Roots...)
-	return &Reference{
+	return &models.Reference{
 		Roots: roots,
 		Init:  roots[0],
 		Hash:  rs.toHash(rs.Head)[0],
@@ -387,11 +388,11 @@ func (rs *refFixture) ToRef() *Reference {
 	}
 }
 
-func (rs *refFixture) toHash(hs ...string) []SHA1 {
-	var result []SHA1
+func (rs *refFixture) toHash(hs ...string) []models.SHA1 {
+	var result []models.SHA1
 	for _, h := range hs {
 		b, _ := hex.DecodeString(h)
-		var h SHA1
+		var h models.SHA1
 		copy(h[:], b)
 
 		result = append(result, h)
@@ -400,7 +401,7 @@ func (rs *refFixture) toHash(hs ...string) []SHA1 {
 	return result
 }
 
-func withInitCommit(initCommit SHA1, r []*refFixture) []*refFixture {
+func withInitCommit(initCommit models.SHA1, r []*refFixture) []*refFixture {
 	ic := initCommit.String()
 
 	var result []*refFixture
@@ -435,7 +436,7 @@ func getByName(name string, r []*refFixture) *refFixture {
 	panic("not found: " + name)
 }
 
-func getRefByName(name string, r []*Reference) *Reference {
+func getRefByName(name string, r []*models.Reference) *models.Reference {
 	for _, sr := range r {
 		if sr.Name == name {
 			return sr
