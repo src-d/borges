@@ -3,6 +3,8 @@ package borges
 import (
 	"time"
 
+	"github.com/src-d/go-kallax"
+	"srcd.works/core.v0/models"
 	"srcd.works/go-git.v4"
 	"srcd.works/go-git.v4/plumbing"
 	"srcd.works/go-git.v4/plumbing/object"
@@ -12,7 +14,7 @@ import (
 // map key is the hash of a init commit, and the value is a slice of Command
 // that can be add a new reference, delete a reference or update the hash a
 // reference points to.
-type Changes map[SHA1][]*Command
+type Changes map[models.SHA1][]*Command
 
 type Action string
 
@@ -28,8 +30,8 @@ const (
 // - Update: A previous reference is updated. This means its head changes.
 // - Delete: A previous reference does not exist now.
 type Command struct {
-	Old *Reference
-	New *Reference
+	Old *models.Reference
+	New *models.Reference
 }
 
 // Action returns the action related to this command depending of his content
@@ -56,7 +58,7 @@ func (c *Command) Action() Action {
 // is different, then the changes will contain a delete command and a
 // create command. If a new reference has more than one init commit, at least
 // one create command per init commit will be created.
-func NewChanges(oldReferences []*Reference, repository *git.Repository) (Changes, error) {
+func NewChanges(oldReferences []*models.Reference, repository *git.Repository) (Changes, error) {
 	refIter, err := repository.References()
 	if err != nil {
 		return nil, err
@@ -81,7 +83,7 @@ func NewChanges(oldReferences []*Reference, repository *git.Repository) (Changes
 func addChangesBetweenOldAndNewReferences(
 	c Changes,
 	rReference *plumbing.Reference,
-	oldRefs map[string]*Reference,
+	oldRefs map[string]*models.Reference,
 	r *git.Repository) error {
 	now := time.Now()
 
@@ -99,13 +101,15 @@ func addChangesBetweenOldAndNewReferences(
 	// If we don't have the reference or the init commit has changed,
 	// we will create a new reference
 	if ref == nil || roots[0] != ref.Init {
-		newReference := &Reference{
-			Name:        rReference.Name().String(),
-			Hash:        SHA1(rReference.Hash()),
-			Init:        roots[0],
-			Roots:       roots,
-			FirstSeenAt: now,
-			UpdatedAt:   now,
+		newReference := &models.Reference{
+			Name:  rReference.Name().String(),
+			Hash:  models.SHA1(rReference.Hash()),
+			Init:  roots[0],
+			Roots: roots,
+			Timestamps: kallax.Timestamps{
+				CreatedAt: now,
+				UpdatedAt: now,
+			},
 		}
 		c.Add(newReference)
 
@@ -113,13 +117,15 @@ func addChangesBetweenOldAndNewReferences(
 	}
 
 	if rReference.Hash() != plumbing.Hash(ref.Hash) {
-		updateReference := &Reference{
-			Name:        rReference.Name().String(),
-			Hash:        SHA1(rReference.Hash()),
-			Init:        roots[0],
-			Roots:       roots,
-			FirstSeenAt: ref.FirstSeenAt,
-			UpdatedAt:   now,
+		updateReference := &models.Reference{
+			Name:  rReference.Name().String(),
+			Hash:  models.SHA1(rReference.Hash()),
+			Init:  roots[0],
+			Roots: roots,
+			Timestamps: kallax.Timestamps{
+				CreatedAt: ref.CreatedAt,
+				UpdatedAt: now,
+			},
 		}
 		c.Update(ref, updateReference)
 	}
@@ -129,28 +135,28 @@ func addChangesBetweenOldAndNewReferences(
 	return nil
 }
 
-func (c Changes) Delete(old *Reference) {
+func (c Changes) Delete(old *models.Reference) {
 	c[old.Init] = append(c[old.Init], &Command{Old: old})
 }
 
-func (c Changes) Update(old, new *Reference) {
+func (c Changes) Update(old, new *models.Reference) {
 	c[new.Init] = append(c[new.Init], &Command{Old: old, New: new})
 }
 
-func (c Changes) Add(new *Reference) {
+func (c Changes) Add(new *models.Reference) {
 	c[new.Init] = append(c[new.Init], &Command{New: new})
 }
 
-func rootCommits(r *git.Repository, from plumbing.Hash) ([]SHA1, error) {
+func rootCommits(r *git.Repository, from plumbing.Hash) ([]models.SHA1, error) {
 	c, err := r.Commit(from)
 	if err != nil {
 		return nil, err
 	}
 
-	var roots []SHA1
+	var roots []models.SHA1
 	err = object.WalkCommitHistory(c, func(wc *object.Commit) error {
 		if wc.NumParents() == 0 {
-			roots = append(roots, SHA1(wc.Hash))
+			roots = append(roots, models.SHA1(wc.Hash))
 		}
 
 		return nil
@@ -162,8 +168,8 @@ func rootCommits(r *git.Repository, from plumbing.Hash) ([]SHA1, error) {
 	return roots, nil
 }
 
-func refsByName(refs []*Reference) map[string]*Reference {
-	result := make(map[string]*Reference)
+func refsByName(refs []*models.Reference) map[string]*models.Reference {
+	result := make(map[string]*models.Reference)
 	for _, r := range refs {
 		result[r.Name] = r
 	}
