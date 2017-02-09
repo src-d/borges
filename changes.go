@@ -3,9 +3,9 @@ package borges
 import (
 	"time"
 
-	"gopkg.in/src-d/go-git.v4"
-	"gopkg.in/src-d/go-git.v4/plumbing"
-	"gopkg.in/src-d/go-git.v4/plumbing/object"
+	"srcd.works/go-git.v4"
+	"srcd.works/go-git.v4/plumbing"
+	"srcd.works/go-git.v4/plumbing/object"
 )
 
 // Changes represents several actions to realize to our root repositories. The

@@ -6,11 +6,12 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"gopkg.in/src-d/go-git.v4"
-	"gopkg.in/src-d/go-git.v4/config"
-	"gopkg.in/src-d/go-git.v4/storage/filesystem"
-	osfs "srcd.works/go-billy.v1/os"
+	"srcd.works/go-billy.v1/osfs"
 	"srcd.works/go-errors.v0"
+	"srcd.works/go-git.v4"
+	"srcd.works/go-git.v4/config"
+	"srcd.works/go-git.v4/plumbing/storer"
+	"srcd.works/go-git.v4/storage/filesystem"
 )
 
 const tempDir = "/tmp/borges"
@@ -141,14 +142,18 @@ func (a *Archiver) notifyWarn(j *Job, err error) {
 // hardcoded into his storage. This is intended to be able to do a partial fetch.
 // Having the references into the storage we will only download new objects, not
 // the entire repository.
-func createLocalRepository(dir string, j *Job, rs []*Reference) (*git.Repository, error) {
-	strg, err := filesystemStorageWithReferences(dir, rs)
+func createLocalRepository(dir string, j *Job, refs []*Reference) (*git.Repository, error) {
+	s, err := filesystem.NewStorage(osfs.New(dir))
 	if err != nil {
 		return nil, err
 	}
 
-	repo, err := git.NewRepository(strg)
+	r, err := git.Init(s, nil)
 	if err != nil {
+		return nil, err
+	}
+
+	if err := setReferences(s, refs...); err != nil {
 		return nil, err
 	}
 
@@ -156,29 +161,21 @@ func createLocalRepository(dir string, j *Job, rs []*Reference) (*git.Repository
 		Name: "origin",
 		URL:  j.URL,
 	}
-	if _, err := repo.CreateRemote(c); err != nil {
+	if _, err := r.CreateRemote(c); err != nil {
 		return nil, err
 	}
 
-	return repo, nil
+	return r, nil
 }
 
-func filesystemStorageWithReferences(
-	dir string, rs []*Reference) (*filesystem.Storage, error) {
-	strg, err := filesystem.NewStorage(osfs.New(dir))
-	if err != nil {
-		return nil, err
-	}
-
-	for _, rr := range rs {
-		if err := strg.ReferenceStorage.
-			SetReference(rr.GitReference()); err != nil {
-
-			return nil, err
+func setReferences(s storer.ReferenceStorer, refs ...*Reference) error {
+	for _, ref := range refs {
+		if err := s.SetReference(ref.GitReference()); err != nil {
+			return err
 		}
 	}
 
-	return strg, nil
+	return nil
 }
 
 // NewArchiverWorkerPool creates a new WorkerPool that uses an Archiver to

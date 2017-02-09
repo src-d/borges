@@ -6,12 +6,12 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/src-d/go-git-fixtures"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"gopkg.in/src-d/go-git.v4"
-	"gopkg.in/src-d/go-git.v4/fixtures"
-	"gopkg.in/src-d/go-git.v4/plumbing"
-	"gopkg.in/src-d/go-git.v4/plumbing/object"
+	"srcd.works/go-git.v4"
+	"srcd.works/go-git.v4/plumbing"
+	"srcd.works/go-git.v4/plumbing/object"
 )
 
 func TestArchiverSuite(t *testing.T) {

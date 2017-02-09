@@ -4,11 +4,14 @@ import (
 	"encoding/hex"
 	"testing"
 
+	"github.com/src-d/go-git-fixtures"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"gopkg.in/src-d/go-git.v4"
-	"gopkg.in/src-d/go-git.v4/fixtures"
-	"gopkg.in/src-d/go-git.v4/storage/filesystem"
+	"srcd.works/go-billy.v1/memfs"
+	"srcd.works/go-git.v4"
+	"srcd.works/go-git.v4/storage/filesystem"
+	"srcd.works/go-git.v4/storage/memory"
 )
 
 func TestChangesSuite(t *testing.T) {
@@ -23,17 +26,18 @@ type ChangesSuite struct {
 	bHash string
 }
 
-func (s *ChangesSuite) SetupSuite() {
+func (s *ChangesSuite) SetupTest() {
 	assert := assert.New(s.T())
 
 	fixtures.Init()
 
 	srcFs := fixtures.ByTag("root-reference").One().DotGit()
 	sto, err := filesystem.NewStorage(srcFs)
-	assert.Nil(err)
+	assert.NoError(err)
 
-	r, err := git.NewRepository(sto)
-	assert.Nil(err)
+	r, err := git.Open(sto, memfs.New())
+	assert.NoError(err)
+	assert.NotNil(r)
 	s.r = r
 
 	s.aHash = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
@@ -101,7 +105,7 @@ func (s *ChangesSuite) SetupSuite() {
 	}
 }
 
-func (s *ChangesSuite) TearDownSuite() {
+func (s *ChangesSuite) TearDownTest() {
 	fixtures.Clean()
 }
 
@@ -260,7 +264,7 @@ func (s *ChangesSuite) TestNewChanges_RootCommitsChangeFromTwoToOne() {
 
 func (s *ChangesSuite) TestNewChanges_EmptyRepository() {
 	s.check(&changesTest{
-		Repository:      git.NewMemoryRepository(),
+		Repository:      newEmptyRepository(),
 		InitCommitCount: 0,
 		OldReferences:   nil,
 		Expected:        nil,
@@ -269,7 +273,7 @@ func (s *ChangesSuite) TestNewChanges_EmptyRepository() {
 
 func (s *ChangesSuite) TestNewChanges_EmptyRepositoryPreviousReferences() {
 	s.check(&changesTest{
-		Repository:      git.NewMemoryRepository(),
+		Repository:      newEmptyRepository(),
 		InitCommitCount: 1,
 		OldReferences: []*Reference{
 			getByName("refs/heads/master", s.specs).ToRef(),
@@ -282,6 +286,9 @@ func (s *ChangesSuite) TestNewChanges_EmptyRepositoryPreviousReferences() {
 
 func (s *ChangesSuite) check(ct *changesTest) {
 	assert := assert.New(s.T())
+	require := require.New(s.T())
+
+	require.NotNil(ct.Repository)
 
 	changes, err := NewChanges(ct.OldReferences, ct.Repository)
 	assert.Nil(err)
@@ -425,7 +432,7 @@ func getByName(name string, r []*refFixture) *refFixture {
 		}
 	}
 
-	return nil
+	panic("not found: " + name)
 }
 
 func getRefByName(name string, r []*Reference) *Reference {
@@ -435,5 +442,14 @@ func getRefByName(name string, r []*Reference) *Reference {
 		}
 	}
 
-	return nil
+	panic("not found: " + name)
+}
+
+func newEmptyRepository() *git.Repository {
+	r, err := git.Init(memory.NewStorage(), nil)
+	if err != nil {
+		panic(err)
+	}
+
+	return r
 }

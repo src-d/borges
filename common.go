@@ -5,8 +5,8 @@ import (
 	"io"
 	"time"
 
-	"gopkg.in/src-d/go-git.v4/plumbing"
 	"srcd.works/go-errors.v0"
+	"srcd.works/go-git.v4/plumbing"
 )
 
 var (
