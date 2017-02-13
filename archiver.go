@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"srcd.works/core.v0/models"
+	"srcd.works/core.v0/model"
 	"srcd.works/go-billy.v1/osfs"
 	"srcd.works/go-errors.v0"
 	"srcd.works/go-git.v4"
@@ -95,10 +95,10 @@ func (a *Archiver) do(j *Job) error {
 	return nil
 }
 
-func (a *Archiver) getRepositoryModel(j *Job) (*models.Repository, error) {
+func (a *Archiver) getRepositoryModel(j *Job) (*model.Repository, error) {
 	//TODO: if id == 0 { generate new repository with URL }
 	//      else { get from DB }
-	return &models.Repository{}, nil
+	return &model.Repository{}, nil
 }
 
 func (a *Archiver) newRepoDir(j *Job) (string, error) {
@@ -143,7 +143,7 @@ func (a *Archiver) notifyWarn(j *Job, err error) {
 // hardcoded into his storage. This is intended to be able to do a partial fetch.
 // Having the references into the storage we will only download new objects, not
 // the entire repository.
-func createLocalRepository(dir string, j *Job, refs []*models.Reference) (*git.Repository, error) {
+func createLocalRepository(dir string, j *Job, refs []*model.Reference) (*git.Repository, error) {
 	s, err := filesystem.NewStorage(osfs.New(dir))
 	if err != nil {
 		return nil, err
@@ -169,7 +169,7 @@ func createLocalRepository(dir string, j *Job, refs []*models.Reference) (*git.R
 	return r, nil
 }
 
-func setReferences(s storer.ReferenceStorer, refs ...*models.Reference) error {
+func setReferences(s storer.ReferenceStorer, refs ...*model.Reference) error {
 	for _, ref := range refs {
 		if err := s.SetReference(ref.GitReference()); err != nil {
 			return err

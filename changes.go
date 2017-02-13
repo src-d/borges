@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/src-d/go-kallax"
-	"srcd.works/core.v0/models"
+	"srcd.works/core.v0/model"
 	"srcd.works/go-git.v4"
 	"srcd.works/go-git.v4/plumbing"
 	"srcd.works/go-git.v4/plumbing/object"
@@ -14,7 +14,7 @@ import (
 // map key is the hash of a init commit, and the value is a slice of Command
 // that can be add a new reference, delete a reference or update the hash a
 // reference points to.
-type Changes map[models.SHA1][]*Command
+type Changes map[model.SHA1][]*Command
 
 type Action string
 
@@ -30,8 +30,8 @@ const (
 // - Update: A previous reference is updated. This means its head changes.
 // - Delete: A previous reference does not exist now.
 type Command struct {
-	Old *models.Reference
-	New *models.Reference
+	Old *model.Reference
+	New *model.Reference
 }
 
 // Action returns the action related to this command depending of his content
@@ -72,12 +72,12 @@ func (c *Command) Action() Action {
 //	a<11,01>	a<11,02>	01 -> d<a,11> | 02 -> c<a,11> (invalid)
 //	a<11,01>	a<12,02>	01 -> d<a,11> | 02 -> c<a,12>
 //
-func NewChanges(oldReferences []*models.Reference, repository *git.Repository) (Changes, error) {
+func NewChanges(oldReferences []*model.Reference, repository *git.Repository) (Changes, error) {
 	now := time.Now()
 	return newChanges(now, oldReferences, repository)
 }
 
-func newChanges(now time.Time, oldReferences []*models.Reference, repository *git.Repository) (Changes, error) {
+func newChanges(now time.Time, oldReferences []*model.Reference, repository *git.Repository) (Changes, error) {
 	refIter, err := repository.References()
 	if err != nil {
 		return nil, err
@@ -103,7 +103,7 @@ func addChangesBetweenOldAndNewReferences(
 	now time.Time,
 	c Changes,
 	rReference *plumbing.Reference,
-	oldRefs map[string]*models.Reference,
+	oldRefs map[string]*model.Reference,
 	r *git.Repository) error {
 
 	if rReference.Type() != plumbing.HashReference || rReference.IsRemote() {
@@ -124,9 +124,9 @@ func addChangesBetweenOldAndNewReferences(
 		if ref != nil {
 			createdAt = ref.CreatedAt
 		}
-		newReference := &models.Reference{
+		newReference := &model.Reference{
 			Name:  rReference.Name().String(),
-			Hash:  models.SHA1(rReference.Hash()),
+			Hash:  model.SHA1(rReference.Hash()),
 			Init:  roots[0],
 			Roots: roots,
 			Timestamps: kallax.Timestamps{
@@ -140,9 +140,9 @@ func addChangesBetweenOldAndNewReferences(
 	}
 
 	if rReference.Hash() != plumbing.Hash(ref.Hash) {
-		updateReference := &models.Reference{
+		updateReference := &model.Reference{
 			Name:  rReference.Name().String(),
-			Hash:  models.SHA1(rReference.Hash()),
+			Hash:  model.SHA1(rReference.Hash()),
 			Init:  roots[0],
 			Roots: roots,
 			Timestamps: kallax.Timestamps{
@@ -158,28 +158,28 @@ func addChangesBetweenOldAndNewReferences(
 	return nil
 }
 
-func (c Changes) Delete(old *models.Reference) {
+func (c Changes) Delete(old *model.Reference) {
 	c[old.Init] = append(c[old.Init], &Command{Old: old})
 }
 
-func (c Changes) Update(old, new *models.Reference) {
+func (c Changes) Update(old, new *model.Reference) {
 	c[new.Init] = append(c[new.Init], &Command{Old: old, New: new})
 }
 
-func (c Changes) Add(new *models.Reference) {
+func (c Changes) Add(new *model.Reference) {
 	c[new.Init] = append(c[new.Init], &Command{New: new})
 }
 
-func rootCommits(r *git.Repository, from plumbing.Hash) ([]models.SHA1, error) {
+func rootCommits(r *git.Repository, from plumbing.Hash) ([]model.SHA1, error) {
 	c, err := r.Commit(from)
 	if err != nil {
 		return nil, err
 	}
 
-	var roots []models.SHA1
+	var roots []model.SHA1
 	err = object.WalkCommitHistory(c, func(wc *object.Commit) error {
 		if wc.NumParents() == 0 {
-			roots = append(roots, models.SHA1(wc.Hash))
+			roots = append(roots, model.SHA1(wc.Hash))
 		}
 
 		return nil
@@ -191,8 +191,8 @@ func rootCommits(r *git.Repository, from plumbing.Hash) ([]models.SHA1, error) {
 	return roots, nil
 }
 
-func refsByName(refs []*models.Reference) map[string]*models.Reference {
-	result := make(map[string]*models.Reference)
+func refsByName(refs []*model.Reference) map[string]*model.Reference {
+	result := make(map[string]*model.Reference)
 	for _, r := range refs {
 		result[r.Name] = r
 	}

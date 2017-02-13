@@ -9,7 +9,7 @@ import (
 	"github.com/src-d/go-git-fixtures"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"srcd.works/core.v0/models"
+	"srcd.works/core.v0/model"
 	"srcd.works/go-git.v4"
 	"srcd.works/go-git.v4/plumbing"
 	"srcd.works/go-git.v4/plumbing/object"
@@ -55,16 +55,16 @@ func (s *ArchiverSuite) TearDownSuite() {
 func (s *ArchiverSuite) TestCreateLocalRepository() {
 	assert := assert.New(s.T())
 
-	repo, err := createLocalRepository(s.tmpDir, s.j, []*models.Reference{
+	repo, err := createLocalRepository(s.tmpDir, s.j, []*model.Reference{
 		{
-			Hash: models.NewSHA1("918c48b83bd081e863dbe1b80f8998f058cd8294"),
+			Hash: model.NewSHA1("918c48b83bd081e863dbe1b80f8998f058cd8294"),
 			Name: "refs/remotes/origin/master",
-			Init: models.NewSHA1("b029517f6300c2da0f4b651b8642506cd6aaf45d"),
+			Init: model.NewSHA1("b029517f6300c2da0f4b651b8642506cd6aaf45d"),
 		}, {
 			// branch is up to date
-			Hash: models.NewSHA1("e8d3ffab552895c19b9fcf7aa264d277cde33881"),
+			Hash: model.NewSHA1("e8d3ffab552895c19b9fcf7aa264d277cde33881"),
 			Name: "refs/remotes/origin/branch",
-			Init: models.NewSHA1("b029517f6300c2da0f4b651b8642506cd6aaf45d"),
+			Init: model.NewSHA1("b029517f6300c2da0f4b651b8642506cd6aaf45d"),
 		},
 	})
 	assert.Nil(err)
