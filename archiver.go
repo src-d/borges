@@ -64,7 +64,7 @@ func (a *Archiver) do(j *Job) error {
 		return err
 	}
 
-	gr, err := createLocalRepository(dir, j, r.References)
+	gr, err := createLocalRepository(dir, r.Endpoints, r.References)
 	if err != nil {
 		return err
 	}
@@ -103,7 +103,7 @@ func (a *Archiver) getRepositoryModel(j *Job) (*model.Repository, error) {
 
 func (a *Archiver) newRepoDir(j *Job) (string, error) {
 	dir := filepath.Join(a.TempDir, "repos",
-		strconv.FormatUint(j.RepositoryID, 10),
+		j.RepositoryID.String(),
 		strconv.Itoa(rand.Int()),
 	)
 	return dir, os.MkdirAll(dir, os.FileMode(0755))
@@ -143,7 +143,7 @@ func (a *Archiver) notifyWarn(j *Job, err error) {
 // hardcoded into his storage. This is intended to be able to do a partial fetch.
 // Having the references into the storage we will only download new objects, not
 // the entire repository.
-func createLocalRepository(dir string, j *Job, refs []*model.Reference) (*git.Repository, error) {
+func createLocalRepository(dir string, endpoints []string, refs []*model.Reference) (*git.Repository, error) {
 	s, err := filesystem.NewStorage(osfs.New(dir))
 	if err != nil {
 		return nil, err
@@ -158,9 +158,10 @@ func createLocalRepository(dir string, j *Job, refs []*model.Reference) (*git.Re
 		return nil, err
 	}
 
+	// TODO check which endpoint to use
 	c := &config.RemoteConfig{
 		Name: "origin",
-		URL:  j.URL,
+		URL:  endpoints[0],
 	}
 	if _, err := r.CreateRemote(c); err != nil {
 		return nil, err

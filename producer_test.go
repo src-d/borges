@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -96,4 +97,4 @@ func (s *ProducerSuite) TestStartStop_noNotifier() {
 type DummyJobIter struct{}
 
 func (j DummyJobIter) Close() error        { return errors.New("SOME CLOSE ERROR") }
-func (j DummyJobIter) Next() (*Job, error) { return &Job{RepositoryID: 0, URL: "URL"}, nil }
+func (j DummyJobIter) Next() (*Job, error) { return &Job{RepositoryID: uuid.Nil}, nil }

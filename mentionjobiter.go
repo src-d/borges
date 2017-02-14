@@ -1,5 +1,7 @@
 package borges
 
+import "github.com/satori/go.uuid"
+
 type mentionJobIter struct{}
 
 // NewMentionJobIter returns a JobIter that returns jobs generated from
@@ -10,8 +12,7 @@ func NewMentionJobIter() JobIter {
 
 func (i *mentionJobIter) Next() (*Job, error) {
 	//TODO: this is still a stub implementation
-	url := "git://github.com/git-fixtures/basic.git"
-	return &Job{RepositoryID: 0, URL: url}, nil
+	return &Job{RepositoryID: uuid.Nil}, nil
 }
 
 func (i *mentionJobIter) Close() error {
