@@ -6,6 +6,7 @@ import (
 
 	"github.com/src-d/borges"
 
+	"srcd.works/core.v0"
 	"srcd.works/framework.v0/queue"
 	"srcd.works/go-git.v4/utils/ioutil"
 )
@@ -18,8 +19,9 @@ const (
 
 type producerCmd struct {
 	cmd
-	Source string `long:"source" default:"mentions" description:"source to produce jobs from (mentions, file)"`
-	File   string `long:"file" description:"path to a file to read URLs from, used with --source=file"`
+	Source        string `long:"source" default:"mentions" description:"source to produce jobs from (mentions, file)"`
+	MentionsQueue string `long:"mentionsqueue" default:"rovers" description:"queue name used to obtain mentions if the source type is 'mentions'"`
+	File          string `long:"file" description:"path to a file to read URLs from, used with --source=file"`
 }
 
 func (c *producerCmd) Execute(args []string) error {
@@ -34,7 +36,7 @@ func (c *producerCmd) Execute(args []string) error {
 		return err
 	}
 
-	ji, err := c.jobIter()
+	ji, err := c.jobIter(b)
 	if err != nil {
 		return err
 	}
@@ -46,16 +48,22 @@ func (c *producerCmd) Execute(args []string) error {
 	return err
 }
 
-func (c *producerCmd) jobIter() (borges.JobIter, error) {
+func (c *producerCmd) jobIter(b queue.Broker) (borges.JobIter, error) {
+	storer := core.ModelRepositoryStore()
+
 	switch c.Source {
 	case "mentions":
-		return borges.NewMentionJobIter(), nil
+		q, err := b.Queue(c.MentionsQueue)
+		if err != nil {
+			return nil, err
+		}
+		return borges.NewMentionJobIter(q, storer), nil
 	case "file":
 		f, err := os.Open(c.File)
 		if err != nil {
 			return nil, err
 		}
-		return borges.NewLineJobIter(f), nil
+		return borges.NewLineJobIter(f, storer), nil
 	default:
 		return nil, fmt.Errorf("invalid source: %s", c.Source)
 	}
