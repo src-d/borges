@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -20,7 +21,7 @@ func (s *ProducerSuite) newProducer() *Producer {
 	return NewProducer(NewMentionJobIter(), s.queue)
 }
 
-func (s *ProducerSuite) TestStarStop() {
+func (s *ProducerSuite) TestStartStop() {
 	assert := assert.New(s.T())
 	p := s.newProducer()
 
@@ -45,7 +46,36 @@ func (s *ProducerSuite) TestStarStop() {
 	assert.True(doneCalled > 1)
 }
 
-func (s *ProducerSuite) TestStarStop_noNotifier() {
+func (s *ProducerSuite) TestStartStop_ErrorNotifier() {
+	assert := assert.New(s.T())
+	p := NewProducer(&DummyJobIter{}, s.queue)
+
+	var errorCalled int
+	p.Notifiers.QueueError = func(err error) {
+		errorCalled++
+		assert.Error(err)
+	}
+
+	go p.Start()
+
+	time.Sleep(time.Millisecond * 100)
+	p.Stop()
+	assert.False(p.IsRunning())
+	assert.True(errorCalled == 1)
+}
+
+func (s *ProducerSuite) TestStartStop_ErrorNoNotifier() {
+	assert := assert.New(s.T())
+	p := NewProducer(&DummyJobIter{}, s.queue)
+
+	go p.Start()
+
+	time.Sleep(time.Millisecond * 100)
+	p.Stop()
+	assert.False(p.IsRunning())
+}
+
+func (s *ProducerSuite) TestStartStop_noNotifier() {
 	assert := assert.New(s.T())
 	p := s.newProducer()
 
@@ -62,3 +92,8 @@ func (s *ProducerSuite) TestStarStop_noNotifier() {
 	p.Stop()
 	assert.False(p.IsRunning())
 }
+
+type DummyJobIter struct{}
+
+func (j DummyJobIter) Close() error        { return errors.New("SOME CLOSE ERROR") }
+func (j DummyJobIter) Next() (*Job, error) { return &Job{RepositoryID: 0, URL: "URL"}, nil }

@@ -11,7 +11,8 @@ import (
 // Producer is a service to generate jobs and put them to the queue.
 type Producer struct {
 	Notifiers struct {
-		Done func(*Job, error)
+		Done       func(*Job, error)
+		QueueError func(error)
 	}
 
 	jobIter   JobIter
@@ -19,7 +20,9 @@ type Producer struct {
 	running   bool
 	startOnce *sync.Once
 	stopOnce  *sync.Once
-	wg        *sync.WaitGroup
+
+	// used by Stop() to wait until Start() has finished
+	startIsRunning chan struct{}
 }
 
 // NewProducer creates a new producer.
@@ -29,7 +32,6 @@ func NewProducer(jobIter JobIter, queue queue.Queue) *Producer {
 		queue:     queue,
 		startOnce: &sync.Once{},
 		stopOnce:  &sync.Once{},
-		wg:        &sync.WaitGroup{},
 	}
 }
 
@@ -50,8 +52,8 @@ func (p *Producer) Stop() {
 
 func (p *Producer) start() {
 	p.running = true
-	p.wg.Add(1)
-	defer p.wg.Done()
+	p.startIsRunning = make(chan struct{})
+	defer func() { close(p.startIsRunning) }()
 	for {
 		if !p.running {
 			break
@@ -88,7 +90,28 @@ func (p *Producer) add(j *Job) error {
 
 func (p *Producer) stop() {
 	p.running = false
-	p.wg.Wait()
+	p.closeIter()
+	<-p.startIsRunning
+}
+
+func (p *Producer) closeIter() {
+	if p.jobIter == nil {
+		return
+	}
+
+	if err := p.jobIter.Close(); err != nil {
+		p.notifyQueueError(err)
+	}
+
+	p.jobIter = nil
+}
+
+func (p *Producer) notifyQueueError(err error) {
+	if p.Notifiers.QueueError == nil {
+		return
+	}
+
+	p.Notifiers.QueueError(err)
 }
 
 func (p *Producer) notifyDone(j *Job, err error) {
