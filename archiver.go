@@ -20,6 +20,7 @@ const tempDir = "/tmp/borges"
 var (
 	ErrNotSupported       = errors.NewKind("feature not supported: %s")
 	ErrCleanRepositoryDir = errors.NewKind("cleaning up local repo dir failed")
+	ErrEndpointsEmpty     = errors.NewKind("endpoints is empty")
 )
 
 // Archiver archives repositories. Archiver instances are thread-safe and can
@@ -64,7 +65,12 @@ func (a *Archiver) do(j *Job) error {
 		return err
 	}
 
-	gr, err := createLocalRepository(dir, r.Endpoints, r.References)
+	endpoint, err := selectEndpoint(r.Endpoints)
+	if err != nil {
+		return err
+	}
+
+	gr, err := createLocalRepository(dir, endpoint, r.References)
 	if err != nil {
 		return err
 	}
@@ -139,11 +145,20 @@ func (a *Archiver) notifyWarn(j *Job, err error) {
 	a.Notifiers.Warn(j, err)
 }
 
+func selectEndpoint(endpoints []string) (string, error) {
+	if len(endpoints) == 0 {
+		return "", ErrEndpointsEmpty.New()
+	}
+
+	// TODO check which endpoint to use
+	return endpoints[0], nil
+}
+
 // createLocalRepository creates a new repository with some predefined references
 // hardcoded into his storage. This is intended to be able to do a partial fetch.
 // Having the references into the storage we will only download new objects, not
 // the entire repository.
-func createLocalRepository(dir string, endpoints []string, refs []*model.Reference) (*git.Repository, error) {
+func createLocalRepository(dir string, endpoint string, refs []*model.Reference) (*git.Repository, error) {
 	s, err := filesystem.NewStorage(osfs.New(dir))
 	if err != nil {
 		return nil, err
@@ -158,10 +173,9 @@ func createLocalRepository(dir string, endpoints []string, refs []*model.Referen
 		return nil, err
 	}
 
-	// TODO check which endpoint to use
 	c := &config.RemoteConfig{
 		Name: "origin",
-		URL:  endpoints[0],
+		URL:  endpoint,
 	}
 	if _, err := r.CreateRemote(c); err != nil {
 		return nil, err

@@ -21,8 +21,8 @@ func TestArchiverSuite(t *testing.T) {
 
 type ArchiverSuite struct {
 	suite.Suite
-	tmpDir    string
-	endpoints []string
+	tmpDir   string
+	endpoint string
 
 	lastCommit plumbing.Hash
 }
@@ -37,7 +37,7 @@ func (s *ArchiverSuite) SetupSuite() {
 
 	s.lastCommit = plumbing.NewHash("6ecf0ef2c2dffb796033e5a02219af86ec6584e5")
 
-	s.endpoints = []string{fmt.Sprintf("file://%s", fixtures.Basic().One().DotGit().Base())}
+	s.endpoint = fmt.Sprintf("file://%s", fixtures.Basic().One().DotGit().Base())
 }
 
 func (s *ArchiverSuite) TearDownSuite() {
@@ -53,7 +53,7 @@ func (s *ArchiverSuite) TearDownSuite() {
 func (s *ArchiverSuite) TestCreateLocalRepository() {
 	assert := assert.New(s.T())
 
-	repo, err := createLocalRepository(s.tmpDir, s.endpoints, []*model.Reference{
+	repo, err := createLocalRepository(s.tmpDir, s.endpoint, []*model.Reference{
 		{
 			Hash: model.NewSHA1("918c48b83bd081e863dbe1b80f8998f058cd8294"),
 			Name: "refs/remotes/origin/master",
