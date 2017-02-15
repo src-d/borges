@@ -6,17 +6,17 @@ import (
 )
 
 type mentionJobIter struct {
-	*baseJobIter
-	q    queue.Queue
-	iter queue.JobIter
+	storer *repositoryStore
+	q      queue.Queue
+	iter   queue.JobIter
 }
 
 // NewMentionJobIter returns a JobIter that returns jobs generated from
 // mentions received from a queue (e.g. from rovers).
 func NewMentionJobIter(q queue.Queue, storer *model.RepositoryStore) JobIter {
 	return &mentionJobIter{
-		baseJobIter: &baseJobIter{storer},
-		q:           q,
+		storer:  &repositoryStore{storer},
+		q:      q,
 	}
 }
 
@@ -31,7 +31,7 @@ func (i *mentionJobIter) Next() (*Job, error) {
 		return nil, err
 	}
 
-	ID, err := i.getRepositoryID(endpoint)
+	ID, err := i.storer.RepositoryID(endpoint)
 	if err != nil {
 		return nil, err
 	}

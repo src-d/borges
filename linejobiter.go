@@ -7,11 +7,10 @@ import (
 	"net/url"
 
 	"srcd.works/core.v0/model"
-	"github.com/satori/go.uuid"
 )
 
 type lineJobIter struct {
-	*baseJobIter
+	storer *repositoryStore
 	*bufio.Scanner
 	r io.ReadCloser
 }
@@ -20,9 +19,9 @@ type lineJobIter struct {
 // with a list of repository URLs, one per line.
 func NewLineJobIter(r io.ReadCloser, storer *model.RepositoryStore) JobIter {
 	return &lineJobIter{
-		baseJobIter: &baseJobIter{storer},
-		Scanner:     bufio.NewScanner(r),
-		r:           r,
+		storer:  &repositoryStore{storer},
+		Scanner: bufio.NewScanner(r),
+		r:       r,
 	}
 }
 
@@ -45,7 +44,7 @@ func (i *lineJobIter) Next() (*Job, error) {
 		return nil, fmt.Errorf("expected absolute URL: %s", line)
 	}
 
-	ID, err := i.getRepositoryID(line)
+	ID, err := i.storer.RepositoryID(line)
 	if err != nil {
 		return nil, err
 	}
