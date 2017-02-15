@@ -10,7 +10,7 @@ import (
 )
 
 type lineJobIter struct {
-	storer *repositoryStore
+	storer *model.RepositoryStore
 	*bufio.Scanner
 	r io.ReadCloser
 }
@@ -19,7 +19,7 @@ type lineJobIter struct {
 // with a list of repository URLs, one per line.
 func NewLineJobIter(r io.ReadCloser, storer *model.RepositoryStore) JobIter {
 	return &lineJobIter{
-		storer:  &repositoryStore{storer},
+		storer:  storer,
 		Scanner: bufio.NewScanner(r),
 		r:       r,
 	}
@@ -44,7 +44,7 @@ func (i *lineJobIter) Next() (*Job, error) {
 		return nil, fmt.Errorf("expected absolute URL: %s", line)
 	}
 
-	ID, err := i.storer.RepositoryID(line)
+	ID, err := RepositoryID(line, i.storer)
 	if err != nil {
 		return nil, err
 	}
