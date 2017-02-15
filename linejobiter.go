@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"net/url"
+
+	"github.com/satori/go.uuid"
 )
 
 type lineJobIter struct {
@@ -37,7 +39,7 @@ func (i *lineJobIter) Next() (*Job, error) {
 		return nil, fmt.Errorf("expected absolute URL: %s", line)
 	}
 
-	return &Job{RepositoryID: 0, URL: line}, nil
+	return &Job{RepositoryID: uuid.Nil}, nil
 }
 
 // Close closes the underlying reader.

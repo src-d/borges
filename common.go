@@ -3,6 +3,7 @@ package borges
 import (
 	"io"
 
+	"github.com/satori/go.uuid"
 	"srcd.works/go-errors.v0"
 )
 
@@ -16,8 +17,7 @@ var (
 
 // Job represents a borges job to fetch and archive a repository.
 type Job struct {
-	RepositoryID uint64
-	URL          string
+	RepositoryID uuid.UUID
 }
 
 // JobIter is an iterator of Job.

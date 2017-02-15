@@ -63,8 +63,8 @@ func (c *producerCmd) jobIter() (borges.JobIter, error) {
 
 func (c *producerCmd) notifier(j *borges.Job, err error) {
 	if err != nil {
-		logger.Error("job queue error", "RepositoryID", j.RepositoryID, "URL", j.URL, "error", err)
+		logger.Error("job queue error", "RepositoryID", j.RepositoryID, "error", err)
 	} else {
-		logger.Info("job queued", "RepositoryID", j.RepositoryID, "URL", j.URL)
+		logger.Info("job queued", "RepositoryID", j.RepositoryID)
 	}
 }

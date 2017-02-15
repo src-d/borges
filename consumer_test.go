@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"srcd.works/framework.v0/queue"
@@ -58,7 +59,7 @@ func (s *ConsumerSuite) TestConsumer_StartStop() {
 
 	for i := 0; i < 1; i++ {
 		job := queue.NewJob()
-		assert.NoError(job.Encode(&Job{RepositoryID: uint64(i)}))
+		assert.NoError(job.Encode(&Job{RepositoryID: uuid.NewV4()}))
 		assert.NoError(s.queue.Publish(job))
 	}
 
