@@ -28,6 +28,11 @@ publish:
 compose:
   rabbitmq:
     image: rabbitmq
+  postgres:
+    image: postgres:9
+    environment:
+      - POSTGRES_USER=testing
+      - POSTGRES_PASSWORD=testing
 
 notify:
   slack:

@@ -22,10 +22,8 @@ type BaseQueueSuite struct {
 }
 
 func (s *BaseQueueSuite) SetupSuite() {
-	assert := assert.New(s.T())
 	s.queueName = fmt.Sprintf("%s_%d", testQueuePrefix, time.Now().UnixNano())
 	s.connectQueue()
-	assert.NoError(s.broker.Close())
 }
 
 func (s *BaseQueueSuite) SetupTest() {

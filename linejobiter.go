@@ -6,18 +6,23 @@ import (
 	"io"
 	"net/url"
 
-	"github.com/satori/go.uuid"
+	"srcd.works/core.v0/model"
 )
 
 type lineJobIter struct {
+	storer *model.RepositoryStore
 	*bufio.Scanner
 	r io.ReadCloser
 }
 
 // NewLineJobIter returns a JobIter that returns jobs generated from a reader
 // with a list of repository URLs, one per line.
-func NewLineJobIter(r io.ReadCloser) JobIter {
-	return &lineJobIter{Scanner: bufio.NewScanner(r), r: r}
+func NewLineJobIter(r io.ReadCloser, storer *model.RepositoryStore) JobIter {
+	return &lineJobIter{
+		storer:  storer,
+		Scanner: bufio.NewScanner(r),
+		r:       r,
+	}
 }
 
 func (i *lineJobIter) Next() (*Job, error) {
@@ -39,7 +44,12 @@ func (i *lineJobIter) Next() (*Job, error) {
 		return nil, fmt.Errorf("expected absolute URL: %s", line)
 	}
 
-	return &Job{RepositoryID: uuid.Nil}, nil
+	ID, err := RepositoryID(line, i.storer)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Job{RepositoryID: ID}, nil
 }
 
 // Close closes the underlying reader.
