@@ -2,6 +2,9 @@
 borges
 ======
 
+[![Build Status](http://drone.srcd.host/api/badges/src-d/borges/status.svg)](http://drone.srcd.host/src-d/borges)
+[![codecov.io](https://codecov.io/gh/src-d/borges/branch/master/graph/badge.svg?token=ETL49e3u1L)](https://codecov.io/gh/src-d/borges)
+
 **borges** archives repositories in a universal git library.
 
 > I have always imagined that Paradise will be a kind of library.
