@@ -8,7 +8,7 @@ import (
 
 	"srcd.works/core.v0"
 	"srcd.works/framework.v0/queue"
-	"srcd.works/go-git.v4/utils/ioutil"
+	"gopkg.in/src-d/go-git.v4/utils/ioutil"
 )
 
 const (

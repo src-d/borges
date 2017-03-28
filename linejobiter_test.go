@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/satori/go.uuid"
-	"github.com/src-d/go-kallax"
+	"gopkg.in/src-d/go-kallax.v1"
 	"github.com/stretchr/testify/require"
 	"srcd.works/core.v0"
 	"srcd.works/core.v0/model"

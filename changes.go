@@ -3,11 +3,11 @@ package borges
 import (
 	"time"
 
-	"github.com/src-d/go-kallax"
+	"gopkg.in/src-d/go-git.v4"
+	"gopkg.in/src-d/go-git.v4/plumbing"
+	"gopkg.in/src-d/go-git.v4/plumbing/object"
+	"gopkg.in/src-d/go-kallax.v1"
 	"srcd.works/core.v0/model"
-	"srcd.works/go-git.v4"
-	"srcd.works/go-git.v4/plumbing"
-	"srcd.works/go-git.v4/plumbing/object"
 )
 
 // Changes represents several actions to realize to our root repositories. The
@@ -171,7 +171,7 @@ func (c Changes) Add(new *model.Reference) {
 }
 
 func rootCommits(r *git.Repository, from plumbing.Hash) ([]model.SHA1, error) {
-	c, err := r.Commit(from)
+	c, err := r.CommitObject(from)
 	if err != nil {
 		return nil, err
 	}

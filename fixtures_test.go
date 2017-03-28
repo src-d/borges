@@ -4,12 +4,12 @@ import (
 	"time"
 
 	"github.com/src-d/go-git-fixtures"
-	"github.com/src-d/go-kallax"
+	"gopkg.in/src-d/go-billy.v2/memfs"
+	"gopkg.in/src-d/go-git.v4"
+	"gopkg.in/src-d/go-git.v4/storage/filesystem"
+	"gopkg.in/src-d/go-git.v4/storage/memory"
+	"gopkg.in/src-d/go-kallax.v1"
 	"srcd.works/core.v0/model"
-	"srcd.works/go-billy.v1/memfs"
-	"srcd.works/go-git.v4"
-	"srcd.works/go-git.v4/storage/filesystem"
-	"srcd.works/go-git.v4/storage/memory"
 )
 
 var (
