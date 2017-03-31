@@ -9,10 +9,10 @@ import (
 	"github.com/src-d/go-git-fixtures"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"gopkg.in/src-d/go-git.v4"
+	"gopkg.in/src-d/go-git.v4/plumbing"
+	"gopkg.in/src-d/go-git.v4/plumbing/object"
 	"srcd.works/core.v0/model"
-	"srcd.works/go-git.v4"
-	"srcd.works/go-git.v4/plumbing"
-	"srcd.works/go-git.v4/plumbing/object"
 )
 
 func TestArchiverSuite(t *testing.T) {
@@ -67,14 +67,14 @@ func (s *ArchiverSuite) TestCreateLocalRepository() {
 	})
 	assert.Nil(err)
 
-	c, err := repo.Commit(s.lastCommit)
+	c, err := repo.CommitObject(s.lastCommit)
 	assert.Nil(c)
 	assert.Error(err)
 
 	err = repo.Fetch(&git.FetchOptions{})
 	assert.NoError(err)
 
-	c, err = repo.Commit(s.lastCommit)
+	c, err = repo.CommitObject(s.lastCommit)
 	assert.NoError(err)
 	assert.NotNil(c)
 

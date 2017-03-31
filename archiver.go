@@ -6,13 +6,13 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"gopkg.in/src-d/go-billy.v2/osfs"
+	"gopkg.in/src-d/go-git.v4"
+	"gopkg.in/src-d/go-git.v4/config"
+	"gopkg.in/src-d/go-git.v4/plumbing/storer"
+	"gopkg.in/src-d/go-git.v4/storage/filesystem"
 	"srcd.works/core.v0/model"
-	"srcd.works/go-billy.v1/osfs"
 	"srcd.works/go-errors.v0"
-	"srcd.works/go-git.v4"
-	"srcd.works/go-git.v4/config"
-	"srcd.works/go-git.v4/plumbing/storer"
-	"srcd.works/go-git.v4/storage/filesystem"
 )
 
 const tempDir = "/tmp/borges"

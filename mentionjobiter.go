@@ -2,6 +2,7 @@ package borges
 
 import (
 	"srcd.works/core.v0/model"
+	rmodel "srcd.works/core-retrieval.v0/model"
 	"srcd.works/framework.v0/queue"
 )
 
@@ -67,7 +68,7 @@ func (i *mentionJobIter) getEndpoint() (string, *queue.Job, error) {
 	if err != nil {
 		return "", nil, err
 	}
-	var mention model.Mention
+	var mention rmodel.Mention
 	if err := j.Decode(&mention); err != nil {
 		return "", nil, err
 	}

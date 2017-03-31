@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"srcd.works/core.v0"
-	"srcd.works/core.v0/model"
+	rmodel "srcd.works/core-retrieval.v0/model"
 	"srcd.works/framework.v0/queue"
 )
 
@@ -44,8 +44,8 @@ func (s *ProducerSuite) newProducer() *Producer {
 
 func (s *ProducerSuite) newJob() *queue.Job {
 	j := queue.NewJob()
-	m := &model.Mention{
-		VCS:      model.GIT,
+	m := &rmodel.Mention{
+		VCS:      rmodel.GIT,
 		Provider: "TEST_PROVIDER",
 		Endpoint: testEndpoint,
 	}
