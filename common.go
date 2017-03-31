@@ -10,7 +10,7 @@ import (
 	"srcd.works/core.v0"
 	"srcd.works/core.v0/model"
 	"srcd.works/go-errors.v0"
-	"srcd.works/go-git.v4"
+	"gopkg.in/src-d/go-git.v4"
 )
 
 var (
