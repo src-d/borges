@@ -191,9 +191,12 @@ func createLocalRepository(dir billy.Filesystem, endpoint string, refs []*model.
 		return nil, err
 	}
 
-	if err := setReferences(s, refs...); err != nil {
-		return nil, err
-	}
+	// TODO there are some cases when we cannot do this to don't fetch all
+	// the repository objects. Improve this in a near future saving all hashes
+	// of all the commits in a repository
+	//if err := setReferences(s, refs...); err != nil {
+	//	return nil, err
+	//}
 
 	c := &config.RemoteConfig{
 		Name: "origin",
