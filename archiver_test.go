@@ -11,6 +11,7 @@ import (
 	"github.com/src-d/go-git-fixtures"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 	"gopkg.in/src-d/go-billy.v2"
 	"gopkg.in/src-d/go-billy.v2/osfs"
 	"gopkg.in/src-d/go-git.v4"
@@ -19,17 +20,34 @@ import (
 	rrepository "srcd.works/core-retrieval.v0/repository"
 	"srcd.works/core.v0"
 	"srcd.works/core.v0/model"
+	"srcd.works/core.v0/test"
 )
 
 func TestArchiver(t *testing.T) {
+	suite.Run(t, new(ArchiverSuite))
+}
+
+type ArchiverSuite struct {
+	test.Suite
+}
+
+func (s *ArchiverSuite) SetupTest() {
 	fixtures.Init()
-	defer fixtures.Clean()
+	s.Suite.Setup()
+}
+
+func (s *ArchiverSuite) TearDownTest() {
+	s.Suite.TearDown()
+	fixtures.Clean()
+}
+
+func (s *ArchiverSuite) TestFixtures() {
 	for _, ct := range ChangesFixtures {
 		if ct.FakeHashes {
 			continue
 		}
 
-		t.Run(ct.TestName, func(t *testing.T) {
+		s.T().Run(ct.TestName, func(t *testing.T) {
 			require := require.New(t)
 			assert := assert.New(t)
 
