@@ -33,7 +33,7 @@ func (c *consumerCmd) Execute(args []string) error {
 
 	wp := borges.NewArchiverWorkerPool(
 		core.ModelRepositoryStore(),
-		rcore.FilesystemRootedTransactioner(),
+		rcore.RootedTransactioner(),
 		core.TemporaryFilesystem(),
 		c.startNotifier, c.stopNotifier, c.warnNotifier)
 	wp.SetWorkerCount(c.WorkersCount)
