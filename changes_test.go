@@ -15,15 +15,15 @@ func TestNewChanges(t *testing.T) {
 	for _, ct := range ChangesFixtures {
 		t.Run(ct.TestName, func(t *testing.T) {
 			require := require.New(t)
-			r, err := ct.NewRepository()
+			sto, err := ct.NewRepository()
 			require.NoError(err)
-			changes, err := newChanges(timeNow, ct.OldReferences, r)
+			changes, err := newChanges(timeNow, ct.OldReferences, sto)
 			require.NoError(err)
 
 			sortChanges(changes)
-			sortChanges(ct.Expected)
+			sortChanges(ct.Changes)
 
-			require.Equal(ct.Expected, changes)
+			require.Equal(ct.Changes, changes)
 		})
 	}
 }

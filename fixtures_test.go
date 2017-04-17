@@ -6,6 +6,7 @@ import (
 	"github.com/src-d/go-git-fixtures"
 	"gopkg.in/src-d/go-billy.v2/memfs"
 	"gopkg.in/src-d/go-git.v4"
+	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/storage/filesystem"
 	"gopkg.in/src-d/go-git.v4/storage/memory"
 	"gopkg.in/src-d/go-kallax.v1"
@@ -64,6 +65,18 @@ func withTime(r *model.Reference, firstSeenAt, updatedAt time.Time) *model.Refer
 			UpdatedAt: updatedAt,
 		},
 	}
+}
+
+var defaultReferences []*model.Reference = []*model.Reference{
+	fixtureReferences.ByName("refs/heads/master"),
+	fixtureReferences.ByName("refs/heads/branch"),
+	fixtureReferences.ByName("refs/heads/1"),
+	fixtureReferences.ByName("refs/heads/2"),
+	fixtureReferences.ByName("refs/heads/3"),
+	fixtureReferences.ByName("refs/heads/functionalityOne"),
+	fixtureReferences.ByName("refs/heads/functionalityTwo"),
+	fixtureReferences.ByName("refs/heads/rootReference"),
+	fixtureReferences.ByName("refs/tags/v1.0.0"),
 }
 
 var fixtureReferences FixtureReferences = FixtureReferences{{
@@ -173,8 +186,55 @@ var fixtureReferences FixtureReferences = FixtureReferences{{
 type ChangesFixture struct {
 	TestName      string
 	OldReferences []*model.Reference
-	NewRepository func() (*git.Repository, error)
-	Expected      Changes
+	NewReferences []*model.Reference
+	Changes       Changes
+	FakeHashes    bool
+}
+
+func (f *ChangesFixture) OldRepository() (*git.Repository, error) {
+	return f.newRepoFromRefs(f.OldReferences)
+}
+
+func (f *ChangesFixture) NewRepository() (*git.Repository, error) {
+	return f.newRepoFromRefs(f.NewReferences)
+}
+
+func (f *ChangesFixture) newRepoFromRefs(refs []*model.Reference) (*git.Repository, error) {
+	if len(refs) == 0 {
+		return emptyRepository()
+	}
+
+	r, err := defaultRepository()
+	if err != nil {
+		return nil, err
+	}
+
+	return r, f.setReferences(r, refs)
+}
+
+func (f *ChangesFixture) setReferences(r *git.Repository, refs []*model.Reference) error {
+	if err := f.deleteReferences(r); err != nil {
+		return err
+	}
+
+	for _, ref := range refs {
+		if err := r.Storer.SetReference(ref.GitReference()); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (f *ChangesFixture) deleteReferences(r *git.Repository) error {
+	iter, err := r.Storer.IterReferences()
+	if err != nil {
+		return err
+	}
+
+	return iter.ForEach(func(ref *plumbing.Reference) error {
+		return r.Storer.RemoveReference(ref.Name())
+	})
 }
 
 func defaultRepository() (*git.Repository, error) {
@@ -184,21 +244,11 @@ func defaultRepository() (*git.Repository, error) {
 		return nil, err
 	}
 
-	r, err := git.Open(sto, memfs.New())
-	if err != nil {
-		return nil, err
-	}
-
-	return r, nil
+	return git.Open(sto, memfs.New())
 }
 
 func emptyRepository() (*git.Repository, error) {
-	r, err := git.Init(memory.NewStorage(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return r, nil
+	return git.Init(memory.NewStorage(), nil)
 }
 
 func testAddCommand(r *model.Reference) *Command {
@@ -222,25 +272,25 @@ func testUpdateCommand(old, new *model.Reference) *Command {
 
 var ChangesFixtures = []*ChangesFixture{{
 	TestName:      "no previous references and no updates",
-	NewRepository: emptyRepository,
 	OldReferences: nil,
-	Expected:      Changes{},
+	NewReferences: nil,
+	Changes:       Changes{},
 }, {
-	TestName:      "one existing reference is removed",
-	NewRepository: emptyRepository,
+	TestName: "one existing reference is removed",
 	OldReferences: []*model.Reference{
 		fixtureReferences.ByName("refs/heads/master"),
 	},
-	Expected: Changes{
+	NewReferences: nil,
+	Changes: Changes{
 		model.NewSHA1("b029517f6300c2da0f4b651b8642506cd6aaf45d"): []*Command{
 			testDeleteCommand(fixtureReferences.ByName("refs/heads/master")),
 		},
 	},
 }, {
 	TestName:      "all references are new",
-	NewRepository: defaultRepository,
 	OldReferences: nil,
-	Expected: Changes{
+	NewReferences: defaultReferences,
+	Changes: Changes{
 		model.NewSHA1("b029517f6300c2da0f4b651b8642506cd6aaf45d"): []*Command{
 			testAddCommand(fixtureReferences.ByName("refs/heads/master")),
 			testAddCommand(fixtureReferences.ByName("refs/heads/branch")),
@@ -267,19 +317,9 @@ var ChangesFixtures = []*ChangesFixture{{
 	},
 }, {
 	TestName:      "all references are deleted",
-	NewRepository: emptyRepository,
-	OldReferences: []*model.Reference{
-		fixtureReferences.ByName("refs/heads/master"),
-		fixtureReferences.ByName("refs/heads/branch"),
-		fixtureReferences.ByName("refs/heads/1"),
-		fixtureReferences.ByName("refs/heads/2"),
-		fixtureReferences.ByName("refs/heads/3"),
-		fixtureReferences.ByName("refs/heads/functionalityOne"),
-		fixtureReferences.ByName("refs/heads/functionalityTwo"),
-		fixtureReferences.ByName("refs/heads/rootReference"),
-		fixtureReferences.ByName("refs/tags/v1.0.0"),
-	},
-	Expected: Changes{
+	OldReferences: defaultReferences,
+	NewReferences: nil,
+	Changes: Changes{
 		model.NewSHA1("b029517f6300c2da0f4b651b8642506cd6aaf45d"): []*Command{
 			testDeleteCommand(fixtureReferences.ByName("refs/heads/master")),
 			testDeleteCommand(fixtureReferences.ByName("refs/heads/branch")),
@@ -306,27 +346,17 @@ var ChangesFixtures = []*ChangesFixture{{
 	},
 }, {
 	TestName:      "all references are up to date",
-	NewRepository: defaultRepository,
-	OldReferences: []*model.Reference{
-		fixtureReferences.ByName("refs/heads/master"),
-		fixtureReferences.ByName("refs/heads/branch"),
-		fixtureReferences.ByName("refs/heads/1"),
-		fixtureReferences.ByName("refs/heads/2"),
-		fixtureReferences.ByName("refs/heads/3"),
-		fixtureReferences.ByName("refs/heads/functionalityOne"),
-		fixtureReferences.ByName("refs/heads/functionalityTwo"),
-		fixtureReferences.ByName("refs/heads/rootReference"),
-		fixtureReferences.ByName("refs/tags/v1.0.0"),
-	},
-	Expected: Changes{},
+	OldReferences: defaultReferences,
+	NewReferences: defaultReferences,
+	Changes:       Changes{},
 }, {
-	TestName:      "all reference are new except two (up to date)",
-	NewRepository: defaultRepository,
+	TestName: "all reference are new except two (up to date)",
 	OldReferences: []*model.Reference{
 		fixtureReferences.ByName("refs/heads/master"),
 		fixtureReferences.ByName("refs/heads/1"),
 	},
-	Expected: Changes{
+	NewReferences: defaultReferences,
+	Changes: Changes{
 		model.NewSHA1("b029517f6300c2da0f4b651b8642506cd6aaf45d"): []*Command{
 			testAddCommand(fixtureReferences.ByName("refs/heads/branch")),
 			testAddCommand(fixtureReferences.ByName("refs/tags/v1.0.0")),
@@ -348,15 +378,16 @@ var ChangesFixtures = []*ChangesFixture{{
 		},
 	},
 }, {
-	TestName:      "all reference are new except one (updated)",
-	NewRepository: defaultRepository,
+	FakeHashes: true,
+	TestName:   "all reference are new except one (updated)",
 	OldReferences: []*model.Reference{
 		withHash(
 			model.NewSHA1("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
 			fixtureReferences.ByName("refs/heads/master"),
 		),
 	},
-	Expected: Changes{
+	NewReferences: defaultReferences,
+	Changes: Changes{
 		model.NewSHA1("b029517f6300c2da0f4b651b8642506cd6aaf45d"): []*Command{
 			testUpdateCommand(withHash(model.NewSHA1("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
 				fixtureReferences.ByName("refs/heads/master")),
@@ -384,15 +415,16 @@ var ChangesFixtures = []*ChangesFixture{{
 		},
 	},
 }, {
-	TestName:      "all reference are new except one (updated with new init)",
-	NewRepository: defaultRepository,
+	FakeHashes: true,
+	TestName: "all reference are new except one (updated with new init)",
 	OldReferences: []*model.Reference{
 		withRoots(
 			withHash(model.NewSHA1("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
 				fixtureReferences.ByName("refs/heads/master")),
 			model.NewSHA1("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")),
 	},
-	Expected: Changes{
+	NewReferences: defaultReferences,
+	Changes: Changes{
 		model.NewSHA1("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"): []*Command{
 			{Old: withRoots(
 				withHash(model.NewSHA1("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
@@ -424,10 +456,8 @@ var ChangesFixtures = []*ChangesFixture{{
 		},
 	},
 }, {
-	TestName:      "all reference are new except one (one root removed)",
-	NewRepository: defaultRepository,
-	//refRootChange := getByName("refs/heads/master", FixtureReferences).
-	//WithRoots(s.aHash, s.bHash)
+	FakeHashes: true,
+	TestName: "all reference are new except one (one root removed)",
 	OldReferences: []*model.Reference{
 		withRoots(
 			withHash(model.NewSHA1("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
@@ -435,7 +465,8 @@ var ChangesFixtures = []*ChangesFixture{{
 			model.NewSHA1("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
 			model.NewSHA1("b029517f6300c2da0f4b651b8642506cd6aaf45d")),
 	},
-	Expected: Changes{
+	NewReferences: defaultReferences,
+	Changes: Changes{
 		model.NewSHA1("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"): []*Command{
 			testDeleteCommand(withRoots(
 				withHash(model.NewSHA1("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),

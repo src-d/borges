@@ -2,94 +2,141 @@ package borges
 
 import (
 	"fmt"
+	"io/ioutil"
+	"math/rand"
 	"os"
-	"path/filepath"
 	"testing"
 
+	"github.com/satori/go.uuid"
 	"github.com/src-d/go-git-fixtures"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"gopkg.in/src-d/go-billy.v2"
+	"gopkg.in/src-d/go-billy.v2/osfs"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
-	"gopkg.in/src-d/go-git.v4/plumbing/object"
+	"gopkg.in/src-d/go-git.v4/storage/memory"
+	rrepository "srcd.works/core-retrieval.v0/repository"
 	"srcd.works/core.v0/model"
+	"srcd.works/core.v0/test"
 )
 
-func TestArchiverSuite(t *testing.T) {
+func TestArchiver(t *testing.T) {
 	suite.Run(t, new(ArchiverSuite))
 }
 
 type ArchiverSuite struct {
-	suite.Suite
-	tmpDir   string
-	endpoint string
-
-	lastCommit plumbing.Hash
+	test.Suite
 }
 
-func (s *ArchiverSuite) SetupSuite() {
-	assert := assert.New(s.T())
+func (s *ArchiverSuite) SetupTest() {
 	fixtures.Init()
-
-	s.tmpDir = filepath.Join(os.TempDir(), "test_data")
-	err := os.RemoveAll(s.tmpDir)
-	assert.NoError(err)
-
-	s.lastCommit = plumbing.NewHash("6ecf0ef2c2dffb796033e5a02219af86ec6584e5")
-
-	s.endpoint = fmt.Sprintf("file://%s", fixtures.Basic().One().DotGit().Base())
+	s.Suite.Setup()
 }
 
-func (s *ArchiverSuite) TearDownSuite() {
-	assert := assert.New(s.T())
-
-	err := fixtures.Clean()
-	assert.NoError(err)
-
-	err = os.RemoveAll(s.tmpDir)
-	assert.NoError(err)
+func (s *ArchiverSuite) TearDownTest() {
+	s.Suite.TearDown()
+	fixtures.Clean()
 }
 
-func (s *ArchiverSuite) TestCreateLocalRepository() {
-	assert := assert.New(s.T())
+func (s *ArchiverSuite) TestFixtures() {
+	for _, ct := range ChangesFixtures {
+		if ct.FakeHashes {
+			continue
+		}
 
-	repo, err := createLocalRepository(s.tmpDir, s.endpoint, []*model.Reference{
-		{
-			Hash: model.NewSHA1("918c48b83bd081e863dbe1b80f8998f058cd8294"),
-			Name: "refs/remotes/origin/master",
-			Init: model.NewSHA1("b029517f6300c2da0f4b651b8642506cd6aaf45d"),
-		}, {
-			// branch is up to date
-			Hash: model.NewSHA1("e8d3ffab552895c19b9fcf7aa264d277cde33881"),
-			Name: "refs/remotes/origin/branch",
-			Init: model.NewSHA1("b029517f6300c2da0f4b651b8642506cd6aaf45d"),
-		},
+		s.T().Run(ct.TestName, func(t *testing.T) {
+			require := require.New(t)
+			assert := assert.New(t)
+
+			tmp, err := ioutil.TempDir(os.TempDir(),
+				fmt.Sprintf("borge-tests%d", rand.Uint32()))
+			require.NoError(err)
+			defer func() { require.NoError(os.RemoveAll(tmp)) }()
+
+			fs := osfs.New(tmp)
+			rootedFs := fs.Dir("rooted")
+			txFs := fs.Dir("tx")
+			tmpFs := fs.Dir("tmp")
+
+			s := model.NewRepositoryStore(s.DB)
+			tx := rrepository.NewFilesystemRootedTransactioner(rootedFs, txFs)
+			a := NewArchiver(s, tx, tmpFs)
+
+			a.Notifiers.Warn = func(j *Job, err error) {
+				assert.NoError(err, "job: %v", j)
+			}
+
+			nr, err := ct.NewRepository()
+			require.NoError(err)
+
+			err = withInProcRepository(nr, func(url string) error {
+				mr := model.NewRepository()
+				mr.Endpoints = append(mr.Endpoints, url)
+				mr.References = ct.OldReferences
+				updated, err := s.Save(mr)
+				require.NoError(err)
+				require.False(updated)
+
+				return a.Do(&Job{RepositoryID: uuid.UUID(mr.ID)})
+			})
+			require.NoError(err)
+
+			checkNoFiles(t, txFs)
+			checkNoFiles(t, tmpFs)
+
+			checkReferences(t, nr, ct.NewReferences)
+		})
+	}
+}
+
+func checkReferences(t *testing.T, obtained *git.Repository, refs []*model.Reference) {
+	require := require.New(t)
+	obtainedRefs := repoToMemRefs(t, obtained)
+	expectedRefs := modelToMemRefs(t, refs)
+	require.Equal(expectedRefs, obtainedRefs)
+}
+
+func modelToMemRefs(t *testing.T, refs []*model.Reference) memory.ReferenceStorage {
+	require := require.New(t)
+	m := memory.ReferenceStorage{}
+	for _, ref := range refs {
+		err := m.SetReference(ref.GitReference())
+		require.NoError(err)
+	}
+
+	return m
+}
+
+func repoToMemRefs(t *testing.T, r *git.Repository) memory.ReferenceStorage {
+	require := require.New(t)
+	m := memory.ReferenceStorage{}
+	iter, err := r.References()
+	require.NoError(err)
+
+	err = iter.ForEach(func(r *plumbing.Reference) error {
+		if r.Type() != plumbing.HashReference {
+			return nil
+			//TODO: check this does not happen
+		}
+
+		return m.SetReference(r)
 	})
-	assert.Nil(err)
+	require.NoError(err)
+	return m
+}
 
-	c, err := repo.CommitObject(s.lastCommit)
-	assert.Nil(c)
-	assert.Error(err)
+func checkNoFiles(t *testing.T, fs billy.Filesystem) {
+	require := require.New(t)
 
-	err = repo.Fetch(&git.FetchOptions{})
-	assert.NoError(err)
+	fis, err := fs.ReadDir("")
+	if !os.IsNotExist(err) {
+		require.NoError(err)
+	}
 
-	c, err = repo.CommitObject(s.lastCommit)
-	assert.NoError(err)
-	assert.NotNil(c)
-
-	iter, err := repo.Objects()
-	assert.NoError(err)
-	assert.NotNil(iter)
-
-	count := 0
-	iter.ForEach(func(o object.Object) error {
-		count++
-		return nil
-	})
-
-	// 1- last commit into master
-	// 2,3 - trees
-	// 4 - file added into commit
-	assert.Equal(4, count)
+	for _, fi := range fis {
+		require.True(fi.IsDir(), "unexpected file: %s", fi.Name())
+		checkNoFiles(t, fs.Dir(fi.Name()))
+	}
 }

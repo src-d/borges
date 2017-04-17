@@ -72,21 +72,21 @@ func (c *Command) Action() Action {
 //	a<11,01>	a<11,02>	01 -> d<a,11> | 02 -> c<a,11> (invalid)
 //	a<11,01>	a<12,02>	01 -> d<a,11> | 02 -> c<a,12>
 //
-func NewChanges(oldReferences []*model.Reference, repository *git.Repository) (Changes, error) {
+func NewChanges(oldRefs []*model.Reference, newRepo *git.Repository) (Changes, error) {
 	now := time.Now()
-	return newChanges(now, oldReferences, repository)
+	return newChanges(now, oldRefs, newRepo)
 }
 
-func newChanges(now time.Time, oldReferences []*model.Reference, repository *git.Repository) (Changes, error) {
-	refIter, err := repository.References()
+func newChanges(now time.Time, oldRefs []*model.Reference, newRepo *git.Repository) (Changes, error) {
+	refIter, err := newRepo.References()
 	if err != nil {
 		return nil, err
 	}
 
-	refsByName := refsByName(oldReferences)
+	refsByName := refsByName(oldRefs)
 	changes := make(Changes)
 	err = refIter.ForEach(func(r *plumbing.Reference) error {
-		return addChangesBetweenOldAndNewReferences(now, changes, r, refsByName, repository)
+		return addChangesBetweenOldAndNewReferences(now, changes, r, refsByName, newRepo)
 	})
 	if err != nil {
 		return nil, err
@@ -104,13 +104,14 @@ func addChangesBetweenOldAndNewReferences(
 	c Changes,
 	rReference *plumbing.Reference,
 	oldRefs map[string]*model.Reference,
-	r *git.Repository) error {
+	newRepo *git.Repository) error {
 
+	//TODO: add tags support
 	if rReference.Type() != plumbing.HashReference || rReference.IsRemote() {
 		return nil
 	}
 
-	roots, err := rootCommits(r, rReference.Hash())
+	roots, err := rootCommits(newRepo, rReference.Hash())
 	if err != nil {
 		return err
 	}
