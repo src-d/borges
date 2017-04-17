@@ -18,7 +18,6 @@ import (
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/storage/memory"
 	rrepository "srcd.works/core-retrieval.v0/repository"
-	"srcd.works/core.v0"
 	"srcd.works/core.v0/model"
 	"srcd.works/core.v0/test"
 )
@@ -61,7 +60,7 @@ func (s *ArchiverSuite) TestFixtures() {
 			txFs := fs.Dir("tx")
 			tmpFs := fs.Dir("tmp")
 
-			s := core.ModelRepositoryStore()
+			s := model.NewRepositoryStore(s.DB)
 			tx := rrepository.NewFilesystemRootedTransactioner(rootedFs, txFs)
 			a := NewArchiver(s, tx, tmpFs)
 
