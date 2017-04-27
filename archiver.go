@@ -302,11 +302,11 @@ func (a *Archiver) changesToPushRefSpec(id kallax.ULID, changes []*Command) []co
 		var rs string
 		switch ch.Action() {
 		case Create:
-			rs = fmt.Sprintf("+%s:%s/%d", ch.New.Name, ch.New.Name, id)
+			rs = fmt.Sprintf("+%s:%s/%s", ch.New.Name, ch.New.Name, id)
 		case Delete:
-			rs = fmt.Sprintf(":%s/%d", ch.Old.Name, id)
+			rs = fmt.Sprintf(":%s/%s", ch.Old.Name, id)
 		case Update:
-			rs = fmt.Sprintf("+%s:%s/%d", ch.New.Name, ch.New.Name, id)
+			rs = fmt.Sprintf("+%s:%s/%s", ch.New.Name, ch.New.Name, id)
 		default:
 			panic("not reachable")
 		}
