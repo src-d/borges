@@ -1,8 +1,8 @@
 package borges
 
 import (
+	rmodel "gopkg.in/src-d/core-retrieval.v0/model"
 	"gopkg.in/src-d/framework.v0/queue"
-	rmodel "srcd.works/core-retrieval.v0/model"
 	"srcd.works/core.v0/model"
 )
 

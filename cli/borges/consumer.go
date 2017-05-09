@@ -3,8 +3,8 @@ package main
 import (
 	"github.com/src-d/borges"
 
+	rcore "gopkg.in/src-d/core-retrieval.v0"
 	"gopkg.in/src-d/framework.v0/queue"
-	rcore "srcd.works/core-retrieval.v0"
 	"srcd.works/core.v0"
 )
 
