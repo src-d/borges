@@ -8,7 +8,7 @@ import (
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"srcd.works/framework.v0/queue"
+	"gopkg.in/src-d/framework.v0/queue"
 )
 
 func TestConsumerSuite(t *testing.T) {
