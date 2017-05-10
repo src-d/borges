@@ -7,11 +7,11 @@ import (
 
 	"github.com/inconshreveable/log15"
 	"github.com/satori/go.uuid"
+	"gopkg.in/src-d/go-errors.v0"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-kallax.v1"
 	"srcd.works/core.v0"
 	"srcd.works/core.v0/model"
-	"srcd.works/go-errors.v0"
 )
 
 var (
