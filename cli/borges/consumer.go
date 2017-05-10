@@ -4,8 +4,8 @@ import (
 	"github.com/src-d/borges"
 
 	rcore "gopkg.in/src-d/core-retrieval.v0"
+	"gopkg.in/src-d/core.v0"
 	"gopkg.in/src-d/framework.v0/queue"
-	"srcd.works/core.v0"
 )
 
 const (

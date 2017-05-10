@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	rmodel "gopkg.in/src-d/core-retrieval.v0/model"
+	"gopkg.in/src-d/core.v0"
 	"gopkg.in/src-d/framework.v0/queue"
-	"srcd.works/core.v0"
 )
 
 const testEndpoint = "https://some.endpoint.com"

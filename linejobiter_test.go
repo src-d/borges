@@ -7,10 +7,10 @@ import (
 	"testing"
 
 	"github.com/satori/go.uuid"
-	"gopkg.in/src-d/go-kallax.v1"
 	"github.com/stretchr/testify/require"
-	"srcd.works/core.v0"
-	"srcd.works/core.v0/model"
+	"gopkg.in/src-d/core.v0"
+	"gopkg.in/src-d/core.v0/model"
+	"gopkg.in/src-d/go-kallax.v1"
 )
 
 func TestLineJobIter(t *testing.T) {
