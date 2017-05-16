@@ -113,7 +113,7 @@ func (c *Consumer) consumeJobIter(iter queue.JobIter) error {
 		}
 
 		if err := c.consumeJob(j); err != nil {
-			c.Notifiers.QueueError(err)
+			c.notifyQueueError(err)
 		}
 	}
 }
