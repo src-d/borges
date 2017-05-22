@@ -6,11 +6,11 @@ import (
 	"strings"
 
 	"github.com/satori/go.uuid"
+	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-kallax.v1"
 	"srcd.works/core.v0"
 	"srcd.works/core.v0/model"
 	"srcd.works/go-errors.v0"
-	"gopkg.in/src-d/go-git.v4"
 )
 
 var (
@@ -78,6 +78,14 @@ func DropTables(names ...string) {
 	}
 }
 
+// TODO temporal
+func DropIndexes(names ...string) {
+	smt := fmt.Sprintf("DROP INDEX IF EXISTS %s;", strings.Join(names, ", "))
+	if _, err := core.Database().Exec(smt); err != nil {
+		panic(err)
+	}
+}
+
 // TODO temporal delete when kallax implements it
 func CreateRepositoryTable() {
 	_, err := core.Database().Exec(`CREATE TABLE IF NOT EXISTS repositories (
@@ -90,7 +98,8 @@ func CreateRepositoryTable() {
 	fetch_error_at timestamptz,
 	last_commit_at timestamptz,
 	_references jsonb
-	)`)
+	);
+	CREATE INDEX idx_endpoints on "repositories" USING GIN ("endpoints");`)
 
 	if err != nil {
 		panic(err)

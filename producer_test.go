@@ -36,6 +36,7 @@ func (s *ProducerSuite) SetupSuite() {
 
 func (s *ProducerSuite) newProducer() *Producer {
 	DropTables("repository")
+	DropIndexes("idx_endpoints")
 	CreateRepositoryTable()
 	storer := core.ModelRepositoryStore()
 
