@@ -6,7 +6,7 @@ import (
 	"io"
 	"net/url"
 
-	"srcd.works/core.v0/model"
+	"gopkg.in/src-d/core.v0/model"
 )
 
 type lineJobIter struct {

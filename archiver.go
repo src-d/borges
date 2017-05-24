@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"gopkg.in/src-d/core-retrieval.v0/repository"
+	"gopkg.in/src-d/core.v0/model"
 	"gopkg.in/src-d/go-billy.v2"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/config"
@@ -18,8 +20,6 @@ import (
 	"gopkg.in/src-d/go-git.v4/plumbing/transport/server"
 	"gopkg.in/src-d/go-git.v4/storage/filesystem"
 	"gopkg.in/src-d/go-kallax.v1"
-	"srcd.works/core-retrieval.v0/repository"
-	"srcd.works/core.v0/model"
 	"srcd.works/go-errors.v0"
 )
 

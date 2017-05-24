@@ -3,7 +3,7 @@ package borges
 import (
 	"time"
 
-	"srcd.works/framework.v0/queue"
+	"gopkg.in/src-d/framework.v0/queue"
 )
 
 // Consumer consumes jobs from a queue and uses multiple workers to process

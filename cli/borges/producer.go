@@ -6,8 +6,8 @@ import (
 
 	"github.com/src-d/borges"
 
-	"srcd.works/core.v0"
-	"srcd.works/framework.v0/queue"
+	"gopkg.in/src-d/core.v0"
+	"gopkg.in/src-d/framework.v0/queue"
 	"gopkg.in/src-d/go-git.v4/utils/ioutil"
 )
 

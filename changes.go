@@ -3,11 +3,11 @@ package borges
 import (
 	"time"
 
+	"gopkg.in/src-d/core.v0/model"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
 	"gopkg.in/src-d/go-kallax.v1"
-	"srcd.works/core.v0/model"
 )
 
 // Changes represents several actions to realize to our root repositories. The

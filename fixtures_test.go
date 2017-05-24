@@ -4,13 +4,13 @@ import (
 	"time"
 
 	"github.com/src-d/go-git-fixtures"
+	"gopkg.in/src-d/core.v0/model"
 	"gopkg.in/src-d/go-billy.v2/memfs"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/storage/filesystem"
 	"gopkg.in/src-d/go-git.v4/storage/memory"
 	"gopkg.in/src-d/go-kallax.v1"
-	"srcd.works/core.v0/model"
 )
 
 var (
@@ -416,7 +416,7 @@ var ChangesFixtures = []*ChangesFixture{{
 	},
 }, {
 	FakeHashes: true,
-	TestName: "all reference are new except one (updated with new init)",
+	TestName:   "all reference are new except one (updated with new init)",
 	OldReferences: []*model.Reference{
 		withRoots(
 			withHash(model.NewSHA1("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
@@ -457,7 +457,7 @@ var ChangesFixtures = []*ChangesFixture{{
 	},
 }, {
 	FakeHashes: true,
-	TestName: "all reference are new except one (one root removed)",
+	TestName:   "all reference are new except one (one root removed)",
 	OldReferences: []*model.Reference{
 		withRoots(
 			withHash(model.NewSHA1("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
