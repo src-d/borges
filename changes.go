@@ -178,7 +178,12 @@ func rootCommits(r *git.Repository, from plumbing.Hash) ([]model.SHA1, error) {
 	}
 
 	var roots []model.SHA1
-	err = object.WalkCommitHistory(c, func(wc *object.Commit) error {
+
+	cIter, err := r.Log(&git.LogOptions{From: c.Hash})
+	if err != nil {
+		return nil, err
+	}
+	err = cIter.ForEach(func(wc *object.Commit) error {
 		if wc.NumParents() == 0 {
 			roots = append(roots, model.SHA1(wc.Hash))
 		}

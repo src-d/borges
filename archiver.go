@@ -289,7 +289,7 @@ func withInProcRepository(r *git.Repository, f func(string) error) error {
 		return err
 	}
 
-	s := server.NewServer(server.MapLoader{ep: r.Storer})
+	s := server.NewServer(server.MapLoader{ep.String(): r.Storer})
 	client.InstallProtocol(proto, s)
 	defer client.InstallProtocol(proto, nil)
 

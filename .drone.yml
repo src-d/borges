@@ -1,11 +1,11 @@
 build:
   test:
-    image: golang:1.7
+    image: golang:1.8
     commands:
       - make dependencies
       - make test-coverage
   packages:
-    image: golang:1.7
+    image: golang:1.8
     commands:
       - make packages
     when:
