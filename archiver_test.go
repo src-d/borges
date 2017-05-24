@@ -61,7 +61,7 @@ func (s *ArchiverSuite) TestFixtures() {
 			tmpFs := fs.Dir("tmp")
 
 			s := model.NewRepositoryStore(s.DB)
-			tx := rrepository.NewFilesystemRootedTransactioner(rootedFs, txFs)
+			tx := rrepository.NewSivaRootedTransactioner(rootedFs, txFs)
 			a := NewArchiver(s, tx, tmpFs)
 
 			a.Notifiers.Warn = func(j *Job, err error) {
