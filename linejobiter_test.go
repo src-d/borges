@@ -69,6 +69,7 @@ func TestLineJobIterNonAbsoluteURL(t *testing.T) {
 	r := ioutil.NopCloser(strings.NewReader(text))
 
 	DropTables("repository")
+	DropIndexes("idx_endpoints")
 	CreateRepositoryTable()
 	storer := core.ModelRepositoryStore()
 
@@ -94,6 +95,7 @@ func TestLineJobIterBadURL(t *testing.T) {
 	r := ioutil.NopCloser(strings.NewReader(text))
 
 	DropTables("repository")
+	DropIndexes("idx_endpoints")
 	CreateRepositoryTable()
 	storer := core.ModelRepositoryStore()
 
