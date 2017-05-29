@@ -36,7 +36,8 @@ func (w *Worker) Start() {
 			}
 
 			if err := w.do(w.ctx, job.Job); err != nil {
-				if err := job.Reject(true); err != nil {
+				// TODO change it when Bury functionality will be implemented
+				if err := job.Ack(); err != nil {
 					//TODO: do something about this
 				}
 				continue
