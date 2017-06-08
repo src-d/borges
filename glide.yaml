@@ -1,0 +1,47 @@
+package: github.com/src-d/borges
+import:
+- package: github.com/inconshreveable/log15
+  version: ^2.11.0
+- package: github.com/jessevdk/go-flags
+  version: ^1.2.0
+- package: github.com/satori/go.uuid
+  version: ^1.1.0
+- package: gopkg.in/src-d/go-billy.v3
+  version: ^3.0.1
+- package: gopkg.in/src-d/go-git.v4
+  repo: https://github.com/src-d/go-git.git
+  version: ce6f5b7c82fc6c2c4d41880ed6b26f921dd9c1c3
+  subpackages:
+  - config
+  - plumbing
+  - plumbing/object
+  - plumbing/storer
+  - plumbing/transport
+  - plumbing/transport/client
+  - plumbing/transport/server
+  - storage/filesystem
+  - utils/ioutil
+- package: gopkg.in/src-d/go-kallax.v1
+  version: ^1.2.7
+- package: gopkg.in/src-d/core-retrieval.v0
+  version: e5ce5c85bef486a9c34de6787acf9d3ce241606f
+  subpackages:
+  - model
+  - repository
+- package: gopkg.in/src-d/core.v0
+  version: e2db1e8d9ca0e77302b5c8f181dbad90e65cedc8
+  subpackages:
+  - model
+- package: gopkg.in/src-d/framework.v0
+  version: 06c61f8f6a8913f3d4d465bab758ff06c0b3d920
+  subpackages:
+  - queue
+- package: gopkg.in/src-d/go-errors.v0
+testImport:
+- package: github.com/src-d/go-git-fixtures
+  version: 03ddd4bf3d4a1baf61e72fd8ee4746db9005f5e7
+- package: github.com/stretchr/testify
+  subpackages:
+  - assert
+  - require
+  - suite
