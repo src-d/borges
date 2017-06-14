@@ -1,6 +1,7 @@
 package borges
 
 import (
+	"errors"
 	"time"
 
 	"gopkg.in/src-d/go-git.v4"
@@ -51,6 +52,8 @@ func (c *Command) Action() Action {
 	return Update
 }
 
+var ErrReferencedObjectTypeNotSupported error = errors.New("referenced object type not supported")
+
 // NewChanges returns Changes needed to obtain the current state of the
 // repository from a set of old references. The Changes could be create,
 // update or delete. It also checks the root commits per each reference.
@@ -86,7 +89,13 @@ func newChanges(now time.Time, oldRefs []*model.Reference, newRepo *git.Reposito
 	refsByName := refsByName(oldRefs)
 	changes := make(Changes)
 	err = refIter.ForEach(func(r *plumbing.Reference) error {
-		return addChangesBetweenOldAndNewReferences(now, changes, r, refsByName, newRepo)
+		err := addChangesBetweenOldAndNewReferences(now, changes, r, refsByName, newRepo)
+		if err == ErrReferencedObjectTypeNotSupported {
+			// TODO log this
+			return nil
+		}
+
+		return err
 	})
 	if err != nil {
 		return nil, err
@@ -172,17 +181,18 @@ func (c Changes) Add(new *model.Reference) {
 }
 
 func rootCommits(r *git.Repository, from plumbing.Hash) ([]model.SHA1, error) {
-	c, err := r.CommitObject(from)
+	h, err := resolveHash(r, from)
 	if err != nil {
 		return nil, err
 	}
 
 	var roots []model.SHA1
 
-	cIter, err := r.Log(&git.LogOptions{From: c.Hash})
+	cIter, err := r.Log(&git.LogOptions{From: h})
 	if err != nil {
 		return nil, err
 	}
+
 	err = cIter.ForEach(func(wc *object.Commit) error {
 		if wc.NumParents() == 0 {
 			roots = append(roots, model.SHA1(wc.Hash))
@@ -190,11 +200,24 @@ func rootCommits(r *git.Repository, from plumbing.Hash) ([]model.SHA1, error) {
 
 		return nil
 	})
+
+	return roots, err
+}
+
+func resolveHash(r *git.Repository, h plumbing.Hash) (plumbing.Hash, error) {
+	obj, err := r.Object(plumbing.AnyObject, h)
 	if err != nil {
-		return nil, err
+		return plumbing.ZeroHash, err
 	}
 
-	return roots, nil
+	switch o := obj.(type) {
+	case *object.Commit:
+		return o.Hash, nil
+	case *object.Tag:
+		return resolveHash(r, o.Target)
+	default:
+		return plumbing.ZeroHash, ErrReferencedObjectTypeNotSupported
+	}
 }
 
 func refsByName(refs []*model.Reference) map[string]*model.Reference {
