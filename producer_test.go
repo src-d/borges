@@ -8,9 +8,9 @@ import (
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"srcd.works/core.v0"
+	"gopkg.in/src-d/framework.v0/queue"
 	rmodel "srcd.works/core-retrieval.v0/model"
-	"srcd.works/framework.v0/queue"
+	"srcd.works/core.v0"
 )
 
 const testEndpoint = "https://some.endpoint.com"
