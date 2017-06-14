@@ -28,3 +28,8 @@ _testmain.go
 
 # External packages folder
 vendor/
+
+# CI artefacts
+.ci/
+Makefile.main
+coverage.txt
