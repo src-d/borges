@@ -71,7 +71,7 @@ func (c *Consumer) backoff() {
 
 func (c *Consumer) reject(j *queue.Job, origErr error) {
 	c.notifyQueueError(origErr)
-	if err := j.Reject(true); err != nil {
+	if err := j.Reject(false); err != nil {
 		c.notifyQueueError(err)
 	}
 }

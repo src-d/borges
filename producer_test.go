@@ -2,14 +2,15 @@ package borges
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"srcd.works/core.v0"
 	rmodel "srcd.works/core-retrieval.v0/model"
+	"srcd.works/core.v0"
 	"srcd.works/framework.v0/queue"
 )
 
@@ -28,7 +29,7 @@ func (s *ProducerSuite) SetupSuite() {
 	s.BaseQueueSuite.SetupSuite()
 
 	assert := require.New(s.T())
-	q, err := s.broker.Queue("mentions_test")
+	q, err := s.broker.Queue(fmt.Sprintf("mentions_test_%d", time.Now().UnixNano()))
 	assert.NoError(err)
 
 	s.mentionsQueue = q

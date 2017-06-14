@@ -1,12 +1,14 @@
 package borges
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 	"time"
 
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"srcd.works/framework.v0/queue"
 )
@@ -22,6 +24,51 @@ type ConsumerSuite struct {
 func (s *ConsumerSuite) newConsumer() *Consumer {
 	wp := NewWorkerPool(func(*WorkerContext, *Job) error { return nil })
 	return NewConsumer(s.queue, wp)
+}
+
+func (s *ConsumerSuite) TestConsumer_StartStop_FailedJob() {
+	require := require.New(s.T())
+	expectedError := errors.New("SOME ERROR")
+
+	c := s.newConsumer()
+
+	id := uuid.NewV4()
+	var processedId uuid.UUID
+
+	processed := 0
+	done := make(chan struct{}, 1)
+	c.WorkerPool.do = func(w *WorkerContext, j *Job) error {
+		defer func() { done <- struct{}{} }()
+		processed++
+		if processed == 2 {
+			processedId = j.RepositoryID
+			return nil
+		}
+
+		return expectedError
+	}
+
+	for i := 0; i < 1; i++ {
+		job := queue.NewJob()
+		require.NoError(job.Encode(&Job{RepositoryID: id}))
+		require.NoError(s.queue.Publish(job))
+	}
+
+	c.WorkerPool.SetWorkerCount(1)
+	go c.Start()
+
+	require.NoError(timeoutChan(done, time.Second*10))
+	require.Equal(1, processed)
+
+	err := s.queue.RepublishBuried()
+	require.NoError(err)
+
+	require.NoError(timeoutChan(done, time.Second*10))
+	require.Equal(2, processed)
+	require.Equal(id, processedId)
+
+	c.Stop()
+	require.False(c.IsRunning())
 }
 
 func (s *ConsumerSuite) TestConsumer_StartStop_EmptyQueue() {
