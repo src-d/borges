@@ -115,10 +115,19 @@ func (a *Archiver) do(j *Job) error {
 	log.Debug("local repository created")
 
 	if err := fetchAll(gr); err != nil {
-		if err == git.NoErrAlreadyUpToDate ||
-			err == transport.ErrEmptyUploadPackRequest {
-			//TODO: Update repository timestamp
-			return nil
+		var finalErr error
+		if err != git.NoErrAlreadyUpToDate &&
+			err != transport.ErrEmptyUploadPackRequest {
+			r.FetchErrorAt = &now
+			finalErr = ErrFetch.Wrap(err, endpoint)
+		}
+
+		_, err = a.RepositoryStorage.Update(r,
+			model.Schema.Repository.UpdatedAt,
+			model.Schema.Repository.FetchErrorAt,
+		)
+		if err != nil {
+			return err
 		}
 
 		err = ErrFetch.Wrap(err, endpoint)
@@ -252,7 +261,7 @@ func fetchAll(r *git.Repository) error {
 }
 
 func (a *Archiver) pushChangesToRootedRepositories(j *Job, r *model.Repository,
-	lr *git.Repository, changes Changes) error {
+	lr *git.Repository, changes Changes, now time.Time) error {
 	var failedInits []model.SHA1
 	for ic, cs := range changes {
 		//TODO: try lock first_commit
@@ -264,7 +273,34 @@ func (a *Archiver) pushChangesToRootedRepositories(j *Job, r *model.Repository,
 			//TODO: release lock
 			continue
 		}
-		//TODO: update references db with the changes
+
+		// TODO move to a function
+		h, err := lr.Head()
+		if err != nil {
+			return err
+		}
+
+		hc, err := lr.CommitObject(h.Hash())
+		if err != nil {
+			return err
+		}
+
+		// TODO move to a function
+		r.FetchedAt = &now
+		r.Status = model.Fetched
+		r.LastCommitAt = &hc.Author.When
+
+		_, err = a.RepositoryStorage.Update(r,
+			model.Schema.Repository.UpdatedAt,
+			model.Schema.Repository.FetchedAt,
+			model.Schema.Repository.LastCommitAt,
+			model.Schema.Repository.Status,
+			model.Schema.Repository.References,
+		)
+
+		if err != nil {
+			return err
+		}
 		//TODO: release lock
 	}
 
