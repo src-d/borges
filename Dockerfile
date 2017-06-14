@@ -1,4 +1,4 @@
-FROM alpine:3.5
+FROM quay.io/srcd/basic:latest
 MAINTAINER source{d}
 
 ADD bin /bin
