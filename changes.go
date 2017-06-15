@@ -91,7 +91,6 @@ func newChanges(now time.Time, oldRefs []*model.Reference, newRepo *git.Reposito
 	err = refIter.ForEach(func(r *plumbing.Reference) error {
 		err := addChangesBetweenOldAndNewReferences(now, changes, r, refsByName, newRepo)
 		if err == ErrReferencedObjectTypeNotSupported {
-			// TODO log this
 			return nil
 		}
 
@@ -216,6 +215,7 @@ func resolveHash(r *git.Repository, h plumbing.Hash) (plumbing.Hash, error) {
 	case *object.Tag:
 		return resolveHash(r, o.Target)
 	default:
+		log.Warn("referenced object not supported", "type", o.Type())
 		return plumbing.ZeroHash, ErrReferencedObjectTypeNotSupported
 	}
 }

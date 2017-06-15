@@ -46,21 +46,21 @@ func (c *consumerCmd) Execute(args []string) error {
 }
 
 func (c *consumerCmd) startNotifier(ctx *borges.WorkerContext, j *borges.Job) {
-	logger.Debug("job started", "WorkerID", ctx.ID, "RepositoryID", j.RepositoryID)
+	log.Debug("job started", "WorkerID", ctx.ID, "RepositoryID", j.RepositoryID)
 }
 
 func (c *consumerCmd) stopNotifier(ctx *borges.WorkerContext, j *borges.Job, err error) {
 	if err != nil {
-		logger.Error("job errored", "WorkerID", ctx.ID, "RepositoryID", j.RepositoryID, "error", err)
+		log.Error("job errored", "WorkerID", ctx.ID, "RepositoryID", j.RepositoryID, "error", err)
 	} else {
-		logger.Info("job done", "WorkerID", ctx.ID, "RepositoryID", j.RepositoryID)
+		log.Info("job done", "WorkerID", ctx.ID, "RepositoryID", j.RepositoryID)
 	}
 }
 
 func (c *consumerCmd) warnNotifier(ctx *borges.WorkerContext, j *borges.Job, err error) {
-	logger.Warn("job warning", "WorkerID", ctx.ID, "RepositoryID", j.RepositoryID, "error", err)
+	log.Warn("job warning", "WorkerID", ctx.ID, "RepositoryID", j.RepositoryID, "error", err)
 }
 
 func (c *consumerCmd) queueErrorNotifier(err error) {
-	logger.Error("queue error", "error", err)
+	log.Error("queue error", "error", err)
 }
