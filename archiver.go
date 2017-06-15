@@ -141,6 +141,41 @@ func (a *Archiver) do(j *Job) error {
 		return err
 	}
 
+	//TODO(bzz): extract all DB update to a function
+	refIter, err := gr.References()
+	if err != nil {
+		return err
+	}
+
+	err = refIter.ForEach(func(pRef *plumbing.Reference) error {
+		roots, err := rootCommits(gr, pRef.Hash())
+		if err != nil {
+			return nil // skip updating such refs
+		}
+		newReference := &model.Reference{
+			Name:  pRef.Name().String(),
+			Hash:  model.SHA1(pRef.Hash()),
+			Init:  roots[0],
+			Roots: roots,
+			Timestamps: kallax.Timestamps{
+				CreatedAt: now,
+				UpdatedAt: now,
+			},
+		}
+		r.References = append(r.References, newReference)
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	_, err = a.RepositoryStorage.Update(r,
+		model.Schema.Repository.References,
+	)
+	if err != nil {
+		return err
+	}
+
 	log.Debug("changes obtained", "roots", len(changes))
 
 	if err := a.pushChangesToRootedRepositories(j, r, gr, changes); err != nil {
@@ -274,7 +309,7 @@ func (a *Archiver) pushChangesToRootedRepositories(j *Job, r *model.Repository,
 			continue
 		}
 
-		// TODO move to a function
+		//TODO move head commit time extraction to a function
 		h, err := lr.Head()
 		if err != nil {
 			return err
@@ -285,7 +320,7 @@ func (a *Archiver) pushChangesToRootedRepositories(j *Job, r *model.Repository,
 			return err
 		}
 
-		// TODO move to a function
+		//TODO move DB upadate to a function
 		r.FetchedAt = &now
 		r.Status = model.Fetched
 		r.LastCommitAt = &hc.Author.When
