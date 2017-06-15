@@ -60,6 +60,9 @@ func (s *ConsumerSuite) TestConsumer_StartStop_FailedJob() {
 	require.NoError(timeoutChan(done, time.Second*10))
 	require.Equal(1, processed)
 
+	require.Error(timeoutChan(done, time.Second*5))
+	require.Equal(1, processed)
+
 	err := s.queue.RepublishBuried()
 	require.NoError(err)
 

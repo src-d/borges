@@ -39,7 +39,7 @@ func (w *Worker) Start() {
 			}
 
 			if err := w.do(w.ctx, job.Job); err != nil {
-				if err := job.Reject(true); err != nil {
+				if err := job.Reject(false); err != nil {
 					log.Error("error rejecting job", "err", err)
 				}
 
