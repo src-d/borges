@@ -1,9 +1,7 @@
 
-borges
-======
-
-[![Build Status](http://drone.srcd.host/api/badges/src-d/borges/status.svg)](http://drone.srcd.host/src-d/borges)
+borges [![Build Status](http://drone.srcd.host/api/badges/src-d/borges/status.svg)](http://drone.srcd.host/src-d/borges)
 [![codecov.io](https://codecov.io/gh/src-d/borges/branch/master/graph/badge.svg?token=ETL49e3u1L)](https://codecov.io/gh/src-d/borges)
+======
 
 **borges** archives repositories in a universal git library.
 
@@ -44,3 +42,50 @@ storage.
 Both the producer and consumer services will run even if they cannot connect to
 the queue, or even if the queue is malfunctioning. If the queue does not work,
 they will just retry until it does.
+
+# Development
+
+## Install
+`go get -u -t github.com/src-d/borges/...`
+
+If running for the first time, you also need to add table to PostgreSQL:
+
+```sql
+CREATE TABLE IF NOT EXISTS repositories (
+    id uuid PRIMARY KEY,
+    created_at timestamptz,
+    updated_at timestamptz,
+    endpoints text[],
+    status varchar(20),
+    fetched_at timestamptz,
+    fetch_error_at timestamptz,
+    last_commit_at timestamptz,
+    _references jsonb
+    );
+```
+
+## Test
+
+`go test ./...`
+
+Borges has 2 runtime dependencies and have tests depending on them:
+  - RabbitMQ
+
+    Consumers and Producers interact though a Queue. You can run one in Docker by
+    ```
+    docker run -d --hostname rabbit --name rabbit -p 8080:15672 -p 5672:5672 rabbitmq:3-management
+    ```
+    Note: a hostname is provided, due to fact that rabbitmq stores data according to the host name
+
+
+  - PostgreSQL
+
+    Consumers make SIVA files with RootedRepositories, but all repository metadata is stored in PostgreSQL
+    You can run one in Docker by
+    ```
+    docker run --name postgres -e POSTGRES_PASSWORD=testing -p 5432:5432 -e POSTGRES_USER=testing -d postgres
+    # to check it manually, use
+    docker exec -ti some-postgres psql -U testing
+    ```
+
+`make test-coverage` to produce a coverage report
