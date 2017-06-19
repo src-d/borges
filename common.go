@@ -5,6 +5,7 @@ import (
 	"io"
 	"strings"
 
+	"github.com/inconshreveable/log15"
 	"github.com/satori/go.uuid"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-kallax.v1"
@@ -14,6 +15,8 @@ import (
 )
 
 var (
+	log = log15.New()
+
 	// ErrAlreadyStopped signals that an operation cannot be done because
 	// the entity is already sopped.
 	ErrAlreadyStopped = errors.NewKind("already stopped: %s")

@@ -78,24 +78,37 @@ func (a *Archiver) Do(j *Job) error {
 }
 
 func (a *Archiver) do(j *Job) error {
+	log := log.New("job", j.RepositoryID)
+
 	r, err := a.getRepositoryModel(j)
 	if err != nil {
 		return err
 	}
+
+	log.Debug("repository model obtained",
+		"status", r.Status,
+		"last-fetch", r.FetchedAt,
+		"references", len(r.References))
 
 	endpoint, err := selectEndpoint(r.Endpoints)
 	if err != nil {
 		return err
 	}
 
+	log.Debug("endpoint selected", "endpoint", endpoint)
+
 	dir := a.newTempRepoDir(j)
 	defer billy.RemoveAll(a.Temp, dir)
 	tmpFs := a.Temp.Dir(dir)
+
+	log.Debug("local temporary directory created", "temp-path", dir)
 
 	gr, err := createLocalRepository(tmpFs, endpoint, r.References)
 	if err != nil {
 		return err
 	}
+
+	log.Debug("local repository created")
 
 	if err := fetchAll(gr); err != nil {
 		if err == git.NoErrAlreadyUpToDate ||
@@ -104,7 +117,10 @@ func (a *Archiver) do(j *Job) error {
 			return nil
 		}
 
-		return ErrFetch.Wrap(err, endpoint)
+		err = ErrFetch.Wrap(err, endpoint)
+		log.Error("error fetching repository", "error", err)
+
+		return err
 	}
 
 	changes, err := NewChanges(r.References, gr)
@@ -112,11 +128,15 @@ func (a *Archiver) do(j *Job) error {
 		return err
 	}
 
+	log.Debug("changes obtained", "roots", len(changes))
+
 	if err := a.pushChangesToRootedRepositories(j, r, gr, changes); err != nil {
 		return err
 	}
 
 	//TODO: Update repository
+	log.Debug("repository processed")
+
 	return nil
 }
 

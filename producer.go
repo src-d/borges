@@ -51,9 +51,12 @@ func (p *Producer) Stop() {
 }
 
 func (p *Producer) start() {
+	log := log.New("module", "producer")
 	p.running = true
 	p.startIsRunning = make(chan struct{})
 	defer func() { close(p.startIsRunning) }()
+
+	log.Debug("starting")
 	for {
 		if !p.running {
 			break
@@ -70,13 +73,16 @@ func (p *Producer) start() {
 		}
 
 		if err != nil {
-			//TODO: error handling
+			log.Error("error obtaining next job", "err", err)
+			p.notifyQueueError(err)
 			continue
 		}
 
 		err = p.add(j)
 		p.notifyDone(j, err)
 	}
+
+	log.Debug("stopping")
 }
 
 func (p *Producer) add(j *Job) error {

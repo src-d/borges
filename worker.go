@@ -25,9 +25,12 @@ func NewWorker(ctx *WorkerContext, do func(*WorkerContext, *Job) error, ch chan 
 // Start processes jobs from the input channel until it is stopped. Start blocks
 // until the worker is stopped or the channel is closed.
 func (w *Worker) Start() {
+	log := log.New("module", "worker", "id", w.ctx.ID)
+
 	w.running = true
 	defer func() { w.running = false }()
 
+	log.Debug("starting")
 	for {
 		select {
 		case job, ok := <-w.jobChannel:
@@ -37,13 +40,16 @@ func (w *Worker) Start() {
 
 			if err := w.do(w.ctx, job.Job); err != nil {
 				if err := job.Reject(true); err != nil {
-					//TODO: do something about this
+					log.Error("error rejecting job", "err", err)
 				}
+
+				log.Error("error on job", "err", err)
+
 				continue
 			}
 
 			if err := job.Ack(); err != nil {
-				//TODO: do something about this
+				log.Error("error ack'ing job", "err", err)
 			}
 		case <-w.quit:
 			return

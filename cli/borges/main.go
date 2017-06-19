@@ -15,7 +15,7 @@ const (
 var (
 	version string
 	build   string
-	logger  log15.Logger
+	log     log15.Logger
 )
 
 type cmd struct {
@@ -24,7 +24,9 @@ type cmd struct {
 }
 
 func init() {
-	logger = log15.New("module", name)
+	log15.Root().SetHandler(log15.CallerFileHandler(log15.StdoutHandler))
+
+	log = log15.New("module", name)
 }
 
 func main() {
