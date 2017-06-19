@@ -8,7 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"gopkg.in/src-d/go-billy.v2"
+	"gopkg.in/src-d/go-billy.v3"
+	"gopkg.in/src-d/go-billy.v3/util"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/config"
 	"gopkg.in/src-d/go-git.v4/plumbing"
@@ -98,8 +99,11 @@ func (a *Archiver) do(j *Job) error {
 	log.Debug("endpoint selected", "endpoint", endpoint)
 
 	dir := a.newTempRepoDir(j)
-	defer billy.RemoveAll(a.Temp, dir)
-	tmpFs := a.Temp.Dir(dir)
+	defer util.RemoveAll(a.Temp, dir)
+	tmpFs, err := a.Temp.Chroot(dir)
+	if err != nil {
+		return err
+	}
 
 	log.Debug("local temporary directory created", "temp-path", dir)
 
@@ -158,7 +162,7 @@ func (a *Archiver) newTempRepoDir(j *Job) string {
 }
 
 func (a *Archiver) cleanRepoDir(j *Job, dir string) {
-	if err := billy.RemoveAll(a.Temp, dir); err != nil {
+	if err := util.RemoveAll(a.Temp, dir); err != nil {
 		a.Notifiers.Warn(j, ErrCleanRepositoryDir.Wrap(err))
 	}
 }

@@ -12,8 +12,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"gopkg.in/src-d/go-billy.v2"
-	"gopkg.in/src-d/go-billy.v2/osfs"
+	"gopkg.in/src-d/go-billy.v3"
+	"gopkg.in/src-d/go-billy.v3/osfs"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/storage/memory"
@@ -56,9 +56,13 @@ func (s *ArchiverSuite) TestFixtures() {
 			defer func() { require.NoError(os.RemoveAll(tmp)) }()
 
 			fs := osfs.New(tmp)
-			rootedFs := fs.Dir("rooted")
-			txFs := fs.Dir("tx")
-			tmpFs := fs.Dir("tmp")
+
+			rootedFs, err := fs.Chroot("rooted")
+			require.NoError(err)
+			txFs, err := fs.Chroot("tx")
+			require.NoError(err)
+			tmpFs, err := fs.Chroot("tmp")
+			require.NoError(err)
 
 			s := model.NewRepositoryStore(s.DB)
 			tx := rrepository.NewSivaRootedTransactioner(rootedFs, txFs)
@@ -137,6 +141,9 @@ func checkNoFiles(t *testing.T, fs billy.Filesystem) {
 
 	for _, fi := range fis {
 		require.True(fi.IsDir(), "unexpected file: %s", fi.Name())
-		checkNoFiles(t, fs.Dir(fi.Name()))
+
+		fsr, err := fs.Chroot(fi.Name())
+		require.NoError(err)
+		checkNoFiles(t, fsr)
 	}
 }
