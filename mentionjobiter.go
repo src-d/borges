@@ -1,8 +1,8 @@
 package borges
 
 import (
-	"srcd.works/core.v0/model"
 	rmodel "srcd.works/core-retrieval.v0/model"
+	"srcd.works/core.v0/model"
 	"srcd.works/framework.v0/queue"
 )
 
@@ -49,7 +49,8 @@ func (i *mentionJobIter) Next() (*Job, error) {
 // initIter initialize the iterator if it is not already initialized.
 func (i *mentionJobIter) initIter() error {
 	if i.iter == nil {
-		iter, err := i.q.Consume()
+		awnd := 1
+		iter, err := i.q.Consume(awnd)
 		if err != nil {
 			return err
 		}

@@ -64,6 +64,13 @@ func (wp *WorkerPool) SetWorkerCount(workers int) {
 	}
 }
 
+// Len returns the number of workers currently in the pool.
+func (wp *WorkerPool) Len() int {
+	wp.m.Lock()
+	defer wp.m.Unlock()
+	return len(wp.workers)
+}
+
 func (wp *WorkerPool) add(n int) {
 	for i := 0; i < n; i++ {
 		ctx := &WorkerContext{ID: i}

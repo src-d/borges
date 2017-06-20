@@ -78,7 +78,7 @@ func (c *Consumer) reject(j *queue.Job, origErr error) {
 
 func (c *Consumer) consumeQueue(q queue.Queue) error {
 	var err error
-	c.iter, err = c.Queue.Consume()
+	c.iter, err = c.Queue.Consume(c.WorkerPool.Len())
 	if err != nil {
 		return err
 	}
