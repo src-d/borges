@@ -80,6 +80,7 @@ func (a *Archiver) Do(j *Job) error {
 
 func (a *Archiver) do(j *Job) error {
 	log := log.New("job", j.RepositoryID)
+	now := time.Now()
 
 	r, err := a.getRepositoryModel(j)
 	if err != nil {
@@ -130,10 +131,9 @@ func (a *Archiver) do(j *Job) error {
 			return err
 		}
 
-		err = ErrFetch.Wrap(err, endpoint)
+		finalErr = ErrFetch.Wrap(err, endpoint)
 		log.Error("error fetching repository", "error", err)
-
-		return err
+		return finalErr
 	}
 
 	changes, err := NewChanges(r.References, gr)
@@ -141,50 +141,12 @@ func (a *Archiver) do(j *Job) error {
 		return err
 	}
 
-	//TODO(bzz): extract all DB update to a function
-	refIter, err := gr.References()
-	if err != nil {
-		return err
-	}
-
-	err = refIter.ForEach(func(pRef *plumbing.Reference) error {
-		roots, err := rootCommits(gr, pRef.Hash())
-		if err != nil {
-			return nil // skip updating such refs
-		}
-		newReference := &model.Reference{
-			Name:  pRef.Name().String(),
-			Hash:  model.SHA1(pRef.Hash()),
-			Init:  roots[0],
-			Roots: roots,
-			Timestamps: kallax.Timestamps{
-				CreatedAt: now,
-				UpdatedAt: now,
-			},
-		}
-		r.References = append(r.References, newReference)
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-
-	_, err = a.RepositoryStorage.Update(r,
-		model.Schema.Repository.References,
-	)
-	if err != nil {
-		return err
-	}
-
 	log.Debug("changes obtained", "roots", len(changes))
-
-	if err := a.pushChangesToRootedRepositories(j, r, gr, changes); err != nil {
+	if err := a.pushChangesToRootedRepositories(j, r, gr, changes, now); err != nil {
 		return err
 	}
 
-	//TODO: Update repository
 	log.Debug("repository processed")
-
 	return nil
 }
 
