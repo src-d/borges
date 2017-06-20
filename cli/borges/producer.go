@@ -6,9 +6,9 @@ import (
 
 	"github.com/src-d/borges"
 
+	"gopkg.in/src-d/go-git.v4/utils/ioutil"
 	"srcd.works/core.v0"
 	"srcd.works/framework.v0/queue"
-	"gopkg.in/src-d/go-git.v4/utils/ioutil"
 )
 
 const (
@@ -25,11 +25,7 @@ type producerCmd struct {
 }
 
 func (c *producerCmd) Execute(args []string) error {
-	b, err := queue.NewBroker(c.Broker)
-	if err != nil {
-		return err
-	}
-
+	b := core.Broker()
 	defer b.Close()
 	q, err := b.Queue(c.Queue)
 	if err != nil {
