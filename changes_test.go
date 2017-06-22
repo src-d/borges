@@ -7,7 +7,7 @@ import (
 
 	"github.com/src-d/go-git-fixtures"
 	"github.com/stretchr/testify/require"
-	"gopkg.in/src-d/go-billy.v2/memfs"
+	"gopkg.in/src-d/go-billy.v3/memfs"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/storage/filesystem"
 	"srcd.works/core.v0/model"
