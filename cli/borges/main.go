@@ -19,8 +19,7 @@ var (
 )
 
 type cmd struct {
-	Broker string `long:"broker" default:"amqp://localhost:5672" description:"broker URI"`
-	Queue  string `long:"queue" default:"borges" description:"queue name"`
+	Queue string `long:"queue" default:"borges" description:"queue name"`
 }
 
 func init() {
