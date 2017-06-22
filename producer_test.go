@@ -75,7 +75,8 @@ func (s *ProducerSuite) TestStartStop() {
 	time.Sleep(time.Millisecond * 100)
 	assert.True(p.IsRunning())
 
-	iter, err := s.queue.Consume()
+	awnd := 1
+	iter, err := s.queue.Consume(awnd)
 	j, err := iter.Next()
 	assert.NoError(err)
 	assert.NotNil(j)
@@ -105,7 +106,8 @@ func (s *ProducerSuite) TestStartStop_TwoEqualsJobs() {
 
 	time.Sleep(time.Millisecond * 100)
 	assert.True(p.IsRunning())
-	iter, err := s.queue.Consume()
+	awnd := 1
+	iter, err := s.queue.Consume(awnd)
 	j, err := iter.Next()
 	assert.NoError(err)
 	assert.NotNil(j)
@@ -113,7 +115,8 @@ func (s *ProducerSuite) TestStartStop_TwoEqualsJobs() {
 	var jobOne Job
 	assert.NoError(j.Decode(&jobOne))
 
-	iter, err = s.queue.Consume()
+	iter, err = s.queue.Consume(awnd)
+	assert.NoError(err)
 	j, err = iter.Next()
 	assert.NoError(err)
 	assert.NotNil(j)
@@ -166,7 +169,8 @@ func (s *ProducerSuite) TestStartStop_noNotifier() {
 	time.Sleep(time.Millisecond * 100)
 	assert.True(p.IsRunning())
 
-	iter, err := s.queue.Consume()
+	awnd := 1
+	iter, err := s.queue.Consume(awnd)
 	j, err := iter.Next()
 	assert.NoError(err)
 	assert.NotNil(j)
