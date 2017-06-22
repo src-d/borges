@@ -123,15 +123,14 @@ func (a *Archiver) do(j *Job) error {
 			finalErr = ErrFetch.Wrap(err, endpoint)
 		}
 
-		_, err = a.RepositoryStorage.Update(r,
+		_, errDB := a.RepositoryStorage.Update(r,
 			model.Schema.Repository.UpdatedAt,
 			model.Schema.Repository.FetchErrorAt,
 		)
-		if err != nil {
-			return err
+		if errDB != nil {
+			return errDB
 		}
 
-		finalErr = ErrFetch.Wrap(err, endpoint)
 		log.Error("error fetching repository", "error", err)
 		return finalErr
 	}
@@ -221,7 +220,7 @@ func createLocalRepository(dir billy.Filesystem, endpoint string, refs []*model.
 		return nil, err
 	}
 
-	// TODO there are some cases when we cannot do this to don't fetch all
+	// TODO there are some cases when we cannot do this to skip fetching all
 	// the repository objects. Improve this in a near future saving all hashes
 	// of all the commits in a repository
 	//if err := setReferences(s, refs...); err != nil {
@@ -275,10 +274,10 @@ func (a *Archiver) pushChangesToRootedRepositories(j *Job, r *model.Repository,
 			//TODO: release lock
 			continue
 		}
-		a.dbUpdateRepository(r, lastCommitTime, now)
+		r.References = updateRepositoryReferences(r.References, cs)
 		//TODO: release lock
 	}
-	a.dbUpdateRepositoryReferences(r, lr, now)
+	a.dbUpdateRepository(r, lastCommitTime, now)
 	return checkFailedInits(changes, failedInits)
 }
 
@@ -366,12 +365,32 @@ func (a *Archiver) changesToPushRefSpec(id kallax.ULID, changes []*Command) []co
 	return rss
 }
 
+// Applies all given changes to a slice of References
+func updateRepositoryReferences(oldRefs []*model.Reference, changes []*Command) []*model.Reference {
+	refsByName := refsByName(oldRefs)
+	for _, ch := range changes {
+		switch ch.Action() {
+		case Create:
+			refsByName[ch.New.Name] = ch.New
+		case Delete:
+			delete(refsByName, ch.Old.Name)
+		case Update:
+			refsByName[ch.New.Name] = ch.New
+		}
+	}
+	refs := make([]*model.Reference, 0, len(refsByName))
+	for _, value := range refsByName {
+		refs = append(refs, value)
+	}
+	return refs
+}
+
 // Updates DB: status, fetch time, commit time
 func (a *Archiver) dbUpdateRepository(repoDb *model.Repository,
 	lastCommitTime *time.Time, then time.Time) error {
 
-	repoDb.FetchedAt = &then
 	repoDb.Status = model.Fetched
+	repoDb.FetchedAt = &then
 	repoDb.LastCommitAt = lastCommitTime
 
 	_, err := a.RepositoryStorage.Update(repoDb,
@@ -379,46 +398,6 @@ func (a *Archiver) dbUpdateRepository(repoDb *model.Repository,
 		model.Schema.Repository.FetchedAt,
 		model.Schema.Repository.LastCommitAt,
 		model.Schema.Repository.Status,
-	)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// Updates DB with all references from the given git.Repository
-func (a *Archiver) dbUpdateRepositoryReferences(repoDb *model.Repository,
-	gitRepo *git.Repository, then time.Time) error {
-	refIter, err := gitRepo.References()
-	if err != nil {
-		return err
-	}
-
-	err = refIter.ForEach(func(pRef *plumbing.Reference) error {
-		roots, err := rootCommits(gitRepo, pRef.Hash())
-		if err != nil {
-			return nil // skip updating such refs
-		}
-
-		newReference := &model.Reference{
-			Name:  pRef.Name().String(),
-			Hash:  model.SHA1(pRef.Hash()),
-			Init:  roots[0],
-			Roots: roots,
-			Timestamps: kallax.Timestamps{
-				CreatedAt: then,
-				UpdatedAt: then,
-			},
-		}
-		repoDb.References = append(repoDb.References, newReference)
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-
-	_, err = a.RepositoryStorage.Update(repoDb,
 		model.Schema.Repository.References,
 	)
 	if err != nil {
