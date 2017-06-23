@@ -40,6 +40,23 @@ func (s *ArchiverSuite) TearDownTest() {
 	fixtures.Clean()
 }
 
+func (s *ArchiverSuite) TestReferenceUpdate() {
+	for _, ct := range ChangesFixtures {
+		if ct.FakeHashes {
+			s.T().Run(ct.TestName, func(t *testing.T) {
+				assert := assert.New(t)
+
+				references := ct.OldReferences
+				for _, cs := range ct.Changes { // emulate pushChangesToRootedRepositories() behaviour
+					references = updateRepositoryReferences(references, cs)
+				}
+
+				assert.Equal(len(ct.NewReferences), len(references))
+			})
+		}
+	}
+}
+
 func (s *ArchiverSuite) TestFixtures() {
 	for _, ct := range ChangesFixtures {
 		if ct.FakeHashes {
