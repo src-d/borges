@@ -275,9 +275,9 @@ func (a *Archiver) pushChangesToRootedRepositories(j *Job, r *model.Repository,
 			continue
 		}
 		r.References = updateRepositoryReferences(r.References, cs)
+		a.dbUpdateRepository(r, lastCommitTime, now)
 		//TODO: release lock
 	}
-	a.dbUpdateRepository(r, lastCommitTime, now)
 	return checkFailedInits(changes, failedInits)
 }
 
