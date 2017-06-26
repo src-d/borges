@@ -10,6 +10,7 @@ import (
 
 	"gopkg.in/src-d/go-billy.v3"
 	"gopkg.in/src-d/go-billy.v3/util"
+	"gopkg.in/src-d/go-errors.v0"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/config"
 	"gopkg.in/src-d/go-git.v4/plumbing"
@@ -21,7 +22,6 @@ import (
 	"gopkg.in/src-d/go-kallax.v1"
 	"srcd.works/core-retrieval.v0/repository"
 	"srcd.works/core.v0/model"
-	"srcd.works/go-errors.v0"
 )
 
 var (

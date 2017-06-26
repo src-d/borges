@@ -416,7 +416,7 @@ var ChangesFixtures = []*ChangesFixture{{
 	},
 }, {
 	FakeHashes: true,
-	TestName: "all reference are new except one (updated with new init)",
+	TestName:   "all reference are new except one (updated with new init)",
 	OldReferences: []*model.Reference{
 		withRoots(
 			withHash(model.NewSHA1("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
@@ -457,7 +457,7 @@ var ChangesFixtures = []*ChangesFixture{{
 	},
 }, {
 	FakeHashes: true,
-	TestName: "all reference are new except one (one root removed)",
+	TestName:   "all reference are new except one (one root removed)",
 	OldReferences: []*model.Reference{
 		withRoots(
 			withHash(model.NewSHA1("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
