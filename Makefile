@@ -1,7 +1,6 @@
 # Package configuration
 PROJECT = borges
 COMMANDS = cli/borges
-CODECOV_TOKEN = fd8d47d9-6c72-409f-99fa-a8ba93631860
 
 DEPENDENCIES = github.com/Masterminds/glide
 
