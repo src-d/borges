@@ -72,11 +72,11 @@ func (wp *WorkerPool) Len() int {
 }
 
 func (wp *WorkerPool) add(n int) {
+	wp.wg.Add(n)
 	for i := 0; i < n; i++ {
 		ctx := &WorkerContext{ID: i}
 		w := NewWorker(ctx, wp.do, wp.jobChannel)
 		go func() {
-			wp.wg.Add(i)
 			defer wp.wg.Done()
 			w.Start()
 		}()

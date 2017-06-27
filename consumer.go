@@ -85,7 +85,6 @@ func (c *Consumer) consumeQueue(q queue.Queue) error {
 
 	if err := c.consumeJobIter(c.iter); err != nil {
 		if err == queue.ErrAlreadyClosed {
-			c.iter = nil
 			if c.close {
 				return nil
 			}
@@ -93,7 +92,6 @@ func (c *Consumer) consumeQueue(q queue.Queue) error {
 			return err
 		}
 
-		c.closeIter()
 		return err
 	}
 
