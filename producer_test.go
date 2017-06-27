@@ -73,7 +73,6 @@ func (s *ProducerSuite) TestStartStop() {
 	go p.Start()
 
 	time.Sleep(time.Millisecond * 100)
-	assert.True(p.IsRunning())
 
 	awnd := 1
 	iter, err := s.queue.Consume(awnd)
@@ -82,7 +81,6 @@ func (s *ProducerSuite) TestStartStop() {
 	assert.NotNil(j)
 
 	p.Stop()
-	assert.False(p.IsRunning())
 	assert.True(doneCalled == 1)
 }
 
@@ -105,7 +103,6 @@ func (s *ProducerSuite) TestStartStop_TwoEqualsJobs() {
 	go p.Start()
 
 	time.Sleep(time.Millisecond * 100)
-	assert.True(p.IsRunning())
 	awnd := 1
 	iter, err := s.queue.Consume(awnd)
 	j, err := iter.Next()
@@ -125,7 +122,6 @@ func (s *ProducerSuite) TestStartStop_TwoEqualsJobs() {
 	assert.NoError(j.Decode(&jobOne))
 
 	p.Stop()
-	assert.False(p.IsRunning())
 	assert.True(doneCalled == 2)
 
 	assert.Equal(jobOne.RepositoryID, jobTwo.RepositoryID)
@@ -145,19 +141,16 @@ func (s *ProducerSuite) TestStartStop_ErrorNotifier() {
 
 	time.Sleep(time.Millisecond * 100)
 	p.Stop()
-	assert.False(p.IsRunning())
 	assert.True(errorCalled == 1)
 }
 
 func (s *ProducerSuite) TestStartStop_ErrorNoNotifier() {
-	assert := require.New(s.T())
 	p := NewProducer(&DummyJobIter{}, s.queue)
 
 	go p.Start()
 
 	time.Sleep(time.Millisecond * 100)
 	p.Stop()
-	assert.False(p.IsRunning())
 }
 
 func (s *ProducerSuite) TestStartStop_noNotifier() {
@@ -167,7 +160,6 @@ func (s *ProducerSuite) TestStartStop_noNotifier() {
 	go p.Start()
 
 	time.Sleep(time.Millisecond * 100)
-	assert.True(p.IsRunning())
 
 	awnd := 1
 	iter, err := s.queue.Consume(awnd)
@@ -176,7 +168,6 @@ func (s *ProducerSuite) TestStartStop_noNotifier() {
 	assert.NotNil(j)
 
 	p.Stop()
-	assert.False(p.IsRunning())
 }
 
 type DummyJobIter struct{}

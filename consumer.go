@@ -29,11 +29,6 @@ func NewConsumer(queue queue.Queue, pool *WorkerPool) *Consumer {
 	}
 }
 
-// IsRunning returns true if the consumer is running.
-func (c *Consumer) IsRunning() bool {
-	return c.running
-}
-
 // Start initializes the consumer and starts it, blocking until it is stopped.
 func (c *Consumer) Start() {
 	c.close = false

@@ -35,11 +35,6 @@ func NewProducer(jobIter JobIter, queue queue.Queue) *Producer {
 	}
 }
 
-// IsRunning returns true if the producer is running.
-func (p *Producer) IsRunning() bool {
-	return p.running
-}
-
 // Start starts the producer services. It blocks until Stop is called.
 func (p *Producer) Start() {
 	p.startOnce.Do(p.start)
