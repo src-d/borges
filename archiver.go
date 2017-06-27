@@ -80,6 +80,7 @@ func (a *Archiver) Do(j *Job) error {
 
 func (a *Archiver) do(j *Job) error {
 	log := log.New("job", j.RepositoryID)
+	now := time.Now()
 
 	r, err := a.getRepositoryModel(j)
 	if err != nil {
@@ -115,16 +116,23 @@ func (a *Archiver) do(j *Job) error {
 	log.Debug("local repository created")
 
 	if err := fetchAll(gr); err != nil {
-		if err == git.NoErrAlreadyUpToDate ||
-			err == transport.ErrEmptyUploadPackRequest {
-			//TODO: Update repository timestamp
-			return nil
+		var finalErr error
+		if err != git.NoErrAlreadyUpToDate &&
+			err != transport.ErrEmptyUploadPackRequest {
+			r.FetchErrorAt = &now
+			finalErr = ErrFetch.Wrap(err, endpoint)
 		}
 
-		err = ErrFetch.Wrap(err, endpoint)
-		log.Error("error fetching repository", "error", err)
+		_, errDB := a.RepositoryStorage.Update(r,
+			model.Schema.Repository.UpdatedAt,
+			model.Schema.Repository.FetchErrorAt,
+		)
+		if errDB != nil {
+			return errDB
+		}
 
-		return err
+		log.Error("error fetching repository", "error", err)
+		return finalErr
 	}
 
 	changes, err := NewChanges(r.References, gr)
@@ -133,14 +141,11 @@ func (a *Archiver) do(j *Job) error {
 	}
 
 	log.Debug("changes obtained", "roots", len(changes))
-
-	if err := a.pushChangesToRootedRepositories(j, r, gr, changes); err != nil {
+	if err := a.pushChangesToRootedRepositories(j, r, gr, changes, now); err != nil {
 		return err
 	}
 
-	//TODO: Update repository
 	log.Debug("repository processed")
-
 	return nil
 }
 
@@ -215,7 +220,7 @@ func createLocalRepository(dir billy.Filesystem, endpoint string, refs []*model.
 		return nil, err
 	}
 
-	// TODO there are some cases when we cannot do this to don't fetch all
+	// TODO there are some cases when we cannot do this to skip fetching all
 	// the repository objects. Improve this in a near future saving all hashes
 	// of all the commits in a repository
 	//if err := setReferences(s, refs...); err != nil {
@@ -252,7 +257,12 @@ func fetchAll(r *git.Repository) error {
 }
 
 func (a *Archiver) pushChangesToRootedRepositories(j *Job, r *model.Repository,
-	lr *git.Repository, changes Changes) error {
+	lr *git.Repository, changes Changes, now time.Time) error {
+	lastCommitTime, err := getLastCommitTime(lr)
+	if err != nil {
+		return err
+	}
+
 	var failedInits []model.SHA1
 	for ic, cs := range changes {
 		//TODO: try lock first_commit
@@ -264,11 +274,25 @@ func (a *Archiver) pushChangesToRootedRepositories(j *Job, r *model.Repository,
 			//TODO: release lock
 			continue
 		}
-		//TODO: update references db with the changes
+		r.References = updateRepositoryReferences(r.References, cs)
+		a.dbUpdateRepository(r, lastCommitTime, now)
 		//TODO: release lock
 	}
-
 	return checkFailedInits(changes, failedInits)
+}
+
+func getLastCommitTime(r *git.Repository) (*time.Time, error) {
+	h, err := r.Head()
+	if err != nil {
+		return nil, err
+	}
+
+	hc, err := r.CommitObject(h.Hash())
+	if err != nil {
+		return nil, err
+	}
+
+	return &hc.Author.When, nil
 }
 
 func (a *Archiver) pushChangesToRootedRepository(r *model.Repository, lr *git.Repository, ic model.SHA1, changes []*Command) error {
@@ -339,6 +363,48 @@ func (a *Archiver) changesToPushRefSpec(id kallax.ULID, changes []*Command) []co
 	}
 
 	return rss
+}
+
+// Applies all given changes to a slice of References
+func updateRepositoryReferences(oldRefs []*model.Reference, changes []*Command) []*model.Reference {
+	refsByName := refsByName(oldRefs)
+	for _, ch := range changes {
+		switch ch.Action() {
+		case Create:
+			refsByName[ch.New.Name] = ch.New
+		case Delete:
+			delete(refsByName, ch.Old.Name)
+		case Update:
+			refsByName[ch.New.Name] = ch.New
+		}
+	}
+	refs := make([]*model.Reference, 0, len(refsByName))
+	for _, value := range refsByName {
+		refs = append(refs, value)
+	}
+	return refs
+}
+
+// Updates DB: status, fetch time, commit time
+func (a *Archiver) dbUpdateRepository(repoDb *model.Repository,
+	lastCommitTime *time.Time, then time.Time) error {
+
+	repoDb.Status = model.Fetched
+	repoDb.FetchedAt = &then
+	repoDb.LastCommitAt = lastCommitTime
+
+	_, err := a.RepositoryStorage.Update(repoDb,
+		model.Schema.Repository.UpdatedAt,
+		model.Schema.Repository.FetchedAt,
+		model.Schema.Repository.LastCommitAt,
+		model.Schema.Repository.Status,
+		model.Schema.Repository.References,
+	)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func checkFailedInits(changes Changes, failed []model.SHA1) error {

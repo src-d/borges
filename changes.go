@@ -81,15 +81,15 @@ func NewChanges(oldRefs []*model.Reference, newRepo *git.Repository) (Changes, e
 }
 
 func newChanges(now time.Time, oldRefs []*model.Reference, newRepo *git.Repository) (Changes, error) {
-	refIter, err := newRepo.References()
+	newRefIter, err := newRepo.References()
 	if err != nil {
 		return nil, err
 	}
 
-	refsByName := refsByName(oldRefs)
+	oldRefsByName := refsByName(oldRefs)
 	changes := make(Changes)
-	err = refIter.ForEach(func(r *plumbing.Reference) error {
-		err := addChangesBetweenOldAndNewReferences(now, changes, r, refsByName, newRepo)
+	err = newRefIter.ForEach(func(newRef *plumbing.Reference) error {
+		err := addToChangesDfferenceBetweenOldAndNewRefs(now, changes, newRef, oldRefsByName, newRepo)
 		if err == ErrReferencedObjectTypeNotSupported {
 			return nil
 		}
@@ -100,14 +100,17 @@ func newChanges(now time.Time, oldRefs []*model.Reference, newRepo *git.Reposito
 		return nil, err
 	}
 
-	for _, r := range refsByName {
+	for _, r := range oldRefsByName {
 		changes.Delete(r)
 	}
 
 	return changes, nil
 }
 
-func addChangesBetweenOldAndNewReferences(
+// For a given rReference it:
+//  - puts new Change to Changes
+//  - removes rReference from oldRefs
+func addToChangesDfferenceBetweenOldAndNewRefs(
 	now time.Time,
 	c Changes,
 	rReference *plumbing.Reference,
