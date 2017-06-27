@@ -1,9 +1,9 @@
 package borges
 
 import (
-	rmodel "srcd.works/core-retrieval.v0/model"
-	"srcd.works/core.v0/model"
-	"srcd.works/framework.v0/queue"
+	rmodel "gopkg.in/src-d/core-retrieval.v0/model"
+	"gopkg.in/src-d/core.v0/model"
+	"gopkg.in/src-d/framework.v0/queue"
 )
 
 type mentionJobIter struct {

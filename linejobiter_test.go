@@ -8,9 +8,9 @@ import (
 
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/src-d/core.v0"
+	"gopkg.in/src-d/core.v0/model"
 	"gopkg.in/src-d/go-kallax.v1"
-	"srcd.works/core.v0"
-	"srcd.works/core.v0/model"
 )
 
 func TestLineJobIter(t *testing.T) {
