@@ -44,8 +44,13 @@ they will just retry until it does.
 
 # Development
 
-## Install
-`go get -u -t github.com/src-d/borges/...`
+## Build
+
+Build:
+
+`make packages`
+
+You will find binaries in `borges_linux_amd64/borges` and `borges_darwin_amd64/borges`.
 
 If running for the first time, you also need to add table to PostgreSQL:
 
@@ -65,7 +70,7 @@ CREATE TABLE IF NOT EXISTS repositories (
 
 ## Test
 
-`go test ./...`
+`make test`
 
 Borges has 2 runtime dependencies and have tests depending on them:
   - RabbitMQ
