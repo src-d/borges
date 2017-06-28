@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"srcd.works/framework.v0/queue"
+	"gopkg.in/src-d/framework.v0/queue"
 )
 
 func TestConsumerSuite(t *testing.T) {
@@ -71,19 +71,15 @@ func (s *ConsumerSuite) TestConsumer_StartStop_FailedJob() {
 	require.Equal(id, processedId)
 
 	c.Stop()
-	require.False(c.IsRunning())
 }
 
 func (s *ConsumerSuite) TestConsumer_StartStop_EmptyQueue() {
-	assert := assert.New(s.T())
 	c := s.newConsumer()
 	c.WorkerPool.SetWorkerCount(1)
 	go c.Start()
 
 	time.Sleep(time.Millisecond * 100)
-	assert.True(c.IsRunning())
 	c.Stop()
-	assert.False(c.IsRunning())
 }
 
 func (s *ConsumerSuite) TestConsumer_StartStop() {
@@ -118,7 +114,6 @@ func (s *ConsumerSuite) TestConsumer_StartStop() {
 
 	assert.NoError(timeoutChan(done, time.Second*10))
 	c.Stop()
-	assert.False(c.IsRunning())
 	assert.Equal(1, processed)
 }
 

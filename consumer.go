@@ -1,9 +1,10 @@
 package borges
 
 import (
+	"sync"
 	"time"
 
-	"srcd.works/framework.v0/queue"
+	"gopkg.in/src-d/framework.v0/queue"
 )
 
 // Consumer consumes jobs from a queue and uses multiple workers to process
@@ -16,9 +17,10 @@ type Consumer struct {
 	Queue      queue.Queue
 
 	running bool
-	close   bool
 	quit    chan struct{}
+	done    chan struct{}
 	iter    queue.JobIter
+	m       *sync.Mutex
 }
 
 // NewConsumer creates a new consumer.
@@ -26,32 +28,30 @@ func NewConsumer(queue queue.Queue, pool *WorkerPool) *Consumer {
 	return &Consumer{
 		WorkerPool: pool,
 		Queue:      queue,
+		m:          &sync.Mutex{},
 	}
-}
-
-// IsRunning returns true if the consumer is running.
-func (c *Consumer) IsRunning() bool {
-	return c.running
 }
 
 // Start initializes the consumer and starts it, blocking until it is stopped.
 func (c *Consumer) Start() {
-	c.close = false
-	c.running = true
-	defer func() { c.running = false }()
+	c.m.Lock()
 	c.quit = make(chan struct{})
-	defer func() { close(c.quit) }()
+	c.done = make(chan struct{})
+	c.m.Unlock()
+
+	defer func() { close(c.done) }()
+Outer:
 	for {
-		if err := c.consumeQueue(c.Queue); err != nil {
-			c.notifyQueueError(err)
-			c.closeIter()
-		}
+		select {
+		case <-c.quit:
+			break Outer
+		default:
+			if err := c.consumeQueue(c.Queue); err != nil {
+				c.notifyQueueError(err)
+			}
 
-		if c.close {
-			break
+			c.backoff()
 		}
-
-		c.backoff()
 	}
 
 	return
@@ -60,9 +60,13 @@ func (c *Consumer) Start() {
 // Stop stops the consumer. Note that it does not close the underlying queue
 // and worker pool. It blocks until the consumer has actually stopped.
 func (c *Consumer) Stop() {
-	c.close = true
-	c.closeIter()
-	<-c.quit
+	c.m.Lock()
+	close(c.quit)
+	if err := c.iter.Close(); err != nil {
+		c.notifyQueueError(err)
+	}
+	c.m.Unlock()
+	<-c.done
 }
 
 func (c *Consumer) backoff() {
@@ -78,26 +82,14 @@ func (c *Consumer) reject(j *queue.Job, origErr error) {
 
 func (c *Consumer) consumeQueue(q queue.Queue) error {
 	var err error
+	c.m.Lock()
 	c.iter, err = c.Queue.Consume(c.WorkerPool.Len())
+	c.m.Unlock()
 	if err != nil {
 		return err
 	}
 
-	if err := c.consumeJobIter(c.iter); err != nil {
-		if err == queue.ErrAlreadyClosed {
-			c.iter = nil
-			if c.close {
-				return nil
-			}
-
-			return err
-		}
-
-		c.closeIter()
-		return err
-	}
-
-	return nil
+	return c.consumeJobIter(c.iter)
 }
 
 func (c *Consumer) consumeJobIter(iter queue.JobIter) error {
@@ -106,6 +98,10 @@ func (c *Consumer) consumeJobIter(iter queue.JobIter) error {
 		if err == queue.ErrEmptyJob {
 			c.notifyQueueError(err)
 			continue
+		}
+
+		if err == queue.ErrAlreadyClosed {
+			return nil
 		}
 
 		if err != nil {
@@ -127,18 +123,6 @@ func (c *Consumer) consumeJob(j *queue.Job) error {
 
 	c.WorkerPool.Do(&WorkerJob{job, j})
 	return nil
-}
-
-func (c *Consumer) closeIter() {
-	if c.iter == nil {
-		return
-	}
-
-	if err := c.iter.Close(); err != nil {
-		c.notifyQueueError(err)
-	}
-
-	c.iter = nil
 }
 
 func (c *Consumer) notifyQueueError(err error) {

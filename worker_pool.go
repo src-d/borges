@@ -3,7 +3,7 @@ package borges
 import (
 	"sync"
 
-	"srcd.works/framework.v0/queue"
+	"gopkg.in/src-d/framework.v0/queue"
 )
 
 // A WorkerJob is a job to be passed to the worker. It contains the Job itself
@@ -72,11 +72,11 @@ func (wp *WorkerPool) Len() int {
 }
 
 func (wp *WorkerPool) add(n int) {
+	wp.wg.Add(n)
 	for i := 0; i < n; i++ {
 		ctx := &WorkerContext{ID: i}
 		w := NewWorker(ctx, wp.do, wp.jobChannel)
 		go func() {
-			wp.wg.Add(i)
 			defer wp.wg.Done()
 			w.Start()
 		}()

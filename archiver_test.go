@@ -12,14 +12,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	rrepository "gopkg.in/src-d/core-retrieval.v0/repository"
+	"gopkg.in/src-d/core.v0/model"
+	"gopkg.in/src-d/core.v0/test"
 	"gopkg.in/src-d/go-billy.v3"
 	"gopkg.in/src-d/go-billy.v3/osfs"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/storage/memory"
-	rrepository "srcd.works/core-retrieval.v0/repository"
-	"srcd.works/core.v0/model"
-	"srcd.works/core.v0/test"
 )
 
 func TestArchiver(t *testing.T) {

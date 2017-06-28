@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"srcd.works/framework.v0/queue"
+	"gopkg.in/src-d/framework.v0/queue"
 )
 
 // Producer is a service to generate jobs and put them to the queue.
@@ -33,11 +33,6 @@ func NewProducer(jobIter JobIter, queue queue.Queue) *Producer {
 		startOnce: &sync.Once{},
 		stopOnce:  &sync.Once{},
 	}
-}
-
-// IsRunning returns true if the producer is running.
-func (p *Producer) IsRunning() bool {
-	return p.running
 }
 
 // Start starts the producer services. It blocks until Stop is called.
