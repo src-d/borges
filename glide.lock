@@ -1,5 +1,5 @@
-hash: 014d9c7e0e0c553e280d178c4027a4fb6367bf4ab4fbd2d639da60b13edcd0c7
-updated: 2017-06-28T08:13:39.299913987+02:00
+hash: 580d5a97c422c89e11f5bfab191afaa5e1ba1f5037ac58a5a436003aec45d2d5
+updated: 2017-06-29T09:20:11.805006036+02:00
 imports:
 - name: github.com/davecgh/go-spew
   version: 6d212800a42e8ab5c146b8ace3490ee17e5225f9
@@ -102,7 +102,7 @@ imports:
   - bson
   - internal/json
 - name: gopkg.in/src-d/core-retrieval.v0
-  version: e5ce5c85bef486a9c34de6787acf9d3ce241606f
+  version: 2d35ac7cca4a7a1c0bb929d6419b815b129caf37
   subpackages:
   - model
   - repository
@@ -117,14 +117,14 @@ imports:
   - configurable
   - database
   - queue
-- name: gopkg.in/src-d/go-billy-siva.v1
-  version: cfc1efff55041b3b6256a4b0bb98ab2aefe838fe
+- name: gopkg.in/src-d/go-billy-siva.v2
+  version: ef50766c721fc7b2e762adf537d5556d86f6f1af
 - name: gopkg.in/src-d/go-billy.v3
-  version: e501c17e5a47cc1adfdf16fbf54e60e6dafb92c2
+  version: c329b7bc7b9d24905d2bc1b85bfa29f7ae266314
   subpackages:
   - helper/chroot
+  - helper/mount
   - helper/polyfill
-  - helper/temporal
   - memfs
   - osfs
   - util
@@ -174,7 +174,7 @@ imports:
   - utils/merkletrie/internal/frame
   - utils/merkletrie/noder
 - name: gopkg.in/src-d/go-kallax.v1
-  version: 7e544e6cdbd0137fc9d4527c8ec4c7e97c7aef72
+  version: 2cc6c43422cceee02f3b75a702973fe3834f831f
   subpackages:
   - types
 - name: gopkg.in/src-d/go-siva.v1
