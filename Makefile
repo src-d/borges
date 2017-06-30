@@ -26,6 +26,7 @@ GLIDE = glide
 .PHONY: $(DEPENDENCIES) dependencies test test-coverage
 
 dependencies: $(DEPENDENCIES) $(VENDOR_PATH) $(NOVENDOR_PACKAGES)
+	@echo pass
 
 $(DEPENDENCIES):
 	$(GOGET) $@/...
