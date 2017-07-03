@@ -19,6 +19,8 @@ type consumerCmd struct {
 }
 
 func (c *consumerCmd) Execute(args []string) error {
+	c.ChangeLogLevel()
+
 	b := core.Broker()
 	defer b.Close()
 	q, err := b.Queue(c.Queue)
