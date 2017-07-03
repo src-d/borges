@@ -7,111 +7,111 @@ import (
 	"testing"
 
 	"github.com/satori/go.uuid"
-	"github.com/stretchr/testify/require"
-	"gopkg.in/src-d/core.v0"
+	"github.com/stretchr/testify/suite"
 	"gopkg.in/src-d/core.v0/model"
+	"gopkg.in/src-d/core.v0/test"
 	"gopkg.in/src-d/go-kallax.v1"
 )
 
 func TestLineJobIter(t *testing.T) {
-	assert := require.New(t)
+	suite.Run(t, new(LineJobIterSuite))
+}
 
+type LineJobIterSuite struct {
+	test.Suite
+}
+
+func (s *LineJobIterSuite) SetupTest() {
+	s.Suite.Setup()
+}
+
+func (s *LineJobIterSuite) TearDownTest() {
+	s.Suite.TearDown()
+}
+
+func (s *LineJobIterSuite) TestGetJobsWithTwoRepos() {
 	text := `git://foo/bar.git
 https://foo/baz.git`
 	r := ioutil.NopCloser(strings.NewReader(text))
 
-	DropTables("repositories")
-	CreateRepositoryTable()
-	storer := core.ModelRepositoryStore()
+	storer := model.NewRepositoryStore(s.DB)
 
 	iter := NewLineJobIter(r, storer)
 
 	j, err := iter.Next()
-	assert.NoError(err)
+	s.NoError(err)
 	ID, err := getIDByEndpoint("git://foo/bar.git", storer)
-	assert.NoError(err)
-	assert.Equal(&Job{RepositoryID: ID}, j)
+	s.NoError(err)
+	s.Equal(&Job{RepositoryID: ID}, j)
 
 	j, err = iter.Next()
-	assert.NoError(err)
+	s.NoError(err)
 	ID, err = getIDByEndpoint("https://foo/baz.git", storer)
-	assert.NoError(err)
-	assert.Equal(&Job{RepositoryID: ID}, j)
+	s.NoError(err)
+	s.Equal(&Job{RepositoryID: ID}, j)
 
 	j, err = iter.Next()
-	assert.Equal(io.EOF, err)
-	assert.Nil(j)
+	s.Equal(io.EOF, err)
+	s.Nil(j)
 
 	j, err = iter.Next()
-	assert.Equal(io.EOF, err)
-	assert.Nil(j)
+	s.Equal(io.EOF, err)
+	s.Nil(j)
 }
 
-func TestLineJobIterEmpty(t *testing.T) {
-	assert := require.New(t)
-
+func (s *LineJobIterSuite) TestEmpty() {
 	r := ioutil.NopCloser(strings.NewReader(""))
 	iter := NewLineJobIter(r, nil)
 
 	j, err := iter.Next()
-	assert.Equal(io.EOF, err)
-	assert.Nil(j)
+	s.Equal(io.EOF, err)
+	s.Nil(j)
 
 	j, err = iter.Next()
-	assert.Equal(io.EOF, err)
-	assert.Nil(j)
+	s.Equal(io.EOF, err)
+	s.Nil(j)
 }
 
-func TestLineJobIterNonAbsoluteURL(t *testing.T) {
-	assert := require.New(t)
-
+func (s *LineJobIterSuite) TestNonAbsoluteURL() {
 	text := "foo"
 	r := ioutil.NopCloser(strings.NewReader(text))
 
-	DropTables("repository")
-	DropIndexes("idx_endpoints")
-	CreateRepositoryTable()
-	storer := core.ModelRepositoryStore()
+	storer := model.NewRepositoryStore(s.DB)
 
 	iter := NewLineJobIter(r, storer)
 
 	j, err := iter.Next()
-	assert.Error(err)
-	assert.NotEqual(io.EOF, err)
+	s.Error(err)
+	s.NotEqual(io.EOF, err)
 
 	j, err = iter.Next()
-	assert.Equal(io.EOF, err)
-	assert.Nil(j)
+	s.Equal(io.EOF, err)
+	s.Nil(j)
 
 	j, err = iter.Next()
-	assert.Equal(io.EOF, err)
-	assert.Nil(j)
+	s.Equal(io.EOF, err)
+	s.Nil(j)
 }
 
-func TestLineJobIterBadURL(t *testing.T) {
-	assert := require.New(t)
-
+func (s *LineJobIterSuite) TestBadURL() {
 	text := "://"
 	r := ioutil.NopCloser(strings.NewReader(text))
 
-	DropTables("repository")
-	DropIndexes("idx_endpoints")
-	CreateRepositoryTable()
-	storer := core.ModelRepositoryStore()
+	storer := model.NewRepositoryStore(s.DB)
 
 	iter := NewLineJobIter(r, storer)
 
 	j, err := iter.Next()
-	assert.Error(err)
-	assert.NotEqual(io.EOF, err)
+	s.Error(err)
+	s.NotEqual(io.EOF, err)
 
 	j, err = iter.Next()
-	assert.Equal(io.EOF, err)
-	assert.Nil(j)
+	s.Equal(io.EOF, err)
+	s.Nil(j)
 
 	j, err = iter.Next()
-	assert.Equal(io.EOF, err)
-	assert.Nil(j)
+	s.Equal(io.EOF, err)
+	s.Nil(j)
 }
 
 func getIDByEndpoint(endpoint string, store *model.RepositoryStore) (uuid.UUID, error) {
