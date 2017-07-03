@@ -46,11 +46,12 @@ they will just retry until it does.
 
 ## Build
 
-Build:
+- `rm Makefile.main; rm -rf .ci` to make sure you will have the last Makefile changes.
+- `make dependencies` to download vendor data using Glide.
+- `make packages` to generate binaries for several platforms.
 
-`make packages`
-
-You will find binaries in `borges_linux_amd64/borges` and `borges_darwin_amd64/borges`.
+You will find binaries in `borges_linux_amd64/borges` and `borges_darwin_amd64/borges`. 
+Into `bin/borges` you will find the binary for the platform used to build the artifact.
 
 If running for the first time, you also need to add table to PostgreSQL:
 
@@ -66,6 +67,8 @@ CREATE TABLE IF NOT EXISTS repositories (
     last_commit_at timestamptz,
     _references jsonb
     );
+    
+    CREATE INDEX idx_endpoints on "repositories" USING GIN ("endpoints");
 ```
 
 ## Test
