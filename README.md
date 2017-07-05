@@ -47,11 +47,10 @@ they will just retry until it does.
 ## Build
 
 - `rm Makefile.main; rm -rf .ci` to make sure you will have the last Makefile changes.
-- `make dependencies` to download vendor data using Glide.
+- `make dependencies` to download vendor dependencies using Glide.
 - `make packages` to generate binaries for several platforms.
 
 You will find binaries in `borges_linux_amd64/borges` and `borges_darwin_amd64/borges`. 
-Into `bin/borges` you will find the binary for the platform used to build the artifact.
 
 If running for the first time, you also need to add table to PostgreSQL:
 
