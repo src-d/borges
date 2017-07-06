@@ -1,6 +1,7 @@
 package borges
 
 import (
+	stderrors "errors"
 	"fmt"
 	"io"
 	"strings"
@@ -11,6 +12,8 @@ import (
 	"gopkg.in/src-d/core.v0/model"
 	"gopkg.in/src-d/go-errors.v0"
 	"gopkg.in/src-d/go-git.v4"
+	"gopkg.in/src-d/go-git.v4/plumbing"
+	"gopkg.in/src-d/go-git.v4/plumbing/object"
 	"gopkg.in/src-d/go-kallax.v1"
 )
 
@@ -22,6 +25,8 @@ var (
 	ErrAlreadyStopped = errors.NewKind("already stopped: %s")
 
 	ErrWaitForJobs = errors.NewKind("no more jobs at the moment")
+
+	ErrReferencedObjectTypeNotSupported error = stderrors.New("referenced object type not supported")
 )
 
 // Job represents a borges job to fetch and archive a repository.
@@ -71,6 +76,27 @@ func RepositoryID(endpoint string, storer *model.RepositoryStore) (uuid.UUID, er
 	}
 
 	return uuid.UUID(repositories[0].ID), nil
+}
+
+// ResolveHash gets the hash of a commit that is referenced by a tag, per example.
+// The only resolvable objects are Tags and Commits. If the object is not one of them,
+// This method will return an ErrReferencedObjectTypeNotSupported. The output hash
+// always will be a Commit hash.
+func ResolveHash(r *git.Repository, h plumbing.Hash) (plumbing.Hash, error) {
+	obj, err := r.Object(plumbing.AnyObject, h)
+	if err != nil {
+		return plumbing.ZeroHash, err
+	}
+
+	switch o := obj.(type) {
+	case *object.Commit:
+		return o.Hash, nil
+	case *object.Tag:
+		return ResolveHash(r, o.Target)
+	default:
+		log.Warn("referenced object not supported", "type", o.Type())
+		return plumbing.ZeroHash, ErrReferencedObjectTypeNotSupported
+	}
 }
 
 // TODO temporal

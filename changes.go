@@ -1,7 +1,6 @@
 package borges
 
 import (
-	"errors"
 	"time"
 
 	"gopkg.in/src-d/core.v0/model"
@@ -51,8 +50,6 @@ func (c *Command) Action() Action {
 
 	return Update
 }
-
-var ErrReferencedObjectTypeNotSupported error = errors.New("referenced object type not supported")
 
 // NewChanges returns Changes needed to obtain the current state of the
 // repository from a set of old references. The Changes could be create,
@@ -183,7 +180,7 @@ func (c Changes) Add(new *model.Reference) {
 }
 
 func rootCommits(r *git.Repository, from plumbing.Hash) ([]model.SHA1, error) {
-	h, err := resolveHash(r, from)
+	h, err := ResolveHash(r, from)
 	if err != nil {
 		return nil, err
 	}
@@ -204,23 +201,6 @@ func rootCommits(r *git.Repository, from plumbing.Hash) ([]model.SHA1, error) {
 	})
 
 	return roots, err
-}
-
-func resolveHash(r *git.Repository, h plumbing.Hash) (plumbing.Hash, error) {
-	obj, err := r.Object(plumbing.AnyObject, h)
-	if err != nil {
-		return plumbing.ZeroHash, err
-	}
-
-	switch o := obj.(type) {
-	case *object.Commit:
-		return o.Hash, nil
-	case *object.Tag:
-		return resolveHash(r, o.Target)
-	default:
-		log.Warn("referenced object not supported", "type", o.Type())
-		return plumbing.ZeroHash, ErrReferencedObjectTypeNotSupported
-	}
 }
 
 func refsByName(refs []*model.Reference) map[string]*model.Reference {
