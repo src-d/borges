@@ -3,8 +3,7 @@ package main
 import (
 	"github.com/src-d/borges"
 
-	rcore "gopkg.in/src-d/core-retrieval.v0"
-	"gopkg.in/src-d/core.v0"
+	"gopkg.in/src-d/core-retrieval.v0"
 )
 
 const (
@@ -30,7 +29,7 @@ func (c *consumerCmd) Execute(args []string) error {
 
 	wp := borges.NewArchiverWorkerPool(
 		core.ModelRepositoryStore(),
-		rcore.RootedTransactioner(),
+		core.RootedTransactioner(),
 		core.TemporaryFilesystem(),
 		c.startNotifier, c.stopNotifier, c.warnNotifier)
 	wp.SetWorkerCount(c.WorkersCount)

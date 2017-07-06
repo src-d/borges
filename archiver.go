@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"gopkg.in/src-d/core-retrieval.v0/model"
 	"gopkg.in/src-d/core-retrieval.v0/repository"
-	"gopkg.in/src-d/core.v0/model"
 	"gopkg.in/src-d/go-billy.v3"
 	"gopkg.in/src-d/go-billy.v3/util"
 	"gopkg.in/src-d/go-errors.v0"

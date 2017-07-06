@@ -8,8 +8,8 @@ import (
 
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/suite"
-	"gopkg.in/src-d/core.v0/model"
-	"gopkg.in/src-d/core.v0/test"
+	"gopkg.in/src-d/core-retrieval.v0/model"
+	"gopkg.in/src-d/core-retrieval.v0/test"
 	"gopkg.in/src-d/go-kallax.v1"
 )
 

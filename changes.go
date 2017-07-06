@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	"gopkg.in/src-d/core.v0/model"
+	"gopkg.in/src-d/core-retrieval.v0/model"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
