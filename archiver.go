@@ -2,6 +2,7 @@ package borges
 
 import (
 	"fmt"
+	"io"
 	"math/rand"
 	"path/filepath"
 	"strconv"
@@ -282,17 +283,48 @@ func (a *Archiver) pushChangesToRootedRepositories(j *Job, r *model.Repository,
 }
 
 func getLastCommitTime(r *git.Repository) (*time.Time, error) {
-	h, err := r.Head()
+	rIter, err := r.References()
 	if err != nil {
 		return nil, err
 	}
 
-	hc, err := r.CommitObject(h.Hash())
-	if err != nil {
-		return nil, err
+	var lct time.Time
+
+	for {
+		ref, err := rIter.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		if ref.Type() != plumbing.HashReference {
+			continue
+		}
+
+		h, err := ResolveHash(r, ref.Hash())
+		if err == ErrReferencedObjectTypeNotSupported {
+			log.Warn("Reference is pointing to a non supported object", "ref", ref)
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		hc, err := r.CommitObject(h)
+		if err != nil {
+			return nil, err
+		}
+
+		var lctc = hc.Author.When
+
+		if lctc.Before(lct) {
+			lct = lctc
+		}
 	}
 
-	return &hc.Author.When, nil
+	return &lct, nil
 }
 
 func (a *Archiver) pushChangesToRootedRepository(r *model.Repository, lr *git.Repository, ic model.SHA1, changes []*Command) error {

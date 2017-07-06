@@ -19,6 +19,7 @@ import (
 	"gopkg.in/src-d/go-billy.v3/osfs"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
+	"gopkg.in/src-d/go-git.v4/storage/filesystem"
 	"gopkg.in/src-d/go-git.v4/storage/memory"
 )
 
@@ -38,6 +39,16 @@ func (s *ArchiverSuite) SetupTest() {
 func (s *ArchiverSuite) TearDownTest() {
 	s.Suite.TearDown()
 	fixtures.Clean()
+}
+
+func (s *ArchiverSuite) TestLastCommitDate() {
+	for i, f := range fixtures.ByTag(".git") {
+		s.T().Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			time, err := getLastCommitTime(newRepository(f))
+			s.NoError(err)
+			s.NotNil(time)
+		})
+	}
 }
 
 func (s *ArchiverSuite) TestReferenceUpdate() {
@@ -110,6 +121,21 @@ func (s *ArchiverSuite) TestFixtures() {
 			checkReferences(t, nr, ct.NewReferences)
 		})
 	}
+}
+
+func newRepository(f *fixtures.Fixture) *git.Repository {
+	fs := osfs.New(f.DotGit().Root())
+	st, err := filesystem.NewStorage(fs)
+	if err != nil {
+		panic(err)
+	}
+
+	r, err := git.Open(st, fs)
+	if err != nil {
+		panic(err)
+	}
+
+	return r
 }
 
 func checkReferences(t *testing.T, obtained *git.Repository, refs []*model.Reference) {
