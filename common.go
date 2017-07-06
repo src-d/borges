@@ -8,8 +8,8 @@ import (
 
 	"github.com/inconshreveable/log15"
 	"github.com/satori/go.uuid"
-	"gopkg.in/src-d/core.v0"
-	"gopkg.in/src-d/core.v0/model"
+	"gopkg.in/src-d/core-retrieval.v0"
+	"gopkg.in/src-d/core-retrieval.v0/model"
 	"gopkg.in/src-d/go-errors.v0"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
