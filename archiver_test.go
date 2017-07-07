@@ -55,14 +55,13 @@ func (s *ArchiverSuite) TestReferenceUpdate() {
 	for _, ct := range ChangesFixtures {
 		if ct.FakeHashes {
 			s.T().Run(ct.TestName, func(t *testing.T) {
-				assert := assert.New(t)
-
-				references := ct.OldReferences
-				for _, cs := range ct.Changes { // emulate pushChangesToRootedRepositories() behaviour
-					references = updateRepositoryReferences(references, cs)
+				var obtainedRefs []*model.Reference
+				for ic, cs := range ct.Changes { // emulate pushChangesToRootedRepositories() behaviour
+					or := updateRepositoryReferences(ct.OldReferences, cs, ic)
+					obtainedRefs = append(obtainedRefs, or...)
 				}
 
-				assert.Equal(len(ct.NewReferences), len(references))
+				s.Equal(len(ct.NewReferences), len(obtainedRefs))
 			})
 		}
 	}
@@ -75,6 +74,10 @@ func (s *ArchiverSuite) TestFixtures() {
 		}
 
 		s.T().Run(ct.TestName, func(t *testing.T) {
+			if ct.TestName ==  "one existing reference is removed (output with references)" {
+				t.Skip("go-git bug: https://github.com/src-d/go-git/issues/466")
+			}
+
 			require := require.New(t)
 			assert := assert.New(t)
 

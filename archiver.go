@@ -275,7 +275,7 @@ func (a *Archiver) pushChangesToRootedRepositories(j *Job, r *model.Repository,
 			//TODO: release lock
 			continue
 		}
-		r.References = updateRepositoryReferences(r.References, cs)
+		r.References = updateRepositoryReferences(r.References, cs, ic)
 		a.dbUpdateRepository(r, lastCommitTime, now)
 		//TODO: release lock
 	}
@@ -381,12 +381,10 @@ func (a *Archiver) changesToPushRefSpec(id kallax.ULID, changes []*Command) []co
 	for _, ch := range changes {
 		var rs string
 		switch ch.Action() {
-		case Create:
+		case Create, Update:
 			rs = fmt.Sprintf("+%s:%s/%s", ch.New.Name, ch.New.Name, id)
 		case Delete:
 			rs = fmt.Sprintf(":%s/%s", ch.Old.Name, id)
-		case Update:
-			rs = fmt.Sprintf("+%s:%s/%s", ch.New.Name, ch.New.Name, id)
 		default:
 			panic("not reachable")
 		}
@@ -398,23 +396,54 @@ func (a *Archiver) changesToPushRefSpec(id kallax.ULID, changes []*Command) []co
 }
 
 // Applies all given changes to a slice of References
-func updateRepositoryReferences(oldRefs []*model.Reference, changes []*Command) []*model.Reference {
-	refsByName := refsByName(oldRefs)
-	for _, ch := range changes {
-		switch ch.Action() {
-		case Create:
-			refsByName[ch.New.Name] = ch.New
-		case Delete:
-			delete(refsByName, ch.Old.Name)
-		case Update:
-			refsByName[ch.New.Name] = ch.New
+func updateRepositoryReferences(oldRefs []*model.Reference, commands []*Command, ic model.SHA1) []*model.Reference {
+	rbn := refsByNameForInit(oldRefs, ic)
+	var result []*model.Reference
+	for _, com := range commands {
+		a := com.Action()
+		if a == Delete {
+			if com.Old.Init == ic {
+				delete(rbn, com.Old.Name)
+			}
+
+			continue
+		}
+
+		if a == Create {
+			if com.New.Init == ic {
+				result = append(result, com.New)
+			}
+
+			continue
+		}
+
+		for _, ref := range oldRefs {
+			if a == Update && ref.Init == ic && ref.Name == com.Old.Name {
+				result = append(result, com.New)
+
+				// delete old reference
+				delete(rbn, com.Old.Name)
+			}
 		}
 	}
-	refs := make([]*model.Reference, 0, len(refsByName))
-	for _, value := range refsByName {
-		refs = append(refs, value)
+
+	// Add the references that keep equals
+	for _, r := range rbn {
+		result = append(result, r)
 	}
-	return refs
+
+	return result
+}
+
+func refsByNameForInit(refs []*model.Reference, ic model.SHA1) map[string]*model.Reference {
+	result := make(map[string]*model.Reference)
+	for _, r := range refs {
+		if r.Init == ic {
+			result[r.Name] = r
+		}
+	}
+
+	return result
 }
 
 // Updates DB: status, fetch time, commit time

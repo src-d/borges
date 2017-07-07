@@ -276,11 +276,29 @@ var ChangesFixtures = []*ChangesFixture{{
 	NewReferences: nil,
 	Changes:       Changes{},
 }, {
-	TestName: "one existing reference is removed",
+	TestName: "one existing reference is removed (output with no references)",
 	OldReferences: []*model.Reference{
 		fixtureReferences.ByName("refs/heads/master"),
 	},
 	NewReferences: nil,
+	Changes: Changes{
+		model.NewSHA1("b029517f6300c2da0f4b651b8642506cd6aaf45d"): []*Command{
+			testDeleteCommand(fixtureReferences.ByName("refs/heads/master")),
+		},
+	},
+}, {
+	TestName:      "one existing reference is removed (output with references)",
+	OldReferences: defaultReferences,
+	NewReferences: []*model.Reference{
+		fixtureReferences.ByName("refs/heads/branch"),
+		fixtureReferences.ByName("refs/heads/1"),
+		fixtureReferences.ByName("refs/heads/2"),
+		fixtureReferences.ByName("refs/heads/3"),
+		fixtureReferences.ByName("refs/heads/functionalityOne"),
+		fixtureReferences.ByName("refs/heads/functionalityTwo"),
+		fixtureReferences.ByName("refs/heads/rootReference"),
+		fixtureReferences.ByName("refs/tags/v1.0.0"),
+	},
 	Changes: Changes{
 		model.NewSHA1("b029517f6300c2da0f4b651b8642506cd6aaf45d"): []*Command{
 			testDeleteCommand(fixtureReferences.ByName("refs/heads/master")),
