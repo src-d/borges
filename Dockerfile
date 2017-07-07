@@ -1,7 +1,6 @@
-FROM alpine:3.5
+FROM alpine:3.6
 MAINTAINER source{d}
 
-ADD bin /bin
+ADD build/borges_linux_amd64/rovers /bin/
 
 CMD ["borges"]
-

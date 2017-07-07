@@ -2,6 +2,9 @@
 PROJECT = borges
 COMMANDS = cli/borges
 
+DOCKER_REGISTRY = quay.io
+DOCKER_ORG = srcd
+
 # Including ci Makefile
 MAKEFILE = Makefile.main
 CI_REPOSITORY = https://github.com/src-d/ci.git
