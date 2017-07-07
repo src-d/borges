@@ -21,6 +21,7 @@ import (
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/storage/filesystem"
 	"gopkg.in/src-d/go-git.v4/storage/memory"
+	"gopkg.in/src-d/go-kallax.v1"
 )
 
 func TestArchiver(t *testing.T) {
@@ -106,8 +107,10 @@ func (s *ArchiverSuite) TestFixtures() {
 			nr, err := ct.NewRepository()
 			require.NoError(err)
 
+			var rid kallax.ULID
 			err = withInProcRepository(nr, func(url string) error {
 				mr := model.NewRepository()
+				rid = mr.ID
 				mr.Endpoints = append(mr.Endpoints, url)
 				mr.References = ct.OldReferences
 				updated, err := s.Save(mr)
@@ -120,8 +123,13 @@ func (s *ArchiverSuite) TestFixtures() {
 
 			checkNoFiles(t, txFs)
 			checkNoFiles(t, tmpFs)
-
 			checkReferences(t, nr, ct.NewReferences)
+
+			mr, err := s.FindOne(model.NewRepositoryQuery().FindByID(rid))
+			require.NoError(err)
+			checkReferencesInDB(t, mr, ct.NewReferences)
+
+			//checkRemotes(t, nr, []string{rid.String()})
 		})
 	}
 }
@@ -146,6 +154,26 @@ func checkReferences(t *testing.T, obtained *git.Repository, refs []*model.Refer
 	obtainedRefs := repoToMemRefs(t, obtained)
 	expectedRefs := modelToMemRefs(t, refs)
 	require.Equal(expectedRefs, obtainedRefs)
+}
+
+func checkReferencesInDB(t *testing.T, obtained *model.Repository, refs []*model.Reference) {
+	require := require.New(t)
+	obtainedRefs := modelToMemRefs(t, obtained.References)
+	expectedRefs := modelToMemRefs(t, refs)
+	require.Equal(expectedRefs, obtainedRefs)
+}
+
+
+func checkRemotes(t *testing.T, obtained *git.Repository, expected []string) {
+	require := require.New(t)
+	remotes, err := obtained.Remotes()
+	require.NoError(err)
+	var remoteNames []string
+	for _, remote := range remotes {
+		remoteNames = append(remoteNames, remote.Config().Name)
+	}
+
+	require.Equal(expected, remoteNames)
 }
 
 func modelToMemRefs(t *testing.T, refs []*model.Reference) memory.ReferenceStorage {
