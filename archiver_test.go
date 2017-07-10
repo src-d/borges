@@ -18,7 +18,6 @@ import (
 	"gopkg.in/src-d/go-billy.v3"
 	"gopkg.in/src-d/go-billy.v3/osfs"
 	"gopkg.in/src-d/go-git.v4"
-	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/storage/filesystem"
 	"gopkg.in/src-d/go-git.v4/storage/memory"
 	"gopkg.in/src-d/go-kallax.v1"
@@ -76,7 +75,7 @@ func (s *ArchiverSuite) TestFixtures() {
 
 			s := model.NewRepositoryStore(s.DB)
 			tx := rrepository.NewSivaRootedTransactioner(rootedFs, txFs)
-			a := NewArchiver(s, tx, tmpFs)
+			a := NewArchiver(s, tx, NewTemporaryCloner(tmpFs))
 
 			a.Notifiers.Warn = func(j *Job, err error) {
 				require.NoError(err, "job: %v", j)
@@ -85,7 +84,7 @@ func (s *ArchiverSuite) TestFixtures() {
 			or, err := ct.OldRepository()
 			var rid kallax.ULID
 			// emulate initial status of a repository
-			err = withInProcRepository(or, func(url string) error {
+			err = WithInProcRepository(or, func(url string) error {
 				mr := model.NewRepository()
 				rid = mr.ID
 				mr.Endpoints = append(mr.Endpoints, url)
@@ -99,7 +98,7 @@ func (s *ArchiverSuite) TestFixtures() {
 			nr, err := ct.NewRepository()
 			require.NoError(err)
 
-			err = withInProcRepository(nr, func(url string) error {
+			err = WithInProcRepository(nr, func(url string) error {
 				mr, err := s.FindOne(model.NewRepositoryQuery().FindByID(rid))
 				require.NoError(err)
 				mr.Endpoints = nil
@@ -184,20 +183,10 @@ func modelToMemRefs(t *testing.T, refs []*model.Reference) memory.ReferenceStora
 
 func repoToMemRefs(t *testing.T, r *git.Repository) memory.ReferenceStorage {
 	require := require.New(t)
-	m := memory.ReferenceStorage{}
-	iter, err := r.References()
+	refr := NewGitReferencer(r)
+	refs, err := refr.References()
 	require.NoError(err)
-
-	err = iter.ForEach(func(r *plumbing.Reference) error {
-		if r.Type() != plumbing.HashReference {
-			return nil
-			//TODO: check this does not happen
-		}
-
-		return m.SetReference(r)
-	})
-	require.NoError(err)
-	return m
+	return modelToMemRefs(t, refs)
 }
 
 func checkNoFiles(t *testing.T, fs billy.Filesystem) {

@@ -11,9 +11,6 @@ import (
 	"gopkg.in/src-d/core-retrieval.v0"
 	"gopkg.in/src-d/core-retrieval.v0/model"
 	"gopkg.in/src-d/go-errors.v0"
-	"gopkg.in/src-d/go-git.v4"
-	"gopkg.in/src-d/go-git.v4/plumbing"
-	"gopkg.in/src-d/go-git.v4/plumbing/object"
 	"gopkg.in/src-d/go-kallax.v1"
 )
 
@@ -76,27 +73,6 @@ func RepositoryID(endpoint string, storer *model.RepositoryStore) (uuid.UUID, er
 	}
 
 	return uuid.UUID(repositories[0].ID), nil
-}
-
-// ResolveCommit gets the hash of a commit that is referenced by a tag, per example.
-// The only resolvable objects are Tags and Commits. If the object is not one of them,
-// This method will return an ErrReferencedObjectTypeNotSupported. The output hash
-// always will be a Commit hash.
-func ResolveCommit(r *git.Repository, h plumbing.Hash) (*object.Commit, error) {
-	obj, err := r.Object(plumbing.AnyObject, h)
-	if err != nil {
-		return nil, err
-	}
-
-	switch o := obj.(type) {
-	case *object.Commit:
-		return o, nil
-	case *object.Tag:
-		return ResolveCommit(r, o.Target)
-	default:
-		log.Warn("referenced object not supported", "type", o.Type())
-		return nil, ErrReferencedObjectTypeNotSupported
-	}
 }
 
 // TODO temporal

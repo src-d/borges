@@ -2,34 +2,27 @@ package borges
 
 import (
 	"fmt"
-	"math/rand"
-	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
 	"gopkg.in/src-d/core-retrieval.v0/model"
 	"gopkg.in/src-d/core-retrieval.v0/repository"
-	"gopkg.in/src-d/go-billy.v3"
-	"gopkg.in/src-d/go-billy.v3/util"
 	"gopkg.in/src-d/go-errors.v0"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/config"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport"
-	"gopkg.in/src-d/go-git.v4/plumbing/transport/client"
-	"gopkg.in/src-d/go-git.v4/plumbing/transport/server"
-	"gopkg.in/src-d/go-git.v4/storage/filesystem"
 	"gopkg.in/src-d/go-kallax.v1"
 )
 
 var (
 	ErrCleanRepositoryDir     = errors.NewKind("cleaning up local repo dir failed")
-	ErrFetch                  = errors.NewKind("fetching %s failed")
+	ErrClone                  = errors.NewKind("cloning %s failed")
 	ErrPushToRootedRepository = errors.NewKind("push to rooted repo %s failed")
 	ErrArchivingRoots         = errors.NewKind("archiving %d out of %d roots failed: %s")
 	ErrEndpointsEmpty         = errors.NewKind("endpoints is empty")
 	ErrRepositoryIDNotFound   = errors.NewKind("repository id not found: %s")
+	ErrChanges                = errors.NewKind("error computing changes")
 )
 
 // Archiver archives repositories. Archiver instances are thread-safe and can
@@ -49,8 +42,8 @@ type Archiver struct {
 		Warn func(*Job, error)
 	}
 
-	// Temp is the filesystem used to fetch repositories to.
-	Temp billy.Filesystem
+	// TemporaryCloner is used to clone repositories into temporary storage.
+	TemporaryCloner TemporaryCloner
 
 	// RepositoryStore is the database where repository models are stored.
 	RepositoryStorage *model.RepositoryStore
@@ -61,9 +54,9 @@ type Archiver struct {
 }
 
 func NewArchiver(r *model.RepositoryStore, tx repository.RootedTransactioner,
-	tmpFs billy.Filesystem) *Archiver {
+	tc TemporaryCloner) *Archiver {
 	return &Archiver{
-		Temp:                tmpFs,
+		TemporaryCloner:     tc,
 		RepositoryStorage:   r,
 		RootedTransactioner: tx,
 	}
@@ -77,7 +70,7 @@ func (a *Archiver) Do(j *Job) error {
 	return err
 }
 
-func (a *Archiver) do(j *Job) error {
+func (a *Archiver) do(j *Job) (err error) {
 	log := log.New("job", j.RepositoryID)
 	now := time.Now()
 
@@ -95,35 +88,14 @@ func (a *Archiver) do(j *Job) error {
 	if err != nil {
 		return err
 	}
-
 	log.Debug("endpoint selected", "endpoint", endpoint)
 
-	dir := a.newTempRepoDir(j)
-	defer util.RemoveAll(a.Temp, dir)
-	tmpFs, err := a.Temp.Chroot(dir)
+	gr, err := a.TemporaryCloner.Clone(j.RepositoryID.String(), endpoint)
 	if err != nil {
-		return err
-	}
-
-	log.Debug("local temporary directory created", "temp-path", dir)
-
-	gr, err := createLocalRepository(tmpFs, endpoint)
-	if err != nil {
-		return err
-	}
-
-	log.Debug("local repository created")
-
-	if err := fetchAll(gr); err != nil {
 		var finalErr error
-		if err == git.NoErrAlreadyUpToDate {
-			r.References = nil
-		}
-
-		if err != git.NoErrAlreadyUpToDate &&
-			err != transport.ErrEmptyUploadPackRequest {
+		if err != transport.ErrEmptyUploadPackRequest {
 			r.FetchErrorAt = &now
-			finalErr = ErrFetch.Wrap(err, endpoint)
+			finalErr = ErrClone.Wrap(err, endpoint)
 		}
 
 		_, errDB := a.RepositoryStorage.Update(r,
@@ -135,15 +107,23 @@ func (a *Archiver) do(j *Job) error {
 			return errDB
 		}
 
-		log.Error("error fetching repository", "error", err)
+		log.Error("error cloning repository", "error", err)
 		return finalErr
 	}
 
+	defer func() {
+		if cErr := gr.Close(); cErr != nil && err == nil {
+			err = ErrCleanRepositoryDir.Wrap(cErr)
+		}
+	}()
+	log.Debug("remote repository cloned")
+
 	oldRefs := NewModelReferencer(r)
-	newRefs := NewGitReferencer(gr)
+	newRefs := gr
 	changes, err := NewChanges(oldRefs, newRefs)
 	if err != nil {
-		return err
+		log.Error("error computing changes", "error", err)
+		return ErrChanges.Wrap(err)
 	}
 
 	log.Debug("changes obtained", "roots", len(changes))
@@ -163,19 +143,6 @@ func (a *Archiver) getRepositoryModel(j *Job) (*model.Repository, error) {
 	}
 
 	return r, nil
-}
-
-func (a *Archiver) newTempRepoDir(j *Job) string {
-	return filepath.Join("local_repos",
-		j.RepositoryID.String(),
-		strconv.FormatInt(time.Now().UnixNano(), 10),
-	)
-}
-
-func (a *Archiver) cleanRepoDir(j *Job, dir string) {
-	if err := util.RemoveAll(a.Temp, dir); err != nil {
-		a.Notifiers.Warn(j, ErrCleanRepositoryDir.Wrap(err))
-	}
 }
 
 func (a *Archiver) notifyStart(j *Job) {
@@ -211,48 +178,13 @@ func selectEndpoint(endpoints []string) (string, error) {
 	return endpoints[0], nil
 }
 
-// createLocalRepository creates a new repository with some predefined references
-// hardcoded into his storage. This is intended to be able to do a partial fetch.
-// Having the references into the storage we will only download new objects, not
-// the entire repository.
-func createLocalRepository(dir billy.Filesystem, endpoint string) (*git.Repository, error) {
-	s, err := filesystem.NewStorage(dir)
-	if err != nil {
-		return nil, err
-	}
-
-	r, err := git.Init(s, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	c := &config.RemoteConfig{
-		Name: "origin",
-		URL:  endpoint,
-	}
-	if _, err := r.CreateRemote(c); err != nil {
-		return nil, err
-	}
-
-	return r, nil
-}
-
-func fetchAll(r *git.Repository) error {
-	o := &git.FetchOptions{
-		RefSpecs: []config.RefSpec{config.RefSpec("+refs/heads/*:refs/heads/*")},
-	}
-
-	return r.Fetch(o)
-}
-
 func (a *Archiver) pushChangesToRootedRepositories(j *Job, r *model.Repository,
-	lr *git.Repository, changes Changes, now time.Time) error {
-
+	tr TemporaryRepository, changes Changes, now time.Time) error {
 	var failedInits []model.SHA1
 	for ic, cs := range changes {
 		//TODO: try lock first_commit
 		//TODO: if lock cannot be acquired after timeout, continue
-		if err := a.pushChangesToRootedRepository(r, lr, ic, cs); err != nil {
+		if err := a.pushChangesToRootedRepository(r, tr, ic, cs); err != nil {
 			err = ErrPushToRootedRepository.Wrap(err, ic.String())
 			a.notifyWarn(j, err)
 			failedInits = append(failedInits, ic)
@@ -270,7 +202,7 @@ func (a *Archiver) pushChangesToRootedRepositories(j *Job, r *model.Repository,
 	return checkFailedInits(changes, failedInits)
 }
 
-func (a *Archiver) pushChangesToRootedRepository(r *model.Repository, lr *git.Repository, ic model.SHA1, changes []*Command) error {
+func (a *Archiver) pushChangesToRootedRepository(r *model.Repository, tr TemporaryRepository, ic model.SHA1, changes []*Command) error {
 	tx, err := a.RootedTransactioner.Begin(plumbing.Hash(ic))
 	if err != nil {
 		return err
@@ -282,41 +214,15 @@ func (a *Archiver) pushChangesToRootedRepository(r *model.Repository, lr *git.Re
 		return err
 	}
 
-	return withInProcRepository(rr, func(url string) error {
-		rm, err := lr.CreateRemote(&config.RemoteConfig{
-			Name: ic.String(),
-			URL:  url,
-		})
-		if err != nil {
-			_ = tx.Rollback()
-			return err
-		}
-
-		pushOpts := &git.PushOptions{
-			RefSpecs: a.changesToPushRefSpec(r.ID, changes),
-		}
-		if err := rm.Push(pushOpts); err != nil {
+	return WithInProcRepository(rr, func(url string) error {
+		refspecs := a.changesToPushRefSpec(r.ID, changes)
+		if err := tr.Push(url, refspecs); err != nil {
 			_ = tx.Rollback()
 			return err
 		}
 
 		return tx.Commit()
 	})
-}
-
-func withInProcRepository(r *git.Repository, f func(string) error) error {
-	proto := fmt.Sprintf("borges%d", rand.Uint32())
-	url := fmt.Sprintf("%s://%s", proto, "repo")
-	ep, err := transport.NewEndpoint(url)
-	if err != nil {
-		return err
-	}
-
-	s := server.NewServer(server.MapLoader{ep.String(): r.Storer})
-	client.InstallProtocol(proto, s)
-	defer client.InstallProtocol(proto, nil)
-
-	return f(url)
 }
 
 func (a *Archiver) changesToPushRefSpec(id kallax.ULID, changes []*Command) []config.RefSpec {
@@ -431,13 +337,13 @@ func checkFailedInits(changes Changes, failed []model.SHA1) error {
 // are equal to the Archiver notifiers but with additional WorkerContext.
 func NewArchiverWorkerPool(r *model.RepositoryStore,
 	tx repository.RootedTransactioner,
-	tmpFs billy.Filesystem,
+	tc TemporaryCloner,
 	start func(*WorkerContext, *Job),
 	stop func(*WorkerContext, *Job, error),
 	warn func(*WorkerContext, *Job, error)) *WorkerPool {
 
 	do := func(ctx *WorkerContext, j *Job) error {
-		a := NewArchiver(r, tx, tmpFs)
+		a := NewArchiver(r, tx, tc)
 
 		if start != nil {
 			a.Notifiers.Start = func(j *Job) {
