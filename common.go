@@ -134,7 +134,3 @@ func CreateRepositoryTable() {
 		panic(err)
 	}
 }
-
-type RepositoryStorage interface {
-	Repository(ic model.SHA1) *git.Repository
-}

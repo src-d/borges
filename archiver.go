@@ -17,7 +17,6 @@ import (
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/config"
 	"gopkg.in/src-d/go-git.v4/plumbing"
-	"gopkg.in/src-d/go-git.v4/plumbing/storer"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport/client"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport/server"
@@ -109,7 +108,7 @@ func (a *Archiver) do(j *Job) error {
 
 	log.Debug("local temporary directory created", "temp-path", dir)
 
-	gr, err := createLocalRepository(tmpFs, endpoint, r.References)
+	gr, err := createLocalRepository(tmpFs, endpoint)
 	if err != nil {
 		return err
 	}
@@ -210,7 +209,7 @@ func selectEndpoint(endpoints []string) (string, error) {
 // hardcoded into his storage. This is intended to be able to do a partial fetch.
 // Having the references into the storage we will only download new objects, not
 // the entire repository.
-func createLocalRepository(dir billy.Filesystem, endpoint string, refs []*model.Reference) (*git.Repository, error) {
+func createLocalRepository(dir billy.Filesystem, endpoint string) (*git.Repository, error) {
 	s, err := filesystem.NewStorage(dir)
 	if err != nil {
 		return nil, err
@@ -221,13 +220,6 @@ func createLocalRepository(dir billy.Filesystem, endpoint string, refs []*model.
 		return nil, err
 	}
 
-	// TODO there are some cases when we cannot do this to skip fetching all
-	// the repository objects. Improve this in a near future saving all hashes
-	// of all the commits in a repository
-	//if err := setReferences(s, refs...); err != nil {
-	//	return nil, err
-	//}
-
 	c := &config.RemoteConfig{
 		Name: "origin",
 		URL:  endpoint,
@@ -237,16 +229,6 @@ func createLocalRepository(dir billy.Filesystem, endpoint string, refs []*model.
 	}
 
 	return r, nil
-}
-
-func setReferences(s storer.ReferenceStorer, refs ...*model.Reference) error {
-	for _, ref := range refs {
-		if err := s.SetReference(ref.GitReference()); err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 func fetchAll(r *git.Repository) error {
