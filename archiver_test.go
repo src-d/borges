@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/satori/go.uuid"
@@ -123,13 +124,28 @@ func (s *ArchiverSuite) TestFixtures() {
 
 			checkNoFiles(t, txFs)
 			checkNoFiles(t, tmpFs)
+
 			checkReferences(t, nr, ct.NewReferences)
 
 			mr, err := s.FindOne(model.NewRepositoryQuery().FindByID(rid))
 			require.NoError(err)
 			checkReferencesInDB(t, mr, ct.NewReferences)
 
-			//checkRemotes(t, nr, []string{rid.String()})
+			initHashesInStorage := make(map[string]bool)
+			fis, err := rootedFs.ReadDir(".")
+			if err != nil {
+				for _, fi := range fis {
+					fn := filepath.Base(fi.Name())
+					initHashesInStorage[fn] = true
+				}
+			}
+
+			initHashesInDB := make(map[string]bool)
+			for _, ref := range mr.References {
+				initHashesInDB[ref.Init.String()] = true
+			}
+
+			assert.Equal(initHashesInDB, initHashesInStorage)
 		})
 	}
 }
@@ -162,7 +178,6 @@ func checkReferencesInDB(t *testing.T, obtained *model.Repository, refs []*model
 	expectedRefs := modelToMemRefs(t, refs)
 	require.Equal(expectedRefs, obtainedRefs)
 }
-
 
 func checkRemotes(t *testing.T, obtained *git.Repository, expected []string) {
 	require := require.New(t)
