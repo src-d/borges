@@ -4,9 +4,6 @@ import (
 	"time"
 
 	"gopkg.in/src-d/core-retrieval.v0/model"
-	"gopkg.in/src-d/go-git.v4"
-	"gopkg.in/src-d/go-git.v4/plumbing"
-	"gopkg.in/src-d/go-git.v4/plumbing/object"
 	"gopkg.in/src-d/go-kallax.v1"
 )
 
@@ -53,10 +50,9 @@ func (c *Command) Action() Action {
 
 // NewChanges returns Changes needed to obtain the current state of the
 // repository from a set of old references. The Changes could be create,
-// update or delete. It also checks the root commits per each reference.
-// If an old reference has the same name of a new one, but the init commit
-// is different, then the changes will contain a delete command and a
-// create command. If a new reference has more than one init commit, at least
+// update or delete. If an old reference has the same name of a new one, but the
+// init commit is different, then the changes will contain a delete command and
+// a create command. If a new reference has more than one init commit, at least
 // one create command per init commit will be created.
 //
 // Here are all possible cases for up to one reference.
@@ -72,29 +68,33 @@ func (c *Command) Action() Action {
 //	a<11,01>	a<11,02>	01 -> d<a,11> | 02 -> c<a,11> (invalid)
 //	a<11,01>	a<12,02>	01 -> d<a,11> | 02 -> c<a,12>
 //
-func NewChanges(oldRefs []*model.Reference, newRepo *git.Repository) (Changes, error) {
+func NewChanges(old, new Referencer) (Changes, error) {
 	now := time.Now()
-	return newChanges(now, oldRefs, newRepo)
+	return newChanges(now, old, new)
 }
 
-func newChanges(now time.Time, oldRefs []*model.Reference, newRepo *git.Repository) (Changes, error) {
-	newRefIter, err := newRepo.References()
+func newChanges(now time.Time, old, new Referencer) (Changes, error) {
+	newRefs, err := new.References()
+	if err != nil {
+		return nil, err
+	}
+
+	oldRefs, err := old.References()
 	if err != nil {
 		return nil, err
 	}
 
 	oldRefsByName := refsByName(oldRefs)
 	changes := make(Changes)
-	err = newRefIter.ForEach(func(newRef *plumbing.Reference) error {
-		err := addToChangesDfferenceBetweenOldAndNewRefs(now, changes, newRef, oldRefsByName, newRepo)
+	for _, newRef := range newRefs {
+		err := addToChangesDfferenceBetweenOldAndNewRefs(now, changes, newRef, oldRefsByName)
 		if err == ErrReferencedObjectTypeNotSupported {
-			return nil
+			continue
 		}
 
-		return err
-	})
-	if err != nil {
-		return nil, err
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	for _, r := range oldRefsByName {
@@ -110,34 +110,24 @@ func newChanges(now time.Time, oldRefs []*model.Reference, newRepo *git.Reposito
 func addToChangesDfferenceBetweenOldAndNewRefs(
 	now time.Time,
 	c Changes,
-	rReference *plumbing.Reference,
-	oldRefs map[string]*model.Reference,
-	newRepo *git.Repository) error {
+	newRef *model.Reference,
+	oldRefs map[string]*model.Reference) error {
 
-	//TODO: add tags support
-	if rReference.Type() != plumbing.HashReference || rReference.IsRemote() {
-		return nil
-	}
-
-	roots, err := rootCommits(newRepo, rReference.Hash())
-	if err != nil {
-		return err
-	}
-
-	ref := oldRefs[rReference.Name().String()]
+	oldRef, ok := oldRefs[newRef.Name]
 
 	// If we don't have the reference or the init commit has changed,
 	// we will create a new reference
-	if ref == nil || roots[0] != ref.Init {
+	if !ok || oldRef.Init != newRef.Init {
 		createdAt := now
-		if ref != nil {
-			createdAt = ref.CreatedAt
+		if oldRef != nil {
+			createdAt = oldRef.CreatedAt
 		}
+
 		newReference := &model.Reference{
-			Name:  rReference.Name().String(),
-			Hash:  model.SHA1(rReference.Hash()),
-			Init:  roots[0],
-			Roots: roots,
+			Name:  newRef.Name,
+			Hash:  newRef.Hash,
+			Init:  newRef.Init,
+			Roots: newRef.Roots,
 			Timestamps: kallax.Timestamps{
 				CreatedAt: createdAt,
 				UpdatedAt: now,
@@ -148,21 +138,21 @@ func addToChangesDfferenceBetweenOldAndNewRefs(
 		return nil
 	}
 
-	if rReference.Hash() != plumbing.Hash(ref.Hash) {
+	if newRef.Hash != oldRef.Hash {
 		updateReference := &model.Reference{
-			Name:  rReference.Name().String(),
-			Hash:  model.SHA1(rReference.Hash()),
-			Init:  roots[0],
-			Roots: roots,
+			Name:  newRef.Name,
+			Hash:  newRef.Hash,
+			Init:  newRef.Init,
+			Roots: newRef.Roots,
 			Timestamps: kallax.Timestamps{
-				CreatedAt: ref.CreatedAt,
+				CreatedAt: oldRef.CreatedAt,
 				UpdatedAt: now,
 			},
 		}
-		c.Update(ref, updateReference)
+		c.Update(oldRef, updateReference)
 	}
 
-	delete(oldRefs, rReference.Name().String())
+	delete(oldRefs, newRef.Name)
 
 	return nil
 }
@@ -177,30 +167,6 @@ func (c Changes) Update(old, new *model.Reference) {
 
 func (c Changes) Add(new *model.Reference) {
 	c[new.Init] = append(c[new.Init], &Command{New: new})
-}
-
-func rootCommits(r *git.Repository, from plumbing.Hash) ([]model.SHA1, error) {
-	h, err := ResolveHash(r, from)
-	if err != nil {
-		return nil, err
-	}
-
-	var roots []model.SHA1
-
-	cIter, err := r.Log(&git.LogOptions{From: h})
-	if err != nil {
-		return nil, err
-	}
-
-	err = cIter.ForEach(func(wc *object.Commit) error {
-		if wc.NumParents() == 0 {
-			roots = append(roots, model.SHA1(wc.Hash))
-		}
-
-		return nil
-	})
-
-	return roots, err
 }
 
 func refsByName(refs []*model.Reference) map[string]*model.Reference {

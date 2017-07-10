@@ -134,3 +134,9 @@ func CreateRepositoryTable() {
 		panic(err)
 	}
 }
+
+// Referencer can retrieve reference models (*model.Reference).
+type Referencer interface {
+	// References retrieves a slice of *model.Reference or an error.
+	References() ([]*model.Reference, error)
+}

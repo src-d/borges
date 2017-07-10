@@ -5,23 +5,17 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/src-d/go-git-fixtures"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/src-d/core-retrieval.v0/model"
-	"gopkg.in/src-d/go-billy.v3/memfs"
-	"gopkg.in/src-d/go-git.v4"
-	"gopkg.in/src-d/go-git.v4/storage/filesystem"
 )
 
 func TestNewChanges(t *testing.T) {
-	fixtures.Init()
-	defer fixtures.Clean()
 	for _, ct := range ChangesFixtures {
 		t.Run(ct.TestName, func(t *testing.T) {
 			require := require.New(t)
-			sto, err := ct.NewRepository()
-			require.NoError(err)
-			changes, err := newChanges(timeNow, ct.OldReferences, sto)
+			oldRefs := NewModelReferencer(&model.Repository{References: ct.OldReferences})
+			newRefs := NewModelReferencer(&model.Repository{References: ct.NewReferences})
+			changes, err := newChanges(timeNow, oldRefs, newRefs)
 			require.NoError(err)
 
 			sortChanges(changes)
@@ -29,32 +23,6 @@ func TestNewChanges(t *testing.T) {
 
 			require.Equal(ct.Changes, changes)
 		})
-	}
-}
-
-func TestChanges_ReferenceToTagObject(t *testing.T) {
-	fixtures.Init()
-	defer fixtures.Clean()
-	require := require.New(t)
-
-	srcFs := fixtures.ByTag("tags").One().DotGit()
-	sto, err := filesystem.NewStorage(srcFs)
-	require.NoError(err)
-
-	r, err := git.Open(sto, memfs.New())
-	require.NoError(err)
-
-	changes, err := newChanges(timeNow, nil, r)
-	require.NoError(err)
-
-	require.Equal(1, len(changes))
-	for k, v := range changes {
-		require.Equal(model.NewSHA1("f7b877701fbf855b44c0a9e86f3fdce2c298b07f"), k)
-		for _, c := range v {
-			require.Equal(Create, c.Action())
-		}
-
-		require.Equal(4, len(v))
 	}
 }
 
