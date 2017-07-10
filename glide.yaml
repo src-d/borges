@@ -27,7 +27,7 @@ import:
 - package: gopkg.in/src-d/go-kallax.v1
   version: ^1.2.7
 - package: gopkg.in/src-d/core-retrieval.v0
-  version: 0e589118a5430a6efc811a69a18132918f070945
+  version: bf9b3d791c9df25da40efe0950c647713cc13f50
   subpackages:
   - model
   - repository
