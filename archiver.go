@@ -2,7 +2,6 @@ package borges
 
 import (
 	"fmt"
-	"io"
 	"math/rand"
 	"path/filepath"
 	"strconv"
@@ -248,10 +247,6 @@ func fetchAll(r *git.Repository) error {
 
 func (a *Archiver) pushChangesToRootedRepositories(j *Job, r *model.Repository,
 	lr *git.Repository, changes Changes, now time.Time) error {
-	lastCommitTime, err := getLastCommitTime(lr)
-	if err != nil {
-		return err
-	}
 
 	var failedInits []model.SHA1
 	for ic, cs := range changes {
@@ -265,7 +260,7 @@ func (a *Archiver) pushChangesToRootedRepositories(j *Job, r *model.Repository,
 			continue
 		}
 		r.References = updateRepositoryReferences(r.References, cs, ic)
-		if err := a.dbUpdateRepository(r, lastCommitTime, now); err != nil {
+		if err := a.dbUpdateRepository(r, now); err != nil {
 			err = ErrPushToRootedRepository.Wrap(err, ic.String())
 			a.notifyWarn(j, err)
 			failedInits = append(failedInits, ic)
@@ -273,51 +268,6 @@ func (a *Archiver) pushChangesToRootedRepositories(j *Job, r *model.Repository,
 		//TODO: release lock
 	}
 	return checkFailedInits(changes, failedInits)
-}
-
-func getLastCommitTime(r *git.Repository) (*time.Time, error) {
-	rIter, err := r.References()
-	if err != nil {
-		return nil, err
-	}
-
-	var lct time.Time
-
-	for {
-		ref, err := rIter.Next()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return nil, err
-		}
-
-		if ref.Type() != plumbing.HashReference {
-			continue
-		}
-
-		h, err := ResolveHash(r, ref.Hash())
-		if err == ErrReferencedObjectTypeNotSupported {
-			log.Warn("Reference is pointing to a non supported object", "ref", ref)
-			continue
-		}
-		if err != nil {
-			return nil, err
-		}
-
-		hc, err := r.CommitObject(h)
-		if err != nil {
-			return nil, err
-		}
-
-		var lctc = hc.Author.When
-
-		if lctc.Before(lct) {
-			lct = lctc
-		}
-	}
-
-	return &lct, nil
 }
 
 func (a *Archiver) pushChangesToRootedRepository(r *model.Repository, lr *git.Repository, ic model.SHA1, changes []*Command) error {
@@ -426,12 +376,11 @@ func updateRepositoryReferences(oldRefs []*model.Reference, commands []*Command,
 }
 
 // Updates DB: status, fetch time, commit time
-func (a *Archiver) dbUpdateRepository(repoDb *model.Repository,
-	lastCommitTime *time.Time, then time.Time) error {
+func (a *Archiver) dbUpdateRepository(repoDb *model.Repository, then time.Time) error {
 
 	repoDb.Status = model.Fetched
 	repoDb.FetchedAt = &then
-	repoDb.LastCommitAt = lastCommitTime
+	repoDb.LastCommitAt = lastCommitTime(repoDb.References)
 
 	_, err := a.RepositoryStorage.Update(repoDb,
 		model.Schema.Repository.UpdatedAt,
@@ -442,6 +391,21 @@ func (a *Archiver) dbUpdateRepository(repoDb *model.Repository,
 	)
 
 	return err
+}
+
+func lastCommitTime(refs []*model.Reference) *time.Time {
+	if len(refs) == 0 {
+		return nil
+	}
+
+	var last time.Time
+	for _, ref := range refs {
+		if last.Before(ref.Time) {
+			last = ref.Time
+		}
+	}
+
+	return &last
 }
 
 func checkFailedInits(changes Changes, failed []model.SHA1) error {

@@ -78,24 +78,24 @@ func RepositoryID(endpoint string, storer *model.RepositoryStore) (uuid.UUID, er
 	return uuid.UUID(repositories[0].ID), nil
 }
 
-// ResolveHash gets the hash of a commit that is referenced by a tag, per example.
+// ResolveCommit gets the hash of a commit that is referenced by a tag, per example.
 // The only resolvable objects are Tags and Commits. If the object is not one of them,
 // This method will return an ErrReferencedObjectTypeNotSupported. The output hash
 // always will be a Commit hash.
-func ResolveHash(r *git.Repository, h plumbing.Hash) (plumbing.Hash, error) {
+func ResolveCommit(r *git.Repository, h plumbing.Hash) (*object.Commit, error) {
 	obj, err := r.Object(plumbing.AnyObject, h)
 	if err != nil {
-		return plumbing.ZeroHash, err
+		return nil, err
 	}
 
 	switch o := obj.(type) {
 	case *object.Commit:
-		return o.Hash, nil
+		return o, nil
 	case *object.Tag:
-		return ResolveHash(r, o.Target)
+		return ResolveCommit(r, o.Target)
 	default:
 		log.Warn("referenced object not supported", "type", o.Type())
-		return plumbing.ZeroHash, ErrReferencedObjectTypeNotSupported
+		return nil, ErrReferencedObjectTypeNotSupported
 	}
 }
 
