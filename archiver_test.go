@@ -74,7 +74,7 @@ func (s *ArchiverSuite) TestFixtures() {
 		}
 
 		s.T().Run(ct.TestName, func(t *testing.T) {
-			if ct.TestName ==  "one existing reference is removed (output with references)" {
+			if ct.TestName == "one existing reference is removed (output with references)" {
 				t.Skip("go-git bug: https://github.com/src-d/go-git/issues/466")
 			}
 
