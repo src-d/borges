@@ -42,16 +42,6 @@ func (s *ArchiverSuite) TearDownTest() {
 	fixtures.Clean()
 }
 
-func (s *ArchiverSuite) TestLastCommitDate() {
-	for i, f := range fixtures.ByTag(".git") {
-		s.T().Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-			time, err := getLastCommitTime(newRepository(f))
-			s.NoError(err)
-			s.NotNil(time)
-		})
-	}
-}
-
 func (s *ArchiverSuite) TestReferenceUpdate() {
 	for _, ct := range ChangesFixtures {
 		s.T().Run(ct.TestName, func(t *testing.T) {

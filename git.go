@@ -32,7 +32,7 @@ func (r gitReferencer) References() ([]*model.Reference, error) {
 			return nil
 		}
 
-		h, err := ResolveHash(r.Repository, plumbing.NewHash(ref.Hash().String()))
+		c, err := ResolveCommit(r.Repository, plumbing.NewHash(ref.Hash().String()))
 		if err == ErrReferencedObjectTypeNotSupported {
 			return nil
 		}
@@ -41,7 +41,7 @@ func (r gitReferencer) References() ([]*model.Reference, error) {
 			return err
 		}
 
-		roots, err := rootCommits(r.Repository, h)
+		roots, err := rootCommits(r.Repository, c.Hash)
 		if err != nil {
 			return err
 		}
@@ -51,6 +51,7 @@ func (r gitReferencer) References() ([]*model.Reference, error) {
 			Hash:  model.NewSHA1(ref.Hash().String()),
 			Init:  roots[0],
 			Roots: roots,
+			Time:  c.Committer.When,
 		})
 		return nil
 	})
