@@ -135,7 +135,9 @@ func (a *Archiver) do(j *Job) error {
 		return finalErr
 	}
 
-	changes, err := NewChanges(r.References, gr)
+	oldRefs := NewModelReferencer(r)
+	newRefs := NewGitReferencer(gr)
+	changes, err := NewChanges(oldRefs, newRefs)
 	if err != nil {
 		return err
 	}
