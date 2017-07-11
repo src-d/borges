@@ -8,9 +8,12 @@ import:
   version: ^1.1.0
 - package: gopkg.in/src-d/go-billy.v3
   version: ^3.0.1
+- package: gopkg.in/src-d/go-billy-siva.v3
+  repo: https://github.com/src-d/go-billy-siva.git
+  version: 763351934333e34370292b308c74bcb71035e22a
 - package: gopkg.in/src-d/go-git.v4
-  repo: https://github.com/src-d/go-git.git
-  version: ce6f5b7c82fc6c2c4d41880ed6b26f921dd9c1c3
+  repo: https://github.com/smola/go-git.git
+  version: 09f5f2a35f0f4c42b2def0642540f32e59fdeeb3
   subpackages:
   - config
   - plumbing

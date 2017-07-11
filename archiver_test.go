@@ -5,12 +5,11 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"os"
-	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/satori/go.uuid"
 	"github.com/src-d/go-git-fixtures"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"gopkg.in/src-d/core-retrieval.v0/model"
@@ -57,10 +56,9 @@ func (s *ArchiverSuite) TestReferenceUpdate() {
 	for _, ct := range ChangesFixtures {
 		if ct.FakeHashes {
 			s.T().Run(ct.TestName, func(t *testing.T) {
-				var obtainedRefs []*model.Reference
+				var obtainedRefs []*model.Reference = ct.OldReferences
 				for ic, cs := range ct.Changes { // emulate pushChangesToRootedRepositories() behaviour
-					or := updateRepositoryReferences(ct.OldReferences, cs, ic)
-					obtainedRefs = append(obtainedRefs, or...)
+					obtainedRefs = updateRepositoryReferences(obtainedRefs, cs, ic)
 				}
 
 				s.Equal(len(ct.NewReferences), len(obtainedRefs))
@@ -76,15 +74,10 @@ func (s *ArchiverSuite) TestFixtures() {
 		}
 
 		s.T().Run(ct.TestName, func(t *testing.T) {
-			if ct.TestName == "one existing reference is removed (output with references)" {
-				t.Skip("go-git bug: https://github.com/src-d/go-git/issues/466")
-			}
-
 			require := require.New(t)
-			assert := assert.New(t)
 
 			tmp, err := ioutil.TempDir(os.TempDir(),
-				fmt.Sprintf("borge-tests%d", rand.Uint32()))
+				fmt.Sprintf("borges-tests%d", rand.Uint32()))
 			require.NoError(err)
 			defer func() { require.NoError(os.RemoveAll(tmp)) }()
 
@@ -102,22 +95,34 @@ func (s *ArchiverSuite) TestFixtures() {
 			a := NewArchiver(s, tx, tmpFs)
 
 			a.Notifiers.Warn = func(j *Job, err error) {
-				assert.NoError(err, "job: %v", j)
+				require.NoError(err, "job: %v", j)
 			}
+
+			or, err := ct.OldRepository()
+			var rid kallax.ULID
+			// emulate initial status of a repository
+			err = withInProcRepository(or, func(url string) error {
+				mr := model.NewRepository()
+				rid = mr.ID
+				mr.Endpoints = append(mr.Endpoints, url)
+				updated, err := s.Save(mr)
+				require.NoError(err)
+				require.False(updated)
+				return a.Do(&Job{RepositoryID: uuid.UUID(mr.ID)})
+			})
+			require.NoError(err)
 
 			nr, err := ct.NewRepository()
 			require.NoError(err)
 
-			var rid kallax.ULID
 			err = withInProcRepository(nr, func(url string) error {
-				mr := model.NewRepository()
-				rid = mr.ID
+				mr, err := s.FindOne(model.NewRepositoryQuery().FindByID(rid))
+				require.NoError(err)
+				mr.Endpoints = nil
 				mr.Endpoints = append(mr.Endpoints, url)
-				mr.References = ct.OldReferences
 				updated, err := s.Save(mr)
 				require.NoError(err)
-				require.False(updated)
-
+				require.True(updated, err)
 				return a.Do(&Job{RepositoryID: uuid.UUID(mr.ID)})
 			})
 			require.NoError(err)
@@ -127,25 +132,27 @@ func (s *ArchiverSuite) TestFixtures() {
 
 			checkReferences(t, nr, ct.NewReferences)
 
+			// check references in database
 			mr, err := s.FindOne(model.NewRepositoryQuery().FindByID(rid))
 			require.NoError(err)
 			checkReferencesInDB(t, mr, ct.NewReferences)
 
-			initHashesInStorage := make(map[string]bool)
+			// check references in siva files
 			fis, err := rootedFs.ReadDir(".")
-			if err != nil {
+			if len(ct.NewReferences) != 0 {
+				require.NoError(err)
+				initHashesInStorage := make(map[string]bool)
+
 				for _, fi := range fis {
-					fn := filepath.Base(fi.Name())
-					initHashesInStorage[fn] = true
+					initHashesInStorage[strings.Replace(fi.Name(), ".siva", "", -1)] = true
+				}
+
+				// we check that all the references that we have into the database exists as a rooted repository
+				for _, ref := range mr.References {
+					_, ok := initHashesInStorage[ref.Init.String()]
+					require.True(ok)
 				}
 			}
-
-			initHashesInDB := make(map[string]bool)
-			for _, ref := range mr.References {
-				initHashesInDB[ref.Init.String()] = true
-			}
-
-			assert.Equal(initHashesInDB, initHashesInStorage)
 		})
 	}
 }
@@ -174,21 +181,10 @@ func checkReferences(t *testing.T, obtained *git.Repository, refs []*model.Refer
 
 func checkReferencesInDB(t *testing.T, obtained *model.Repository, refs []*model.Reference) {
 	require := require.New(t)
+	require.Equal(len(refs), len(obtained.References))
 	obtainedRefs := modelToMemRefs(t, obtained.References)
 	expectedRefs := modelToMemRefs(t, refs)
 	require.Equal(expectedRefs, obtainedRefs)
-}
-
-func checkRemotes(t *testing.T, obtained *git.Repository, expected []string) {
-	require := require.New(t)
-	remotes, err := obtained.Remotes()
-	require.NoError(err)
-	var remoteNames []string
-	for _, remote := range remotes {
-		remoteNames = append(remoteNames, remote.Config().Name)
-	}
-
-	require.Equal(expected, remoteNames)
 }
 
 func modelToMemRefs(t *testing.T, refs []*model.Reference) memory.ReferenceStorage {

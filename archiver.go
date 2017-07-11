@@ -117,6 +117,10 @@ func (a *Archiver) do(j *Job) error {
 
 	if err := fetchAll(gr); err != nil {
 		var finalErr error
+		if err == git.NoErrAlreadyUpToDate {
+			r.References = nil
+		}
+
 		if err != git.NoErrAlreadyUpToDate &&
 			err != transport.ErrEmptyUploadPackRequest {
 			r.FetchErrorAt = &now
@@ -126,6 +130,7 @@ func (a *Archiver) do(j *Job) error {
 		_, errDB := a.RepositoryStorage.Update(r,
 			model.Schema.Repository.UpdatedAt,
 			model.Schema.Repository.FetchErrorAt,
+			model.Schema.Repository.References,
 		)
 		if errDB != nil {
 			return errDB
@@ -258,7 +263,11 @@ func (a *Archiver) pushChangesToRootedRepositories(j *Job, r *model.Repository,
 			continue
 		}
 		r.References = updateRepositoryReferences(r.References, cs, ic)
-		a.dbUpdateRepository(r, lastCommitTime, now)
+		if err := a.dbUpdateRepository(r, lastCommitTime, now); err != nil {
+			err = ErrPushToRootedRepository.Wrap(err, ic.String())
+			a.notifyWarn(j, err)
+			failedInits = append(failedInits, ic)
+		}
 		//TODO: release lock
 	}
 	return checkFailedInits(changes, failedInits)
@@ -379,50 +388,36 @@ func (a *Archiver) changesToPushRefSpec(id kallax.ULID, changes []*Command) []co
 
 // Applies all given changes to a slice of References
 func updateRepositoryReferences(oldRefs []*model.Reference, commands []*Command, ic model.SHA1) []*model.Reference {
-	rbn := refsByNameForInit(oldRefs, ic)
-	var result []*model.Reference
+	rbn := refsByName(oldRefs)
 	for _, com := range commands {
-		a := com.Action()
-		if a == Delete {
-			if com.Old.Init == ic {
-				delete(rbn, com.Old.Name)
+		switch com.Action() {
+		case Delete:
+			ref, ok := rbn[com.Old.Name]
+			if !ok {
+				continue
 			}
 
-			continue
-		}
-
-		if a == Create {
-			if com.New.Init == ic {
-				result = append(result, com.New)
+			if com.Old.Init == ref.Init {
+				delete(rbn, com.Old.Name)
+			}
+		case Create:
+			rbn[com.New.Name] = com.New
+		case Update:
+			oldRef, ok := rbn[com.New.Name]
+			if !ok {
+				continue
 			}
 
-			continue
-		}
-
-		for _, ref := range oldRefs {
-			if a == Update && ref.Init == ic && ref.Name == com.Old.Name {
-				result = append(result, com.New)
-
-				// delete old reference
-				delete(rbn, com.Old.Name)
+			if oldRef.Init == com.Old.Init {
+				rbn[com.New.Name] = com.New
 			}
 		}
 	}
 
 	// Add the references that keep equals
+	var result []*model.Reference
 	for _, r := range rbn {
 		result = append(result, r)
-	}
-
-	return result
-}
-
-func refsByNameForInit(refs []*model.Reference, ic model.SHA1) map[string]*model.Reference {
-	result := make(map[string]*model.Reference)
-	for _, r := range refs {
-		if r.Init == ic {
-			result[r.Name] = r
-		}
 	}
 
 	return result
@@ -443,11 +438,8 @@ func (a *Archiver) dbUpdateRepository(repoDb *model.Repository,
 		model.Schema.Repository.Status,
 		model.Schema.Repository.References,
 	)
-	if err != nil {
-		return err
-	}
 
-	return nil
+	return err
 }
 
 func checkFailedInits(changes Changes, failed []model.SHA1) error {
