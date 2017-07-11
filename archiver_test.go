@@ -54,25 +54,19 @@ func (s *ArchiverSuite) TestLastCommitDate() {
 
 func (s *ArchiverSuite) TestReferenceUpdate() {
 	for _, ct := range ChangesFixtures {
-		if ct.FakeHashes {
-			s.T().Run(ct.TestName, func(t *testing.T) {
-				var obtainedRefs []*model.Reference = ct.OldReferences
-				for ic, cs := range ct.Changes { // emulate pushChangesToRootedRepositories() behaviour
-					obtainedRefs = updateRepositoryReferences(obtainedRefs, cs, ic)
-				}
+		s.T().Run(ct.TestName, func(t *testing.T) {
+			var obtainedRefs []*model.Reference = ct.OldReferences
+			for ic, cs := range ct.Changes { // emulate pushChangesToRootedRepositories() behaviour
+				obtainedRefs = updateRepositoryReferences(obtainedRefs, cs, ic)
+			}
 
-				s.Equal(len(ct.NewReferences), len(obtainedRefs))
-			})
-		}
+			s.Equal(len(ct.NewReferences), len(obtainedRefs))
+		})
 	}
 }
 
 func (s *ArchiverSuite) TestFixtures() {
 	for _, ct := range ChangesFixtures {
-		if ct.FakeHashes {
-			continue
-		}
-
 		s.T().Run(ct.TestName, func(t *testing.T) {
 			require := require.New(t)
 
