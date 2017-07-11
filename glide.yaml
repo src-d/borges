@@ -13,7 +13,7 @@ import:
   version: 763351934333e34370292b308c74bcb71035e22a
 - package: gopkg.in/src-d/go-git.v4
   repo: https://github.com/smola/go-git.git
-  version: 09f5f2a35f0f4c42b2def0642540f32e59fdeeb3
+  version: v4.0.0-borges-1
   subpackages:
   - config
   - plumbing
