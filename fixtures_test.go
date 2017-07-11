@@ -79,6 +79,14 @@ var defaultReferences []*model.Reference = []*model.Reference{
 	fixtureReferences.ByName("refs/tags/v1.0.0"),
 }
 
+var refOnePointingToRefTwo = &model.Reference{
+	Name:       fixtureReferences.ByName("refs/heads/1").Name,
+	Timestamps: fixtureReferences.ByName("refs/heads/1").Timestamps,
+	Init:       fixtureReferences.ByName("refs/heads/2").Init,
+	Hash:       fixtureReferences.ByName("refs/heads/2").Hash,
+	Roots:      fixtureReferences.ByName("refs/heads/2").Roots,
+}
+
 var fixtureReferences FixtureReferences = FixtureReferences{{
 	Name: "refs/heads/master",
 	Hash: model.NewSHA1("6ecf0ef2c2dffb796033e5a02219af86ec6584e5"),
@@ -302,6 +310,28 @@ var ChangesFixtures = []*ChangesFixture{{
 	Changes: Changes{
 		model.NewSHA1("b029517f6300c2da0f4b651b8642506cd6aaf45d"): []*Command{
 			testDeleteCommand(fixtureReferences.ByName("refs/heads/master")),
+		},
+	},
+}, {
+	TestName:      "one reference changes his hash",
+	OldReferences: defaultReferences,
+	NewReferences: []*model.Reference{
+		fixtureReferences.ByName("refs/heads/master"),
+		fixtureReferences.ByName("refs/heads/branch"),
+		refOnePointingToRefTwo,
+		fixtureReferences.ByName("refs/heads/2"),
+		fixtureReferences.ByName("refs/heads/3"),
+		fixtureReferences.ByName("refs/heads/functionalityOne"),
+		fixtureReferences.ByName("refs/heads/functionalityTwo"),
+		fixtureReferences.ByName("refs/heads/rootReference"),
+		fixtureReferences.ByName("refs/tags/v1.0.0"),
+	},
+	Changes: Changes{
+		model.NewSHA1("8ec19d64748c54c6d047f30c81b4c444a8232b41"): []*Command{
+			testDeleteCommand(fixtureReferences.ByName("refs/heads/1")),
+		},
+		model.NewSHA1("04fffad6eacd4512554cb22ca3a0d6b8a38a96cc"): []*Command{
+			testAddRootCommand(refOnePointingToRefTwo),
 		},
 	},
 }, {

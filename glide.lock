@@ -1,5 +1,5 @@
-hash: 0f9c5db00b423aba66d034e150c6f6bcdcb780829943d6be3842feb45f2ca955
-updated: 2017-07-06T17:40:29.174263408+02:00
+hash: f2c5b7781eec17a044aa4a1d098893f0bfa70cbf366216ed9e08c2e5cdf749ad
+updated: 2017-07-11T16:07:18.756533637+02:00
 imports:
 - name: github.com/davecgh/go-spew
   version: 6d212800a42e8ab5c146b8ace3490ee17e5225f9
@@ -114,7 +114,8 @@ imports:
   - database
   - queue
 - name: gopkg.in/src-d/go-billy-siva.v3
-  version: b15b35bba22ab049715a74125fb100faee83cd00
+  version: 763351934333e34370292b308c74bcb71035e22a
+  repo: https://github.com/src-d/go-billy-siva.git
 - name: gopkg.in/src-d/go-billy.v3
   version: c329b7bc7b9d24905d2bc1b85bfa29f7ae266314
   subpackages:
@@ -127,8 +128,8 @@ imports:
 - name: gopkg.in/src-d/go-errors.v0
   version: 0c303ec4c027302259ec1738f19f515aad25f13f
 - name: gopkg.in/src-d/go-git.v4
-  version: ce6f5b7c82fc6c2c4d41880ed6b26f921dd9c1c3
-  repo: https://github.com/src-d/go-git.git
+  version: 722531c9d81327ade2eda921a5b9ba46bb60ad7f
+  repo: https://github.com/smola/go-git.git
   subpackages:
   - config
   - internal/revision
