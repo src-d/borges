@@ -27,15 +27,18 @@ import:
 - package: gopkg.in/src-d/go-kallax.v1
   version: ^1.2.7
 - package: gopkg.in/src-d/core-retrieval.v0
-  version: bf9b3d791c9df25da40efe0950c647713cc13f50
+  version: 83bf9ada96f00497f460c36879d53c980f060e18
   subpackages:
   - model
   - repository
 - package: gopkg.in/src-d/framework.v0
-  version: 06c61f8f6a8913f3d4d465bab758ff06c0b3d920
+  version: b7e5e412473a20a56c0543f898624f024b164087
   subpackages:
+  - lock
   - queue
 - package: gopkg.in/src-d/go-errors.v0
+- package: golang.org/x/crypto
+  version: dd85ac7e6a88fc6ca420478e934de5f1a42dd3c6
 testImport:
 - package: github.com/src-d/go-git-fixtures
   version: 03ddd4bf3d4a1baf61e72fd8ee4746db9005f5e7

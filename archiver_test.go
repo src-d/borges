@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/satori/go.uuid"
 	"github.com/src-d/go-git-fixtures"
@@ -15,6 +16,7 @@ import (
 	"gopkg.in/src-d/core-retrieval.v0/model"
 	rrepository "gopkg.in/src-d/core-retrieval.v0/repository"
 	"gopkg.in/src-d/core-retrieval.v0/test"
+	"gopkg.in/src-d/framework.v0/lock"
 	"gopkg.in/src-d/go-billy.v3"
 	"gopkg.in/src-d/go-billy.v3/osfs"
 	"gopkg.in/src-d/go-git.v4"
@@ -60,7 +62,12 @@ func (s *ArchiverSuite) SetupTest() {
 
 	s.tx = rrepository.NewSivaRootedTransactioner(s.rootedFs, s.txFs)
 
-	s.a = NewArchiver(s.store, s.tx, NewTemporaryCloner(s.tmpFs))
+	ls, err := lock.NewLocal().NewSession(&lock.SessionConfig{
+		Timeout: time.Second * 1,
+	})
+	s.NoError(err)
+
+	s.a = NewArchiver(s.store, s.tx, NewTemporaryCloner(s.tmpFs), ls)
 	s.a.Notifiers.Warn = func(j *Job, err error) {
 		s.NoError(err, "job: %v", j)
 	}
