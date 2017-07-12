@@ -26,6 +26,7 @@ type producerCmd struct {
 
 func (c *producerCmd) Execute(args []string) error {
 	c.ChangeLogLevel()
+	c.startProfilingHTTPServerMaybe(c.ProfilerPort + 1)
 
 	b := core.Broker()
 	defer b.Close()
@@ -43,6 +44,7 @@ func (c *producerCmd) Execute(args []string) error {
 	p := borges.NewProducer(ji, q)
 	p.Notifiers.Done = c.notifier
 	p.Start()
+
 	return err
 }
 

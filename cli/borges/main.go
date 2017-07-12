@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 
 	"github.com/inconshreveable/log15"
@@ -20,9 +22,11 @@ var (
 )
 
 type cmd struct {
-	Queue    string `long:"queue" default:"borges" description:"queue name"`
-	LogLevel string `short:"" long:"loglevel" description:"max log level enabled" default:"info"`
-	LogFile  string `short:"" long:"logfile" description:"path to file where logs will be stored" default:""`
+	Queue        string `long:"queue" default:"borges" description:"queue name"`
+	LogLevel     string `short:"" long:"loglevel" description:"max log level enabled" default:"info"`
+	LogFile      string `short:"" long:"logfile" description:"path to file where logs will be stored" default:""`
+	Profiler     bool   `long:"profiler" description:"start CPU, memory and block profilers"`
+	ProfilerPort int    `long:"profiler-port" description:"port to bind profiler to" default:"6061"`
 }
 
 func (c *cmd) ChangeLogLevel() {
@@ -37,6 +41,19 @@ func (c *cmd) ChangeLogLevel() {
 			log15.CallerFileHandler(log15.Must.FileHandler(c.LogFile, log15.LogfmtFormat())))
 	}
 	log15.Root().SetHandler(log15.LvlFilterHandler(lvl, log15.MultiHandler(handlers...)))
+}
+
+func (c *cmd) startProfilingHTTPServerMaybe(port int) {
+	if c.Profiler {
+		addr := fmt.Sprintf("0.0.0.0:%d", c.ProfilerPort)
+		go func() {
+			log15.Debug("Started CPU, memory and block profilers at", "address", addr)
+			err := http.ListenAndServe(addr, nil)
+			if err != nil {
+				log15.Warn("Profiler failed to listen and serve at", "address", addr, "error", err)
+			}
+		}()
+	}
 }
 
 func init() {
@@ -73,4 +90,5 @@ func main() {
 
 		os.Exit(1)
 	}
+
 }
