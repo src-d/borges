@@ -18,7 +18,6 @@ import (
 	"gopkg.in/src-d/go-billy.v3"
 	"gopkg.in/src-d/go-billy.v3/osfs"
 	"gopkg.in/src-d/go-git.v4"
-	"gopkg.in/src-d/go-git.v4/storage/filesystem"
 	"gopkg.in/src-d/go-git.v4/storage/memory"
 	"gopkg.in/src-d/go-kallax.v1"
 )
@@ -29,14 +28,47 @@ func TestArchiver(t *testing.T) {
 
 type ArchiverSuite struct {
 	test.Suite
+
+	store    *model.RepositoryStore
+	tmpPath  string
+	tx       rrepository.RootedTransactioner
+	txFs     billy.Filesystem
+	tmpFs    billy.Filesystem
+	rootedFs billy.Filesystem
+	a        *Archiver
 }
 
 func (s *ArchiverSuite) SetupTest() {
 	fixtures.Init()
 	s.Suite.Setup()
+
+	s.store = model.NewRepositoryStore(s.DB)
+
+	var err error
+	s.tmpPath, err = ioutil.TempDir(os.TempDir(),
+		fmt.Sprintf("borges-tests%d", rand.Uint32()))
+	s.NoError(err)
+
+	fs := osfs.New(s.tmpPath)
+
+	s.rootedFs, err = fs.Chroot("rooted")
+	s.NoError(err)
+	s.txFs, err = fs.Chroot("tx")
+	s.NoError(err)
+	s.tmpFs, err = fs.Chroot("tmp")
+	s.NoError(err)
+
+	s.tx = rrepository.NewSivaRootedTransactioner(s.rootedFs, s.txFs)
+
+	s.a = NewArchiver(s.store, s.tx, NewTemporaryCloner(s.tmpFs))
+	s.a.Notifiers.Warn = func(j *Job, err error) {
+		s.NoError(err, "job: %v", j)
+	}
 }
 
 func (s *ArchiverSuite) TearDownTest() {
+	s.NoError(os.RemoveAll(s.tmpPath))
+
 	s.Suite.TearDown()
 	fixtures.Clean()
 }
@@ -59,39 +91,12 @@ func (s *ArchiverSuite) TestFixtures() {
 		s.T().Run(ct.TestName, func(t *testing.T) {
 			require := require.New(t)
 
-			tmp, err := ioutil.TempDir(os.TempDir(),
-				fmt.Sprintf("borges-tests%d", rand.Uint32()))
-			require.NoError(err)
-			defer func() { require.NoError(os.RemoveAll(tmp)) }()
-
-			fs := osfs.New(tmp)
-
-			rootedFs, err := fs.Chroot("rooted")
-			require.NoError(err)
-			txFs, err := fs.Chroot("tx")
-			require.NoError(err)
-			tmpFs, err := fs.Chroot("tmp")
-			require.NoError(err)
-
-			s := model.NewRepositoryStore(s.DB)
-			tx := rrepository.NewSivaRootedTransactioner(rootedFs, txFs)
-			a := NewArchiver(s, tx, NewTemporaryCloner(tmpFs))
-
-			a.Notifiers.Warn = func(j *Job, err error) {
-				require.NoError(err, "job: %v", j)
-			}
-
 			or, err := ct.OldRepository()
 			var rid kallax.ULID
 			// emulate initial status of a repository
 			err = WithInProcRepository(or, func(url string) error {
-				mr := model.NewRepository()
-				rid = mr.ID
-				mr.Endpoints = append(mr.Endpoints, url)
-				updated, err := s.Save(mr)
-				require.NoError(err)
-				require.False(updated)
-				return a.Do(&Job{RepositoryID: uuid.UUID(mr.ID)})
+				rid = s.newRepositoryModel(url)
+				return s.a.Do(&Job{RepositoryID: uuid.UUID(rid)})
 			})
 			require.NoError(err)
 
@@ -99,29 +104,29 @@ func (s *ArchiverSuite) TestFixtures() {
 			require.NoError(err)
 
 			err = WithInProcRepository(nr, func(url string) error {
-				mr, err := s.FindOne(model.NewRepositoryQuery().FindByID(rid))
+				mr, err := s.store.FindOne(model.NewRepositoryQuery().FindByID(rid))
 				require.NoError(err)
 				mr.Endpoints = nil
 				mr.Endpoints = append(mr.Endpoints, url)
-				updated, err := s.Save(mr)
+				updated, err := s.store.Save(mr)
 				require.NoError(err)
 				require.True(updated, err)
-				return a.Do(&Job{RepositoryID: uuid.UUID(mr.ID)})
+				return s.a.Do(&Job{RepositoryID: uuid.UUID(mr.ID)})
 			})
 			require.NoError(err)
 
-			checkNoFiles(t, txFs)
-			checkNoFiles(t, tmpFs)
+			checkNoFiles(t, s.txFs)
+			checkNoFiles(t, s.tmpFs)
 
 			checkReferences(t, nr, ct.NewReferences)
 
 			// check references in database
-			mr, err := s.FindOne(model.NewRepositoryQuery().FindByID(rid))
+			mr, err := s.store.FindOne(model.NewRepositoryQuery().FindByID(rid))
 			require.NoError(err)
 			checkReferencesInDB(t, mr, ct.NewReferences)
 
 			// check references in siva files
-			fis, err := rootedFs.ReadDir(".")
+			fis, err := s.rootedFs.ReadDir(".")
 			if len(ct.NewReferences) != 0 {
 				require.NoError(err)
 				initHashesInStorage := make(map[string]bool)
@@ -140,19 +145,25 @@ func (s *ArchiverSuite) TestFixtures() {
 	}
 }
 
-func newRepository(f *fixtures.Fixture) *git.Repository {
-	fs := osfs.New(f.DotGit().Root())
-	st, err := filesystem.NewStorage(fs)
-	if err != nil {
-		panic(err)
-	}
+func (s *ArchiverSuite) TestNotExistingRepository() {
+	rid := s.newRepositoryModel("file:///this/repository/does/not/exists")
+	err := s.a.Do(&Job{RepositoryID: uuid.UUID(rid)})
+	s.NoError(err)
 
-	r, err := git.Open(st, fs)
-	if err != nil {
-		panic(err)
-	}
+	mr, err := s.store.FindOne(model.NewRepositoryQuery().FindByID(rid))
+	s.NoError(err)
 
-	return r
+	s.Equal(model.NotFound, mr.Status)
+}
+
+func (s *ArchiverSuite) newRepositoryModel(endpoint string) kallax.ULID {
+	mr := model.NewRepository()
+	mr.Endpoints = append(mr.Endpoints, endpoint)
+	updated, err := s.store.Save(mr)
+	s.NoError(err)
+	s.False(updated)
+
+	return mr.ID
 }
 
 func checkReferences(t *testing.T, obtained *git.Repository, refs []*model.Reference) {

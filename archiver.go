@@ -98,13 +98,13 @@ func (a *Archiver) do(j *Job) (err error) {
 			finalErr = ErrClone.Wrap(err, endpoint)
 		}
 
-		_, errDB := a.RepositoryStorage.Update(r,
-			model.Schema.Repository.UpdatedAt,
-			model.Schema.Repository.FetchErrorAt,
-			model.Schema.Repository.References,
-		)
-		if errDB != nil {
-			return errDB
+		if err == transport.ErrRepositoryNotFound {
+			r.Status = model.NotFound
+			finalErr = nil
+		}
+
+		if err := a.dbUpdateFailedRepository(r); err != nil {
+			return err
 		}
 
 		log.Error("error cloning repository", "error", err)
@@ -279,6 +279,17 @@ func updateRepositoryReferences(oldRefs []*model.Reference, commands []*Command,
 	}
 
 	return result
+}
+
+func (a *Archiver) dbUpdateFailedRepository(repoDb *model.Repository) error {
+	_, err := a.RepositoryStorage.Update(repoDb,
+		model.Schema.Repository.UpdatedAt,
+		model.Schema.Repository.FetchErrorAt,
+		model.Schema.Repository.References,
+		model.Schema.Repository.Status,
+	)
+
+	return err
 }
 
 // Updates DB: status, fetch time, commit time
