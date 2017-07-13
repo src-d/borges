@@ -7,8 +7,8 @@ borges [![Build Status](https://travis-ci.org/src-d/borges.svg?branch=master)](h
 > I have always imagined that Paradise will be a kind of library.
 
 borges uses the producer/consumer pattern, where a producer generates jobs and
-one or more consumers get the jobs and executes them. Each borges job triggers
-the update of a repository.
+one or more consumers get the jobs and execute them. Each borges job triggers
+an update of a repository.
 
 Read the borges package godoc for further details on how borges archives
 repositories.
@@ -52,7 +52,7 @@ they will just retry until it does.
 
 You will find binaries in `borges_linux_amd64/borges` and `borges_darwin_amd64/borges`. 
 
-If running for the first time, you also need to add table to PostgreSQL:
+If running for the first time, you also need to add the following table to PostgreSQL:
 
 ```sql
 CREATE TABLE IF NOT EXISTS repositories (
@@ -65,33 +65,34 @@ CREATE TABLE IF NOT EXISTS repositories (
     fetch_error_at timestamptz,
     last_commit_at timestamptz,
     _references jsonb
-    );
+);
     
-    CREATE INDEX idx_endpoints on "repositories" USING GIN ("endpoints");
+CREATE INDEX idx_endpoints on "repositories" USING GIN ("endpoints");
 ```
 
 ## Test
 
 `make test`
 
-Borges has 2 runtime dependencies and have tests depending on them:
+Borges has 2 runtime dependencies and has tests that depend on them:
+
   - RabbitMQ
 
-    Consumers and Producers interact though a Queue. You can run one in Docker by
+    Consumers and Producers interact through a Queue. You can run one in Docker with the following command:
     ```
     docker run -d --hostname rabbit --name rabbit -p 8080:15672 -p 5672:5672 rabbitmq:3-management
     ```
-    Note: a hostname is provided, due to fact that rabbitmq stores data according to the host name
+    Note: a hostname needs to be provided, due to the fact that rabbitmq stores data according to the host name
 
 
   - PostgreSQL
 
-    Consumers make SIVA files with RootedRepositories, but all repository metadata is stored in PostgreSQL
-    You can run one in Docker by
+    Consumers make SIVA files with RootedRepositories, but all repository metadata is stored in PostgreSQL.
+    You can run one in Docker with the following command:
     ```
     docker run --name postgres -e POSTGRES_PASSWORD=testing -p 5432:5432 -e POSTGRES_USER=testing -d postgres
     # to check it manually, use
     docker exec -ti some-postgres psql -U testing
     ```
 
-`make test-coverage` to produce a coverage report
+Use `make test-coverage` to run all tests and produce a coverage report.
