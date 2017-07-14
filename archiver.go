@@ -5,8 +5,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/inconshreveable/log15"
 	"gopkg.in/src-d/core-retrieval.v0/model"
 	"gopkg.in/src-d/core-retrieval.v0/repository"
+	"gopkg.in/src-d/framework.v0/lock"
 	"gopkg.in/src-d/go-errors.v0"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/config"
@@ -51,14 +53,19 @@ type Archiver struct {
 	// RootedTransactioner is used to push new references to our repository
 	// storage.
 	RootedTransactioner repository.RootedTransactioner
+
+	// LockSession is a locker service to prevent concurrent access to the same
+	// rooted reporitories.
+	LockSession lock.Session
 }
 
 func NewArchiver(r *model.RepositoryStore, tx repository.RootedTransactioner,
-	tc TemporaryCloner) *Archiver {
+	tc TemporaryCloner, ls lock.Session) *Archiver {
 	return &Archiver{
 		TemporaryCloner:     tc,
 		RepositoryStorage:   r,
 		RootedTransactioner: tx,
+		LockSession:         ls,
 	}
 }
 
@@ -127,7 +134,8 @@ func (a *Archiver) do(j *Job) (err error) {
 	}
 
 	log.Debug("changes obtained", "roots", len(changes))
-	if err := a.pushChangesToRootedRepositories(j, r, gr, changes, now); err != nil {
+	if err := a.pushChangesToRootedRepositories(log, j, r, gr, changes, now); err != nil {
+		log.Error("repository processed with errors", "error", err)
 		return err
 	}
 
@@ -178,27 +186,49 @@ func selectEndpoint(endpoints []string) (string, error) {
 	return endpoints[0], nil
 }
 
-func (a *Archiver) pushChangesToRootedRepositories(j *Job, r *model.Repository,
-	tr TemporaryRepository, changes Changes, now time.Time) error {
+func (a *Archiver) pushChangesToRootedRepositories(log log15.Logger,
+	j *Job, r *model.Repository, tr TemporaryRepository, changes Changes,
+	now time.Time) error {
+
 	var failedInits []model.SHA1
 	for ic, cs := range changes {
-		//TODO: try lock first_commit
-		//TODO: if lock cannot be acquired after timeout, continue
+		lock := a.LockSession.NewLocker(ic.String())
+		ch, err := lock.Lock()
+		if err != nil {
+			failedInits = append(failedInits, ic)
+			log.Warn("failed to acquire lock", "root", ic.String(), "error", err)
+			continue
+		}
+
 		if err := a.pushChangesToRootedRepository(r, tr, ic, cs); err != nil {
 			err = ErrPushToRootedRepository.Wrap(err, ic.String())
 			a.notifyWarn(j, err)
 			failedInits = append(failedInits, ic)
-			//TODO: release lock
+			if err := lock.Unlock(); err != nil {
+				log.Warn("failed to release lock", "root", ic.String(), "error", err)
+			}
+
 			continue
 		}
+
 		r.References = updateRepositoryReferences(r.References, cs, ic)
 		if err := a.dbUpdateRepository(r, now); err != nil {
 			err = ErrPushToRootedRepository.Wrap(err, ic.String())
 			a.notifyWarn(j, err)
 			failedInits = append(failedInits, ic)
 		}
-		//TODO: release lock
+
+		select {
+		case <-ch:
+			log.Error("lost the lock", "root", ic.String())
+		default:
+		}
+
+		if err := lock.Unlock(); err != nil {
+			log.Warn("failed to release lock", "root", ic.String(), "error", err)
+		}
 	}
+
 	return checkFailedInits(changes, failedInits)
 }
 
@@ -349,12 +379,18 @@ func checkFailedInits(changes Changes, failed []model.SHA1) error {
 func NewArchiverWorkerPool(r *model.RepositoryStore,
 	tx repository.RootedTransactioner,
 	tc TemporaryCloner,
+	ls lock.Service,
 	start func(*WorkerContext, *Job),
 	stop func(*WorkerContext, *Job, error),
 	warn func(*WorkerContext, *Job, error)) *WorkerPool {
 
 	do := func(ctx *WorkerContext, j *Job) error {
-		a := NewArchiver(r, tx, tc)
+		lsess, err := ls.NewSession(&lock.SessionConfig{TTL: 10 * time.Second})
+		if err != nil {
+			return err
+		}
+
+		a := NewArchiver(r, tx, tc, lsess)
 
 		if start != nil {
 			a.Notifiers.Start = func(j *Job) {

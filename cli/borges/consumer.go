@@ -31,6 +31,7 @@ func (c *consumerCmd) Execute(args []string) error {
 		core.ModelRepositoryStore(),
 		core.RootedTransactioner(),
 		borges.NewTemporaryCloner(core.TemporaryFilesystem()),
+		core.Locking(),
 		c.startNotifier, c.stopNotifier, c.warnNotifier)
 	wp.SetWorkerCount(c.WorkersCount)
 
