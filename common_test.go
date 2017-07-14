@@ -28,7 +28,10 @@ func (s *LockSuite) TestLockUnlockSingleLockNoConcurrency() {
 	niter := 100
 	id := "mylock"
 	service := s.NewService()
-	cfg := &SessionConfig{TTL: 1 * time.Second}
+	cfg := &SessionConfig{
+		Timeout: 1 * time.Second,
+		TTL:     1 * time.Second,
+	}
 	session, err := service.NewSession(cfg)
 	assert.NoError(err)
 	for i := 0; i < niter; i++ {
@@ -45,7 +48,7 @@ func (s *LockSuite) TestLockTimeout() {
 
 	service := s.NewService()
 	cfg := &SessionConfig{
-		TTL: time.Millisecond * 500,
+		Timeout: time.Millisecond * 500,
 	}
 	id := "mylock-" + s.T().Name()
 

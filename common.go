@@ -41,6 +41,9 @@ func New(connstr string) (Service, error) {
 
 // SessionConfig holds configuration for a locking session.
 type SessionConfig struct {
+	// Timeout is the timeout when acquiring a lock. Calls to Lock() on a Locker
+	// in the session will fail if the lock cannot be acquired before timeout.
+	Timeout time.Duration
 	// TTL is the time-to-live of all locks in a session. A lock operation times
 	// out when the TTL expires. A lock is lost whenever it cannot be kept alive
 	// inside the TTL. For example, a lock in a distributed lock service maintains

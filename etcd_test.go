@@ -64,7 +64,9 @@ func (s *EtcdLockSuite) SetupTest() {
 	err = s.cmd.Start()
 	require.NoError(err)
 
-	s.ConnectionString = fmt.Sprintf("etcd:%s?dial-timeout=2s", strings.Join(s.Endpoints, ","))
+	s.ConnectionString = fmt.Sprintf(
+		"etcd:%s?dial-timeout=2s&dial-keep-alive-timeout=2s",
+		strings.Join(s.Endpoints, ","))
 
 	retries := 0
 	for {
@@ -106,14 +108,14 @@ func (s *EtcdLockSuite) TestUnavailableEtcd() {
 	assert.NoError(err)
 }
 
-func (s *EtcdLockSuite) TestSmallTTL() {
+func (s *EtcdLockSuite) TestSmallTimeout() {
 	assert := s.Assert()
-	// etcd uses a ttl of at least 1 second
-	// so whenever we specify a ttl > 0, it should be fixed to 1 second or more
+	// etcd uses a timeout of at least 1 second
+	// so whenever we specify a timeout > 0, it should be fixed to 1 second or more
 	// instead of 0 (no timeout)
 	service := s.NewService()
 	cfg := &SessionConfig{
-		TTL: time.Millisecond * 1,
+		Timeout: time.Millisecond * 1,
 	}
 	id := "mylock-" + s.T().Name()
 

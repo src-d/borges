@@ -59,7 +59,8 @@ type localSrv struct {
 }
 
 // NewLocal creates a new locking service that uses in-process locks. This can
-// be used whenever locking is relevant only to the local process.
+// be used whenever locking is relevant only to the local process. Local locks
+// are never lost, so TTL is ignored.
 func NewLocal() Service {
 	return &localSrv{
 		locks:    map[string]*localLock{},
@@ -158,7 +159,7 @@ type localLocker struct {
 
 func (l *localLocker) Lock() (<-chan struct{}, error) {
 	lock := l.sess.srv.getLock(l.id)
-	ok := lock.Lock(l.sess.cfg.TTL)
+	ok := lock.Lock(l.sess.cfg.Timeout)
 	if !ok {
 		l.sess.srv.freeLock(l.id)
 		return nil, ErrCanceled.New()

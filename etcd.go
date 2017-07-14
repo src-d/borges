@@ -194,13 +194,13 @@ type etcdLock struct {
 func (l *etcdLock) Lock() (<-chan struct{}, error) {
 	ctx := context.Background()
 
-	ttl := l.cfg.TTL
-	if ttl > 0 {
-		if ttl < time.Second {
-			ttl = time.Second
+	timeout := l.cfg.Timeout
+	if timeout > 0 {
+		if timeout < time.Second {
+			timeout = time.Second
 		}
 
-		ctx, _ = context.WithTimeout(ctx, ttl)
+		ctx, _ = context.WithTimeout(ctx, timeout)
 	}
 
 	if err := l.mutex.Lock(ctx); err != nil {
@@ -211,7 +211,7 @@ func (l *etcdLock) Lock() (<-chan struct{}, error) {
 		return nil, err
 	}
 
-	return ctx.Done(), nil
+	return l.session.Done(), nil
 }
 
 func (m *etcdLock) Unlock() error {
