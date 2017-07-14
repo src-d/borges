@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/inconshreveable/log15"
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -22,7 +23,7 @@ type ConsumerSuite struct {
 }
 
 func (s *ConsumerSuite) newConsumer() *Consumer {
-	wp := NewWorkerPool(func(*WorkerContext, *Job) error { return nil })
+	wp := NewWorkerPool(log15.New(), func(log15.Logger, *Job) error { return nil })
 	return NewConsumer(s.queue, wp)
 }
 
@@ -37,7 +38,7 @@ func (s *ConsumerSuite) TestConsumer_StartStop_FailedJob() {
 
 	processed := 0
 	done := make(chan struct{}, 1)
-	c.WorkerPool.do = func(w *WorkerContext, j *Job) error {
+	c.WorkerPool.do = func(log log15.Logger, j *Job) error {
 		defer func() { done <- struct{}{} }()
 		processed++
 		if processed == 2 {
@@ -88,7 +89,7 @@ func (s *ConsumerSuite) TestConsumer_StartStop() {
 
 	processed := 0
 	done := make(chan struct{}, 1)
-	c.WorkerPool.do = func(*WorkerContext, *Job) error {
+	c.WorkerPool.do = func(log15.Logger, *Job) error {
 		processed++
 		if processed > 1 {
 			assert.Fail("too many jobs processed")

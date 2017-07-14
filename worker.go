@@ -1,9 +1,13 @@
 package borges
 
+import (
+	"github.com/inconshreveable/log15"
+)
+
 // Worker is a worker that processes jobs from a channel.
 type Worker struct {
-	ctx        *WorkerContext
-	do         func(*WorkerContext, *Job) error
+	log        log15.Logger
+	do         func(log15.Logger, *Job) error
 	jobChannel chan *WorkerJob
 	quit       chan struct{}
 	running    bool
@@ -13,9 +17,9 @@ type Worker struct {
 // will be passed to the processing function on every call. The second parameter
 // is the processing function itself that will be called for every job. The
 // third parameter is a channel that the worker will consume jobs from.
-func NewWorker(ctx *WorkerContext, do func(*WorkerContext, *Job) error, ch chan *WorkerJob) *Worker {
+func NewWorker(log log15.Logger, do func(log15.Logger, *Job) error, ch chan *WorkerJob) *Worker {
 	return &Worker{
-		ctx:        ctx,
+		log:        log,
 		do:         do,
 		jobChannel: ch,
 		quit:       make(chan struct{}),
@@ -25,12 +29,12 @@ func NewWorker(ctx *WorkerContext, do func(*WorkerContext, *Job) error, ch chan 
 // Start processes jobs from the input channel until it is stopped. Start blocks
 // until the worker is stopped or the channel is closed.
 func (w *Worker) Start() {
-	log := log.New("module", "worker", "id", w.ctx.ID)
+	log := w.log
 
 	w.running = true
 	defer func() { w.running = false }()
 
-	log.Debug("starting")
+	log.Info("starting")
 	for {
 		select {
 		case job, ok := <-w.jobChannel:
@@ -38,18 +42,18 @@ func (w *Worker) Start() {
 				return
 			}
 
-			if err := w.do(w.ctx, job.Job); err != nil {
+			if err := w.do(log, job.Job); err != nil {
 				if err := job.Reject(false); err != nil {
-					log.Error("error rejecting job", "err", err)
+					log.Error("error rejecting job", "error", err)
 				}
 
-				log.Error("error on job", "err", err)
+				log.Error("error on job", "error", err)
 
 				continue
 			}
 
 			if err := job.Ack(); err != nil {
-				log.Error("error ack'ing job", "err", err)
+				log.Error("error acking job", "error", err)
 			}
 		case <-w.quit:
 			return

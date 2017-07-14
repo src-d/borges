@@ -41,8 +41,7 @@ func (c *producerCmd) Execute(args []string) error {
 	}
 	defer ioutil.CheckClose(ji, &err)
 
-	p := borges.NewProducer(ji, q)
-	p.Notifiers.Done = c.notifier
+	p := borges.NewProducer(log, ji, q)
 	p.Start()
 
 	return err
@@ -66,13 +65,5 @@ func (c *producerCmd) jobIter(b queue.Broker) (borges.JobIter, error) {
 		return borges.NewLineJobIter(f, storer), nil
 	default:
 		return nil, fmt.Errorf("invalid source: %s", c.Source)
-	}
-}
-
-func (c *producerCmd) notifier(j *borges.Job, err error) {
-	if err != nil {
-		log.Error("job queue error", "RepositoryID", j.RepositoryID, "error", err)
-	} else {
-		log.Info("job queued", "RepositoryID", j.RepositoryID)
 	}
 }

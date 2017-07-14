@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/inconshreveable/log15"
 	"gopkg.in/src-d/core-retrieval.v0/model"
 	"gopkg.in/src-d/go-billy.v3"
 	"gopkg.in/src-d/go-billy.v3/util"
@@ -123,7 +124,7 @@ func ResolveCommit(r *git.Repository, h plumbing.Hash) (*object.Commit, error) {
 	case *object.Tag:
 		return ResolveCommit(r, o.Target)
 	default:
-		log.Warn("referenced object not supported", "type", o.Type())
+		log15.Warn("referenced object not supported", "hash", h.String(), "type", o.Type())
 		return nil, ErrReferencedObjectTypeNotSupported
 	}
 }
