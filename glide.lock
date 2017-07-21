@@ -1,5 +1,5 @@
-hash: 90d22d043c841998be0aa7ecaac9be45fd2be2774c141c47afd67d9165769e0b
-updated: 2017-07-14T14:54:02.913510528+02:00
+hash: b0d0d64efcf4499567375328349ff89fdb61bd5cbc33605450d1bf07ae9efdc8
+updated: 2017-07-21T10:17:47.853454078+02:00
 imports:
 - name: github.com/coreos/etcd
   version: 0a2b580f738715da801d64a46682d92fbe125d0f
@@ -170,8 +170,8 @@ imports:
 - name: gopkg.in/src-d/go-errors.v0
   version: 6f07baca276330431b44ece8ee84ac98167bc4ea
 - name: gopkg.in/src-d/go-git.v4
-  version: 722531c9d81327ade2eda921a5b9ba46bb60ad7f
-  repo: https://github.com/smola/go-git.git
+  version: 2d10f1023e609894174b21bdf8d3738010099335
+  repo: https://github.com/src-d/go-git.git
   subpackages:
   - config
   - internal/revision
@@ -213,7 +213,7 @@ imports:
   - utils/merkletrie/internal/frame
   - utils/merkletrie/noder
 - name: gopkg.in/src-d/go-kallax.v1
-  version: 2acd313ffa7ae1f67edec6556600ce2358be3c79
+  version: f22b0a1c0892c5c7484eb2cfc29e8efa0c9380a4
   subpackages:
   - types
 - name: gopkg.in/src-d/go-siva.v1

@@ -12,8 +12,8 @@ import:
   repo: https://github.com/src-d/go-billy-siva.git
   version: 763351934333e34370292b308c74bcb71035e22a
 - package: gopkg.in/src-d/go-git.v4
-  repo: https://github.com/smola/go-git.git
-  version: v4.0.0-borges-1
+  repo: https://github.com/src-d/go-git.git
+  version: 2d10f1023e609894174b21bdf8d3738010099335
   subpackages:
   - config
   - plumbing
