@@ -42,11 +42,16 @@ type JobIter interface {
 
 // RepositoryID tries to find a repository by the endpoint into the database.
 // If no repository is found, it creates a new one and returns the ID.
-func RepositoryID(endpoint string, storer *model.RepositoryStore) (uuid.UUID, error) {
+func RepositoryID(endpoints []string, storer *model.RepositoryStore) (uuid.UUID, error) {
+	q := make([]interface{}, len(endpoints))
+	for _, ep := range endpoints {
+		q = append(q, ep)
+	}
+
 	rs, err := storer.Find(
 		model.NewRepositoryQuery().
-			Where(kallax.And(kallax.ArrayContains(
-				model.Schema.Repository.Endpoints, endpoint,
+			Where(kallax.And(kallax.ArrayOverlap(
+				model.Schema.Repository.Endpoints, q...,
 			))),
 	)
 	if err != nil {
@@ -62,7 +67,7 @@ func RepositoryID(endpoint string, storer *model.RepositoryStore) (uuid.UUID, er
 	switch {
 	case l == 0:
 		r := model.NewRepository()
-		r.Endpoints = []string{endpoint}
+		r.Endpoints = endpoints
 		if _, err := storer.Save(r); err != nil {
 			return uuid.Nil, err
 		}
