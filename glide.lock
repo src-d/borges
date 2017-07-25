@@ -1,5 +1,5 @@
-hash: b0d0d64efcf4499567375328349ff89fdb61bd5cbc33605450d1bf07ae9efdc8
-updated: 2017-07-21T10:17:47.853454078+02:00
+hash: b8cc7bcff078c5389baf213b051fb009b668f4c2fefce9ec9127d1f0fa12c128
+updated: 2017-07-25T17:01:23.02626049+02:00
 imports:
 - name: github.com/coreos/etcd
   version: 0a2b580f738715da801d64a46682d92fbe125d0f
@@ -23,7 +23,7 @@ imports:
 - name: github.com/inconshreveable/log15
   version: b105bd37f74e5d9dc7b6ad7806715c7a2b83fd3f
 - name: github.com/jessevdk/go-flags
-  version: 48cf8722c3375517aba351d1f7577c40663a4407
+  version: 96dc06278ce32a0e9d957d590bb987c81ee66407
 - name: github.com/lann/builder
   version: f22ce00fd9394014049dad11c244859432bd6820
 - name: github.com/lann/ps
@@ -143,7 +143,7 @@ imports:
   - stack
   - term
 - name: gopkg.in/src-d/core-retrieval.v0
-  version: 83bf9ada96f00497f460c36879d53c980f060e18
+  version: a42f4fe585b23999ef6ea3f2516a7b966e46ecf0
   subpackages:
   - model
   - repository
