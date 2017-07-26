@@ -24,6 +24,7 @@ import (
 
 const (
 	FetchRefSpec = config.RefSpec("refs/*:refs/*")
+	FetchHEAD    = config.RefSpec("HEAD:refs/heads/HEAD")
 )
 
 type TemporaryRepository interface {
@@ -171,7 +172,7 @@ func (b *temporaryRepositoryBuilder) Clone(id, endpoint string) (TemporaryReposi
 	}
 
 	o := &git.FetchOptions{
-		RefSpecs: []config.RefSpec{FetchRefSpec},
+		RefSpecs: []config.RefSpec{FetchRefSpec, FetchHEAD},
 	}
 	err = remote.Fetch(o)
 	if err == git.NoErrAlreadyUpToDate || err == transport.ErrEmptyRemoteRepository {
