@@ -1,8 +1,6 @@
 package borges
 
 import (
-	"strings"
-
 	"gopkg.in/src-d/core-retrieval.v0/model"
 	rmodel "gopkg.in/src-d/core-retrieval.v0/model"
 	"gopkg.in/src-d/framework.v0/queue"
@@ -28,13 +26,13 @@ func (i *mentionJobIter) Next() (*Job, error) {
 		return nil, err
 	}
 
-	endpoints, j, err := i.getEndpoints()
+	mention, j, err := i.getMention()
 
 	if err != nil {
 		return nil, err
 	}
 
-	ID, err := RepositoryID(endpoints, i.storer)
+	ID, err := RepositoryID(getEndpoints(mention.Aliases, mention.Endpoint), mention.IsFork, i.storer)
 	if err != nil {
 		return nil, err
 	}
@@ -63,33 +61,26 @@ func (i *mentionJobIter) initIter() error {
 	return nil
 }
 
-// getEndpoints obtains the next Job from the queue and decodes the mention on it.
-// If success, ALL the endpoints into the mention are returned. Also the job itself is
-// returned, to be able to send back the ACK.
-func (i *mentionJobIter) getEndpoints() (a []string, j *queue.Job, err error) {
+// getMention obtains the next Job from the queue and decodes the mention on it.
+// If success, a Mention model is returned. Also the job itself is returned,
+// to be able to send back the ACK.
+func (i *mentionJobIter) getMention() (m *rmodel.Mention, j *queue.Job, err error) {
 	j, err = i.iter.Next()
 	if err != nil {
 		return
 	}
-	var mention rmodel.Mention
-	if err = j.Decode(&mention); err != nil {
-		return
-	}
-
-	as, ok := mention.Context["aliases"]
-	if !ok {
-		a = []string{mention.Endpoint}
-
-		return
-	}
-
-	a = parseAliases(as)
+	err = j.Decode(&m)
 
 	return
 }
 
-func parseAliases(aliases string) []string {
-	return strings.Split(aliases, ", ")
+func getEndpoints(aliases []string, mainURL string) []string {
+	if aliases == nil {
+		return []string{mainURL}
+	}
+
+	// if aliases is not nil it also contains the main URL
+	return aliases
 }
 
 func (i *mentionJobIter) Close() error {

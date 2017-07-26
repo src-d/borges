@@ -1,8 +1,8 @@
-hash: b0d0d64efcf4499567375328349ff89fdb61bd5cbc33605450d1bf07ae9efdc8
-updated: 2017-07-21T10:17:47.853454078+02:00
+hash: b17e1322917ccd4ad911e631dd204953130e379207e74b8d1c99323da8317693
+updated: 2017-07-27T09:35:42.45687897+02:00
 imports:
 - name: github.com/coreos/etcd
-  version: 0a2b580f738715da801d64a46682d92fbe125d0f
+  version: 2a348fb8e9e3de0ae81175e49178098adb5d2b4c
   subpackages:
   - auth/authpb
   - clientv3
@@ -23,7 +23,7 @@ imports:
 - name: github.com/inconshreveable/log15
   version: b105bd37f74e5d9dc7b6ad7806715c7a2b83fd3f
 - name: github.com/jessevdk/go-flags
-  version: 48cf8722c3375517aba351d1f7577c40663a4407
+  version: 96dc06278ce32a0e9d957d590bb987c81ee66407
 - name: github.com/lann/builder
   version: f22ce00fd9394014049dad11c244859432bd6820
 - name: github.com/lann/ps
@@ -67,7 +67,7 @@ imports:
 - name: github.com/streadway/amqp
   version: 2cbfe40c9341ad63ba23e53013b3ddc7989d801c
 - name: github.com/stretchr/testify
-  version: f6abca593680b2315d2075e0f5e2a9751e3f431a
+  version: 05e8a0eda380579888eb53c394909df027f06991
   subpackages:
   - assert
   - require
@@ -98,7 +98,7 @@ imports:
   subpackages:
   - unix
 - name: golang.org/x/text
-  version: cfdf022e86b4ecfb646e1efbd7db175dd623a8fa
+  version: 836efe42bb4aa16aaa17b9c155d8813d336ed720
   subpackages:
   - secure/bidirule
   - transform
@@ -143,7 +143,7 @@ imports:
   - stack
   - term
 - name: gopkg.in/src-d/core-retrieval.v0
-  version: 83bf9ada96f00497f460c36879d53c980f060e18
+  version: c43ab14d37c0bf2c31537ec91dae607b83749789
   subpackages:
   - model
   - repository
@@ -213,7 +213,7 @@ imports:
   - utils/merkletrie/internal/frame
   - utils/merkletrie/noder
 - name: gopkg.in/src-d/go-kallax.v1
-  version: f22b0a1c0892c5c7484eb2cfc29e8efa0c9380a4
+  version: 507e6de539ca5dc5faa164c25e12934a8bf699d1
   subpackages:
   - types
 - name: gopkg.in/src-d/go-siva.v1
