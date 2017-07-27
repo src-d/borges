@@ -42,7 +42,7 @@ type JobIter interface {
 
 // RepositoryID tries to find a repository by the endpoint into the database.
 // If no repository is found, it creates a new one and returns the ID.
-func RepositoryID(endpoints []string, storer *model.RepositoryStore) (uuid.UUID, error) {
+func RepositoryID(endpoints []string, isFork *bool, storer *model.RepositoryStore) (uuid.UUID, error) {
 	q := make([]interface{}, len(endpoints))
 	for _, ep := range endpoints {
 		q = append(q, ep)
@@ -68,6 +68,7 @@ func RepositoryID(endpoints []string, storer *model.RepositoryStore) (uuid.UUID,
 	case l == 0:
 		r := model.NewRepository()
 		r.Endpoints = endpoints
+		r.IsFork = isFork
 		if _, err := storer.Save(r); err != nil {
 			return uuid.Nil, err
 		}
@@ -107,6 +108,7 @@ func CreateRepositoryTable() {
 	fetched_at timestamptz,
 	fetch_error_at timestamptz,
 	last_commit_at timestamptz,
+	is_fork boolean,
 	_references jsonb
 	);
 	CREATE INDEX idx_endpoints on "repositories" USING GIN ("endpoints");`)

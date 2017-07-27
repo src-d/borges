@@ -44,7 +44,7 @@ func (i *lineJobIter) Next() (*Job, error) {
 		return nil, fmt.Errorf("expected absolute URL: %s", line)
 	}
 
-	ID, err := RepositoryID([]string{line}, i.storer)
+	ID, err := RepositoryID([]string{line}, nil, i.storer)
 	if err != nil {
 		return nil, err
 	}
