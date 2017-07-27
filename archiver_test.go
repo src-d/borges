@@ -60,7 +60,7 @@ func (s *ArchiverSuite) SetupTest() {
 	s.tmpFs, err = fs.Chroot("tmp")
 	s.NoError(err)
 
-	s.tx = rrepository.NewSivaRootedTransactioner(s.rootedFs, s.txFs)
+	s.tx = rrepository.NewSivaRootedTransactioner(rrepository.NewLocalCopier(s.rootedFs), s.txFs)
 
 	ls, err := lock.NewLocal().NewSession(&lock.SessionConfig{
 		Timeout: time.Second * 1,
