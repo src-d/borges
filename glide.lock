@@ -1,6 +1,12 @@
-hash: b17e1322917ccd4ad911e631dd204953130e379207e74b8d1c99323da8317693
-updated: 2017-07-27T09:35:42.45687897+02:00
+hash: 8fb1994d90d1f0d93dfc818096f0bff493e27d0dbdbffc4b28f5008ec2b5c052
+updated: 2017-07-27T14:54:25.042266798+02:00
 imports:
+- name: github.com/colinmarc/hdfs
+  version: d9614569203878ff04bb4420b929923949e855fc
+  subpackages:
+  - protocol/hadoop_common
+  - protocol/hadoop_hdfs
+  - rpc
 - name: github.com/coreos/etcd
   version: 2a348fb8e9e3de0ae81175e49178098adb5d2b4c
   subpackages:
@@ -17,7 +23,6 @@ imports:
 - name: github.com/golang/protobuf
   version: 5a0f697c9ed9d68fef0116532c6e05cfeae00e55
   subpackages:
-  - jsonpb
   - proto
   - ptypes/any
 - name: github.com/inconshreveable/log15
@@ -143,7 +148,7 @@ imports:
   - stack
   - term
 - name: gopkg.in/src-d/core-retrieval.v0
-  version: c43ab14d37c0bf2c31537ec91dae607b83749789
+  version: 066728d73336d0685822ab5549e3cd106a85ab4d
   subpackages:
   - model
   - repository
