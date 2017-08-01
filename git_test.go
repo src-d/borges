@@ -1,6 +1,7 @@
 package borges
 
 import (
+	"context"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -102,7 +103,7 @@ func (s *TemporaryClonerSuite) TestCloneRepository() {
 
 func (s *TemporaryClonerSuite) testBasicRepository(url string) {
 	require := s.Require()
-	gr, err := s.cloner.Clone("foo", url)
+	gr, err := s.cloner.Clone(context.TODO(), "foo", url)
 	require.NoError(err)
 	refs, err := gr.References()
 	require.NoError(err)
@@ -119,7 +120,7 @@ func (s *TemporaryClonerSuite) TestCloneEmptyRepository() {
 
 func (s *TemporaryClonerSuite) testEmptyRepository(url string) {
 	require := s.Require()
-	gr, err := s.cloner.Clone("foo", url)
+	gr, err := s.cloner.Clone(context.TODO(), "foo", url)
 	require.NoError(err)
 	refs, err := gr.References()
 	require.NoError(err)
@@ -135,7 +136,7 @@ func (s *TemporaryClonerSuite) TestCloneNonExistentRepository() {
 
 func (s *TemporaryClonerSuite) testNonExistentRepository(url string) {
 	require := s.Require()
-	gr, err := s.cloner.Clone("foo", url)
+	gr, err := s.cloner.Clone(context.TODO(), "foo", url)
 	require.True(err == transport.ErrAuthenticationRequired ||
 		err == transport.ErrRepositoryNotFound)
 
