@@ -9,11 +9,11 @@ import:
 - package: gopkg.in/src-d/go-billy.v3
   version: ^3.0.1
 - package: gopkg.in/src-d/go-billy-siva.v3
-  repo: https://github.com/src-d/go-billy-siva.git
   version: 763351934333e34370292b308c74bcb71035e22a
+  repo: https://github.com/src-d/go-billy-siva.git
 - package: gopkg.in/src-d/go-git.v4
+  version: v4.0.0-rc13
   repo: https://github.com/src-d/go-git.git
-  version: 2d10f1023e609894174b21bdf8d3738010099335
   subpackages:
   - config
   - plumbing
@@ -39,6 +39,8 @@ import:
 - package: gopkg.in/src-d/go-errors.v0
 - package: golang.org/x/crypto
   version: dd85ac7e6a88fc6ca420478e934de5f1a42dd3c6
+- package: github.com/coreos/etcd
+  version: e0843c691b768b873d6d2b8d49d3f9dba808183f
 testImport:
 - package: github.com/src-d/go-git-fixtures
   version: 03ddd4bf3d4a1baf61e72fd8ee4746db9005f5e7

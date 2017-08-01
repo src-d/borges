@@ -1,5 +1,5 @@
-hash: 8fb1994d90d1f0d93dfc818096f0bff493e27d0dbdbffc4b28f5008ec2b5c052
-updated: 2017-07-27T14:54:25.042266798+02:00
+hash: 6c070b9078972a99609fe5eba5d4ab608f3dee90db365ba07eafa16576c3ee6f
+updated: 2017-08-01T10:38:18.70059866+02:00
 imports:
 - name: github.com/colinmarc/hdfs
   version: d9614569203878ff04bb4420b929923949e855fc
@@ -8,7 +8,7 @@ imports:
   - protocol/hadoop_hdfs
   - rpc
 - name: github.com/coreos/etcd
-  version: 2a348fb8e9e3de0ae81175e49178098adb5d2b4c
+  version: e0843c691b768b873d6d2b8d49d3f9dba808183f
   subpackages:
   - auth/authpb
   - clientv3
@@ -27,6 +27,10 @@ imports:
   - ptypes/any
 - name: github.com/inconshreveable/log15
   version: b105bd37f74e5d9dc7b6ad7806715c7a2b83fd3f
+- name: github.com/jbenet/go-context
+  version: d14ea06fba99483203c19d92cfcd13ebe73135f4
+  subpackages:
+  - io
 - name: github.com/jessevdk/go-flags
   version: 96dc06278ce32a0e9d957d590bb987c81ee66407
 - name: github.com/lann/builder
@@ -72,7 +76,7 @@ imports:
 - name: github.com/streadway/amqp
   version: 2cbfe40c9341ad63ba23e53013b3ddc7989d801c
 - name: github.com/stretchr/testify
-  version: 05e8a0eda380579888eb53c394909df027f06991
+  version: f6abca593680b2315d2075e0f5e2a9751e3f431a
   subpackages:
   - assert
   - require
@@ -103,7 +107,7 @@ imports:
   subpackages:
   - unix
 - name: golang.org/x/text
-  version: 836efe42bb4aa16aaa17b9c155d8813d336ed720
+  version: cfdf022e86b4ecfb646e1efbd7db175dd623a8fa
   subpackages:
   - secure/bidirule
   - transform
@@ -125,7 +129,7 @@ imports:
   subpackages:
   - googleapis/rpc/status
 - name: google.golang.org/grpc
-  version: b15215fb911b24a5d61d57feec4233d610530464
+  version: b8669c35455183da6d5c474ea6e72fbf55183274
   subpackages:
   - codes
   - credentials
@@ -175,7 +179,7 @@ imports:
 - name: gopkg.in/src-d/go-errors.v0
   version: 6f07baca276330431b44ece8ee84ac98167bc4ea
 - name: gopkg.in/src-d/go-git.v4
-  version: 2d10f1023e609894174b21bdf8d3738010099335
+  version: 8ddbecf782c2e340fd85bb4ba4d00dc73d749f87
   repo: https://github.com/src-d/go-git.git
   subpackages:
   - config
