@@ -203,7 +203,11 @@ func (r *temporaryRepository) Push(url string, refspecs []config.RefSpec) error 
 		return err
 	}
 
-	return remote.Push(&git.PushOptions{RefSpecs: refspecs})
+	o := &git.PushOptions{
+		RemoteName: remoteName,
+		RefSpecs:   refspecs,
+	}
+	return remote.Push(o)
 }
 
 func (r *temporaryRepository) Close() error {
