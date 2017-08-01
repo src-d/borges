@@ -78,7 +78,51 @@ func RepositoryID(endpoints []string, isFork *bool, storer *model.RepositoryStor
 		// TODO log error printing the ids and the endpoint
 	}
 
+	r := repositories[0]
+
+	// check if the existing repository has all the aliases
+	allEndpoints, update := getUniqueEndpoints(r.Endpoints, endpoints)
+
+	if update {
+		sf := []kallax.SchemaField{model.Schema.Repository.Endpoints}
+
+		r.Endpoints = allEndpoints
+		if _, err := storer.Update(r, sf...); err != nil {
+			return uuid.Nil, err
+		}
+	}
+
 	return uuid.UUID(repositories[0].ID), nil
+}
+
+func getUniqueEndpoints(re, ne []string) ([]string, bool) {
+	actualSet := make(map[string]bool)
+	outputSet := make(map[string]bool)
+
+	for _, e := range re {
+		actualSet[e] = true
+		outputSet[e] = true
+	}
+
+	eEq := 0
+	for _, e := range ne {
+		if _, ok := actualSet[e]; ok {
+			eEq++
+		}
+
+		outputSet[e] = true
+	}
+
+	if eEq == len(outputSet) {
+		return nil, false
+	}
+
+	var result []string
+	for e := range outputSet {
+		result = append(result, e)
+	}
+
+	return result, true
 }
 
 // TODO temporal
