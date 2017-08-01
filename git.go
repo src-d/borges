@@ -1,6 +1,7 @@
 package borges
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"math/rand"
@@ -30,11 +31,11 @@ const (
 type TemporaryRepository interface {
 	io.Closer
 	Referencer
-	Push(url string, refspecs []config.RefSpec) error
+	Push(ctx context.Context, url string, refspecs []config.RefSpec) error
 }
 
 type TemporaryCloner interface {
-	Clone(id, url string) (TemporaryRepository, error)
+	Clone(ctx context.Context, id, url string) (TemporaryRepository, error)
 }
 
 // NewGitReferencer takes a *git.Repository and returns a Referencer that
@@ -142,7 +143,10 @@ type temporaryRepository struct {
 	TempPath       string
 }
 
-func (b *temporaryRepositoryBuilder) Clone(id, endpoint string) (TemporaryRepository, error) {
+func (b *temporaryRepositoryBuilder) Clone(
+	ctx context.Context,
+	id, endpoint string,
+) (TemporaryRepository, error) {
 	dir := filepath.Join("local_repos", id,
 		strconv.FormatInt(time.Now().UnixNano(), 10))
 
@@ -174,7 +178,7 @@ func (b *temporaryRepositoryBuilder) Clone(id, endpoint string) (TemporaryReposi
 	o := &git.FetchOptions{
 		RefSpecs: []config.RefSpec{FetchRefSpec, FetchHEAD},
 	}
-	err = remote.Fetch(o)
+	err = remote.FetchContext(ctx, o)
 	if err == git.NoErrAlreadyUpToDate || err == transport.ErrEmptyRemoteRepository {
 		r, err = git.Init(memory.NewStorage(), nil)
 	}
@@ -192,7 +196,11 @@ func (b *temporaryRepositoryBuilder) Clone(id, endpoint string) (TemporaryReposi
 	}, nil
 }
 
-func (r *temporaryRepository) Push(url string, refspecs []config.RefSpec) error {
+func (r *temporaryRepository) Push(
+	ctx context.Context,
+	url string,
+	refspecs []config.RefSpec,
+) error {
 	const remoteName = "tmp"
 	defer func() { _ = r.Repository.DeleteRemote(remoteName) }()
 	remote, err := r.Repository.CreateRemote(&config.RemoteConfig{
@@ -207,7 +215,7 @@ func (r *temporaryRepository) Push(url string, refspecs []config.RefSpec) error 
 		RemoteName: remoteName,
 		RefSpecs:   refspecs,
 	}
-	return remote.Push(o)
+	return remote.PushContext(ctx, o)
 }
 
 func (r *temporaryRepository) Close() error {

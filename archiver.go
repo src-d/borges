@@ -1,6 +1,7 @@
 package borges
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -97,7 +98,10 @@ func (a *Archiver) do(j *Job) (err error) {
 	}
 	log.Debug("endpoint selected", "endpoint", endpoint)
 
-	gr, err := a.TemporaryCloner.Clone(j.RepositoryID.String(), endpoint)
+	gr, err := a.TemporaryCloner.Clone(
+		context.TODO(),
+		j.RepositoryID.String(),
+		endpoint)
 	if err != nil {
 		var finalErr error
 		if err != transport.ErrEmptyUploadPackRequest {
@@ -246,7 +250,7 @@ func (a *Archiver) pushChangesToRootedRepository(r *model.Repository, tr Tempora
 
 	return WithInProcRepository(rr, func(url string) error {
 		refspecs := a.changesToPushRefSpec(r.ID, changes)
-		if err := tr.Push(url, refspecs); err != nil {
+		if err := tr.Push(context.TODO(), url, refspecs); err != nil {
 			_ = tx.Rollback()
 			return err
 		}
