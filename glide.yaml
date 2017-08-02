@@ -12,7 +12,7 @@ import:
   version: 763351934333e34370292b308c74bcb71035e22a
   repo: https://github.com/src-d/go-billy-siva.git
 - package: gopkg.in/src-d/go-git.v4
-  version: v4.0.0-rc13
+  version: 9befb514d83e22268d00ab2c0fdd797b3742f0e9
   repo: https://github.com/src-d/go-git.git
   subpackages:
   - config

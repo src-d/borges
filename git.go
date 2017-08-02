@@ -33,6 +33,7 @@ type TemporaryRepository interface {
 	io.Closer
 	Referencer
 	Push(ctx context.Context, url string, refspecs []config.RefSpec) error
+	StoreConfig(mr *model.Repository) error
 }
 
 type TemporaryCloner interface {
@@ -169,7 +170,7 @@ func (b *temporaryRepositoryBuilder) Clone(
 
 	remote, err := r.CreateRemote(&config.RemoteConfig{
 		Name: "origin",
-		URL:  endpoint,
+		URLs: []string{endpoint},
 	})
 	if err != nil {
 		_ = util.RemoveAll(b.TempFilesystem, dir)
@@ -206,7 +207,7 @@ func (r *temporaryRepository) Push(
 	defer func() { _ = r.Repository.DeleteRemote(remoteName) }()
 	remote, err := r.Repository.CreateRemote(&config.RemoteConfig{
 		Name: remoteName,
-		URL:  url,
+		URLs: []string{url},
 	})
 	if err != nil {
 		return err
@@ -217,6 +218,31 @@ func (r *temporaryRepository) Push(
 		RefSpecs:   refspecs,
 	}
 	return remote.PushContext(ctx, o)
+}
+
+func (r *temporaryRepository) StoreConfig(mr *model.Repository) error {
+	id := mr.ID.String()
+	storer := r.Repository.Storer
+	c, err := storer.Config()
+	if err != nil {
+		return err
+	}
+
+	remote, ok := c.Remotes[id]
+	if ok {
+		if stringSliceEqual(remote.URLs, mr.Endpoints) {
+			return nil
+		}
+
+		remote.URLs = mr.Endpoints
+	} else {
+		c.Remotes[id] = &config.RemoteConfig{
+			Name: id,
+			URLs: mr.Endpoints,
+		}
+	}
+
+	return storer.SetConfig(c)
 }
 
 func (r *temporaryRepository) Close() error {
@@ -238,4 +264,18 @@ func WithInProcRepository(r *git.Repository, f func(string) error) error {
 	defer client.InstallProtocol(proto, nil)
 
 	return f(url)
+}
+
+func stringSliceEqual(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+
+	for i := 0; i < len(a); i++ {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+
+	return true
 }

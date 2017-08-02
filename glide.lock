@@ -1,5 +1,5 @@
-hash: 6c070b9078972a99609fe5eba5d4ab608f3dee90db365ba07eafa16576c3ee6f
-updated: 2017-08-01T10:38:18.70059866+02:00
+hash: f7facdfee599c5deed9a512c14904c8e905762e38f00cecfb3993ec7a3b660f5
+updated: 2017-08-02T10:27:27.797926797+02:00
 imports:
 - name: github.com/colinmarc/hdfs
   version: d9614569203878ff04bb4420b929923949e855fc
@@ -179,7 +179,7 @@ imports:
 - name: gopkg.in/src-d/go-errors.v0
   version: 6f07baca276330431b44ece8ee84ac98167bc4ea
 - name: gopkg.in/src-d/go-git.v4
-  version: 8ddbecf782c2e340fd85bb4ba4d00dc73d749f87
+  version: 9befb514d83e22268d00ab2c0fdd797b3742f0e9
   repo: https://github.com/src-d/go-git.git
   subpackages:
   - config
@@ -222,7 +222,7 @@ imports:
   - utils/merkletrie/internal/frame
   - utils/merkletrie/noder
 - name: gopkg.in/src-d/go-kallax.v1
-  version: 507e6de539ca5dc5faa164c25e12934a8bf699d1
+  version: 398b52f91a8aabf0fef63234fc5367bce55002e4
   subpackages:
   - types
 - name: gopkg.in/src-d/go-siva.v1
