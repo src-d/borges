@@ -108,7 +108,7 @@ func (s *TemporaryClonerSuite) testBasicRepository(url string) {
 	refs, err := gr.References()
 	require.NoError(err)
 	// len(refs) = FetchRefSpec + FetchHEAD = x + 1
-	require.Len(refs, 4)
+	require.Len(refs, 6)
 	err = gr.Close()
 	require.NoError(err)
 }
