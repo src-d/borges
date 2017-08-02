@@ -179,6 +179,7 @@ func (a *Archiver) pushChangesToRootedRepositories(ctxLog log15.Logger,
 			continue
 		}
 
+		log.Debug("push changes to rooted repository started")
 		if err := a.pushChangesToRootedRepository(r, tr, ic, cs); err != nil {
 			err = ErrPushToRootedRepository.Wrap(err, ic.String())
 			log.Error("error pushing changes to rooted repository", "error", err)
@@ -189,13 +190,16 @@ func (a *Archiver) pushChangesToRootedRepositories(ctxLog log15.Logger,
 
 			continue
 		}
+		log.Debug("push changes to rooted repository finished")
 
+		log.Debug("update repository references started")
 		r.References = updateRepositoryReferences(r.References, cs, ic)
 		if err := a.dbUpdateRepository(r, now); err != nil {
 			err = ErrPushToRootedRepository.Wrap(err, ic.String())
 			log.Error("error updating repository in database", "error", err)
 			failedInits = append(failedInits, ic)
 		}
+		log.Debug("update repository references finished")
 
 		select {
 		case <-ch:
