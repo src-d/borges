@@ -33,7 +33,6 @@ type TemporaryRepository interface {
 	io.Closer
 	Referencer
 	Push(ctx context.Context, url string, refspecs []config.RefSpec) error
-	StoreConfig(mr *model.Repository) error
 }
 
 type TemporaryCloner interface {
@@ -220,9 +219,30 @@ func (r *temporaryRepository) Push(
 	return remote.PushContext(ctx, o)
 }
 
-func (r *temporaryRepository) StoreConfig(mr *model.Repository) error {
+func (r *temporaryRepository) Close() error {
+	r.Repository = nil
+	return util.RemoveAll(r.TempFilesystem, r.TempPath)
+}
+
+func WithInProcRepository(r *git.Repository, f func(string) error) error {
+	proto := fmt.Sprintf("borges%d", rand.Uint32())
+	url := fmt.Sprintf("%s://%s", proto, "repo")
+	ep, err := transport.NewEndpoint(url)
+	if err != nil {
+		return err
+	}
+
+	loader := server.MapLoader{ep.String(): r.Storer}
+	s := server.NewClient(loader)
+	client.InstallProtocol(proto, s)
+	defer client.InstallProtocol(proto, nil)
+
+	return f(url)
+}
+
+func StoreConfig(r *git.Repository, mr *model.Repository) error {
 	id := mr.ID.String()
-	storer := r.Repository.Storer
+	storer := r.Storer
 	c, err := storer.Config()
 	if err != nil {
 		return err
@@ -283,27 +303,6 @@ func updateConfigIsFork(c *config.Config, id string, mr *model.Repository) bool 
 
 	ss.SetOption(key, val)
 	return true
-}
-
-func (r *temporaryRepository) Close() error {
-	r.Repository = nil
-	return util.RemoveAll(r.TempFilesystem, r.TempPath)
-}
-
-func WithInProcRepository(r *git.Repository, f func(string) error) error {
-	proto := fmt.Sprintf("borges%d", rand.Uint32())
-	url := fmt.Sprintf("%s://%s", proto, "repo")
-	ep, err := transport.NewEndpoint(url)
-	if err != nil {
-		return err
-	}
-
-	loader := server.MapLoader{ep.String(): r.Storer}
-	s := server.NewClient(loader)
-	client.InstallProtocol(proto, s)
-	defer client.InstallProtocol(proto, nil)
-
-	return f(url)
 }
 
 func stringSliceEqual(a, b []string) bool {

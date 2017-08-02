@@ -16,6 +16,7 @@ import (
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport"
 	"gopkg.in/src-d/go-git.v4/storage/filesystem"
+	"gopkg.in/src-d/go-git.v4/storage/memory"
 	"gopkg.in/src-d/go-kallax.v1"
 )
 
@@ -145,24 +146,22 @@ func (s *TemporaryClonerSuite) testNonExistentRepository(url string) {
 	require.Nil(gr)
 }
 
-func (s *TemporaryClonerSuite) TestStoreConfig() {
-	require := s.Require()
-	gr, err := s.cloner.Clone(context.TODO(), "foo", "git://github.com/git-fixtures/empty.git")
-	require.NoError(err)
+func TestStoreConfig(t *testing.T) {
+	require := require.New(t)
 
-	r, ok := gr.(*temporaryRepository)
-	require.True(ok)
+	r, err := git.Init(memory.NewStorage(), nil)
+	require.NoError(err)
 
 	id := kallax.NewULID()
 
 	for i := 0; i < 2; i++ {
-		err = gr.StoreConfig(&model.Repository{
+		err = StoreConfig(r, &model.Repository{
 			ID:        id,
 			Endpoints: []string{"foo", "bar"},
 		})
 		require.NoError(err)
 
-		cfg, err := r.Repository.Config()
+		cfg, err := r.Config()
 		require.NoError(err)
 
 		urls := cfg.Raw.Section("remote").Subsection(id.String()).Options.GetAll("url")
@@ -174,14 +173,14 @@ func (s *TemporaryClonerSuite) TestStoreConfig() {
 
 	for i := 0; i < 2; i++ {
 		v := true
-		err = gr.StoreConfig(&model.Repository{
+		err = StoreConfig(r, &model.Repository{
 			ID:        id,
 			Endpoints: []string{"baz", "bar"},
 			IsFork:    &v,
 		})
 		require.NoError(err)
 
-		cfg, err := r.Repository.Config()
+		cfg, err := r.Config()
 		require.NoError(err)
 
 		urls := cfg.Raw.Section("remote").Subsection(id.String()).Options.GetAll("url")
