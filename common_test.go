@@ -23,7 +23,7 @@ func TestCommon(t *testing.T) {
 }
 
 type BaseQueueSuite struct {
-	suite.Suite
+	test.Suite
 	broker    queue.Broker
 	queue     queue.Queue
 	queueName string
@@ -36,10 +36,12 @@ func (s *BaseQueueSuite) SetupSuite() {
 
 func (s *BaseQueueSuite) SetupTest() {
 	s.connectQueue()
+	s.Suite.Setup()
 }
 
 func (s *BaseQueueSuite) TearDownTest() {
 	s.NoError(s.broker.Close())
+	s.Suite.TearDown()
 }
 
 func (s *BaseQueueSuite) connectQueue() {
