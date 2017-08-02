@@ -10,11 +10,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"gopkg.in/src-d/core-retrieval.v0/model"
 	"gopkg.in/src-d/go-billy.v3/memfs"
 	"gopkg.in/src-d/go-billy.v3/osfs"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport"
 	"gopkg.in/src-d/go-git.v4/storage/filesystem"
+	"gopkg.in/src-d/go-kallax.v1"
 )
 
 func TestNewGitReferencer(t *testing.T) {
@@ -141,4 +143,51 @@ func (s *TemporaryClonerSuite) testNonExistentRepository(url string) {
 		err == transport.ErrRepositoryNotFound)
 
 	require.Nil(gr)
+}
+
+func (s *TemporaryClonerSuite) TestStoreConfig() {
+	require := s.Require()
+	gr, err := s.cloner.Clone(context.TODO(), "foo", "git://github.com/git-fixtures/empty.git")
+	require.NoError(err)
+
+	r, ok := gr.(*temporaryRepository)
+	require.True(ok)
+
+	id := kallax.NewULID()
+
+	for i := 0; i < 2; i++ {
+		err = gr.StoreConfig(&model.Repository{
+			ID:        id,
+			Endpoints: []string{"foo", "bar"},
+		})
+		require.NoError(err)
+
+		cfg, err := r.Repository.Config()
+		require.NoError(err)
+
+		urls := cfg.Raw.Section("remote").Subsection(id.String()).Options.GetAll("url")
+		require.Equal([]string{"foo", "bar"}, urls)
+
+		isFork := cfg.Raw.Section("remote").Subsection(id.String()).Options.Get("isfork")
+		require.Equal("false", isFork)
+	}
+
+	for i := 0; i < 2; i++ {
+		v := true
+		err = gr.StoreConfig(&model.Repository{
+			ID:        id,
+			Endpoints: []string{"baz", "bar"},
+			IsFork:    &v,
+		})
+		require.NoError(err)
+
+		cfg, err := r.Repository.Config()
+		require.NoError(err)
+
+		urls := cfg.Raw.Section("remote").Subsection(id.String()).Options.GetAll("url")
+		require.Equal([]string{"baz", "bar"}, urls)
+
+		isFork := cfg.Raw.Section("remote").Subsection(id.String()).Option("isfork")
+		require.Equal("true", isFork)
+	}
 }
