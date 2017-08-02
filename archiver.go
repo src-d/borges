@@ -155,12 +155,21 @@ func (a *Archiver) getRepositoryModel(j *Job) (*model.Repository, error) {
 	return r, nil
 }
 
+var endpointsOrder = []string{"git://", "https://", "http://"}
+
 func selectEndpoint(endpoints []string) (string, error) {
 	if len(endpoints) == 0 {
 		return "", ErrEndpointsEmpty.New()
 	}
 
-	// TODO check which endpoint to use
+	for _, epo := range endpointsOrder {
+		for _, ep := range endpoints {
+			if strings.HasPrefix(ep, epo) {
+				return ep, nil
+			}
+		}
+	}
+
 	return endpoints[0], nil
 }
 
