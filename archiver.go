@@ -228,7 +228,7 @@ func (a *Archiver) pushChangesToRootedRepository(r *model.Repository, tr Tempora
 	}
 
 	return WithInProcRepository(rr, func(url string) error {
-		if err := tr.StoreConfig(r); err != nil {
+		if err := StoreConfig(rr, r); err != nil {
 			_ = tx.Rollback()
 			return err
 		}
