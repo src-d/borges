@@ -33,17 +33,7 @@ var (
 //
 // See borges documentation for more details about the archiving rules.
 type Archiver struct {
-	Notifiers struct {
-		// Start function, if set, is called whenever a job is started.
-		Start func(*Job)
-		// Stop function, if set, is called whenever a job stops. If
-		// there was an error, it is passed as second parameter,
-		// otherwise, it is nil.
-		Stop func(*Job, error)
-		// Warn function, if set, is called whenever there is a warning
-		// during the processing of a repository.
-		Warn func(*Job, error)
-	}
+	log log15.Logger
 
 	// TemporaryCloner is used to clone repositories into temporary storage.
 	TemporaryCloner TemporaryCloner
@@ -60,9 +50,11 @@ type Archiver struct {
 	LockSession lock.Session
 }
 
-func NewArchiver(r *model.RepositoryStore, tx repository.RootedTransactioner,
-	tc TemporaryCloner, ls lock.Session) *Archiver {
+func NewArchiver(log log15.Logger, r *model.RepositoryStore,
+	tx repository.RootedTransactioner, tc TemporaryCloner,
+	ls lock.Session) *Archiver {
 	return &Archiver{
+		log:                 log,
 		TemporaryCloner:     tc,
 		RepositoryStorage:   r,
 		RootedTransactioner: tx,
@@ -72,14 +64,19 @@ func NewArchiver(r *model.RepositoryStore, tx repository.RootedTransactioner,
 
 // Do archives a repository according to a job.
 func (a *Archiver) Do(j *Job) error {
-	a.notifyStart(j)
-	err := a.do(j)
-	a.notifyStop(j, err)
-	return err
+	log := a.log.New("job", j.RepositoryID)
+	log.Info("job started")
+	if err := a.do(log, j); err != nil {
+		log.Error("job finished with error", "error", err)
+		return err
+	}
+
+	log.Info("job finished successfully")
+	return nil
 }
 
-func (a *Archiver) do(j *Job) (err error) {
-	log := log.New("job", j.RepositoryID)
+func (a *Archiver) do(log log15.Logger, j *Job) (err error) {
+
 	now := time.Now()
 
 	r, err := a.getRepositoryModel(j)
@@ -96,7 +93,8 @@ func (a *Archiver) do(j *Job) (err error) {
 	if err != nil {
 		return err
 	}
-	log.Debug("endpoint selected", "endpoint", endpoint)
+
+	log = log.New("endpoint", endpoint)
 
 	gr, err := a.TemporaryCloner.Clone(
 		context.TODO(),
@@ -157,30 +155,6 @@ func (a *Archiver) getRepositoryModel(j *Job) (*model.Repository, error) {
 	return r, nil
 }
 
-func (a *Archiver) notifyStart(j *Job) {
-	if a.Notifiers.Start == nil {
-		return
-	}
-
-	a.Notifiers.Start(j)
-}
-
-func (a *Archiver) notifyStop(j *Job, err error) {
-	if a.Notifiers.Stop == nil {
-		return
-	}
-
-	a.Notifiers.Stop(j, err)
-}
-
-func (a *Archiver) notifyWarn(j *Job, err error) {
-	if a.Notifiers.Warn == nil {
-		return
-	}
-
-	a.Notifiers.Warn(j, err)
-}
-
 func selectEndpoint(endpoints []string) (string, error) {
 	if len(endpoints) == 0 {
 		return "", ErrEndpointsEmpty.New()
@@ -190,13 +164,14 @@ func selectEndpoint(endpoints []string) (string, error) {
 	return endpoints[0], nil
 }
 
-func (a *Archiver) pushChangesToRootedRepositories(log log15.Logger,
+func (a *Archiver) pushChangesToRootedRepositories(ctxLog log15.Logger,
 	j *Job, r *model.Repository, tr TemporaryRepository, changes Changes,
 	now time.Time) error {
 
 	var failedInits []model.SHA1
 	for ic, cs := range changes {
-		lock := a.LockSession.NewLocker(ic.String())
+		log := ctxLog.New("root", ic.String())
+		lock := a.LockSession.NewLocker(fmt.Sprintf("borges/%s", ic.String()))
 		ch, err := lock.Lock()
 		if err != nil {
 			failedInits = append(failedInits, ic)
@@ -206,7 +181,7 @@ func (a *Archiver) pushChangesToRootedRepositories(log log15.Logger,
 
 		if err := a.pushChangesToRootedRepository(r, tr, ic, cs); err != nil {
 			err = ErrPushToRootedRepository.Wrap(err, ic.String())
-			a.notifyWarn(j, err)
+			log.Error("error pushing changes to rooted repository", "error", err)
 			failedInits = append(failedInits, ic)
 			if err := lock.Unlock(); err != nil {
 				log.Warn("failed to release lock", "root", ic.String(), "error", err)
@@ -218,7 +193,7 @@ func (a *Archiver) pushChangesToRootedRepositories(log log15.Logger,
 		r.References = updateRepositoryReferences(r.References, cs, ic)
 		if err := a.dbUpdateRepository(r, now); err != nil {
 			err = ErrPushToRootedRepository.Wrap(err, ic.String())
-			a.notifyWarn(j, err)
+			log.Error("error updating repository in database", "error", err)
 			failedInits = append(failedInits, ic)
 		}
 
@@ -380,42 +355,22 @@ func checkFailedInits(changes Changes, failed []model.SHA1) error {
 // NewArchiverWorkerPool creates a new WorkerPool that uses an Archiver to
 // process jobs. It takes optional start, stop and warn notifier functions that
 // are equal to the Archiver notifiers but with additional WorkerContext.
-func NewArchiverWorkerPool(r *model.RepositoryStore,
+func NewArchiverWorkerPool(
+	log log15.Logger,
+	r *model.RepositoryStore,
 	tx repository.RootedTransactioner,
 	tc TemporaryCloner,
-	ls lock.Service,
-	start func(*WorkerContext, *Job),
-	stop func(*WorkerContext, *Job, error),
-	warn func(*WorkerContext, *Job, error)) *WorkerPool {
+	ls lock.Service) *WorkerPool {
 
-	do := func(ctx *WorkerContext, j *Job) error {
+	do := func(log log15.Logger, j *Job) error {
 		lsess, err := ls.NewSession(&lock.SessionConfig{TTL: 10 * time.Second})
 		if err != nil {
 			return err
 		}
 
-		a := NewArchiver(r, tx, tc, lsess)
-
-		if start != nil {
-			a.Notifiers.Start = func(j *Job) {
-				start(ctx, j)
-			}
-		}
-
-		if stop != nil {
-			a.Notifiers.Stop = func(j *Job, err error) {
-				stop(ctx, j, err)
-			}
-		}
-
-		if warn != nil {
-			a.Notifiers.Warn = func(j *Job, err error) {
-				warn(ctx, j, err)
-			}
-		}
-
+		a := NewArchiver(log, r, tx, tc, lsess)
 		return a.Do(j)
 	}
 
-	return NewWorkerPool(do)
+	return NewWorkerPool(log, do)
 }

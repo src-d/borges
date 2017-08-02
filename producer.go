@@ -5,16 +5,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/inconshreveable/log15"
 	"gopkg.in/src-d/framework.v0/queue"
 )
 
 // Producer is a service to generate jobs and put them to the queue.
 type Producer struct {
-	Notifiers struct {
-		Done       func(*Job, error)
-		QueueError func(error)
-	}
-
+	log       log15.Logger
 	jobIter   JobIter
 	queue     queue.Queue
 	running   bool
@@ -26,8 +23,9 @@ type Producer struct {
 }
 
 // NewProducer creates a new producer.
-func NewProducer(jobIter JobIter, queue queue.Queue) *Producer {
+func NewProducer(log log15.Logger, jobIter JobIter, queue queue.Queue) *Producer {
 	return &Producer{
+		log:       log.New("mode", "producer"),
 		jobIter:   jobIter,
 		queue:     queue,
 		startOnce: &sync.Once{},
@@ -46,12 +44,13 @@ func (p *Producer) Stop() {
 }
 
 func (p *Producer) start() {
-	log := log.New("module", "producer")
+	log := p.log
+	log.Info("starting up")
+
 	p.running = true
 	p.startIsRunning = make(chan struct{})
 	defer func() { close(p.startIsRunning) }()
 
-	log.Debug("starting")
 	for {
 		if !p.running {
 			break
@@ -59,6 +58,7 @@ func (p *Producer) start() {
 
 		j, err := p.jobIter.Next()
 		if err == io.EOF {
+			log.Info("no more jobs in the queue")
 			break
 		}
 
@@ -68,16 +68,18 @@ func (p *Producer) start() {
 		}
 
 		if err != nil {
-			log.Error("error obtaining next job", "err", err)
-			p.notifyQueueError(err)
+			log.Error("error obtaining next job", "error", err)
 			continue
 		}
 
-		err = p.add(j)
-		p.notifyDone(j, err)
+		if err := p.add(j); err != nil {
+			log.Error("error adding job to the queue", "job", j.RepositoryID, "error", err)
+		} else {
+			log.Info("job queued", "job", j.RepositoryID)
+		}
 	}
 
-	log.Debug("stopping")
+	log.Info("stopping")
 }
 
 func (p *Producer) add(j *Job) error {
@@ -101,24 +103,8 @@ func (p *Producer) closeIter() {
 	}
 
 	if err := p.jobIter.Close(); err != nil {
-		p.notifyQueueError(err)
+		p.log.Error("error closing queue iterator", "error", err)
 	}
 
 	p.jobIter = nil
-}
-
-func (p *Producer) notifyQueueError(err error) {
-	if p.Notifiers.QueueError == nil {
-		return
-	}
-
-	p.Notifiers.QueueError(err)
-}
-
-func (p *Producer) notifyDone(j *Job, err error) {
-	if p.Notifiers.Done == nil {
-		return
-	}
-
-	p.Notifiers.Done(j, err)
 }

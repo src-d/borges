@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/inconshreveable/log15"
 	"github.com/satori/go.uuid"
 	"github.com/src-d/go-git-fixtures"
 	"github.com/stretchr/testify/require"
@@ -67,10 +68,7 @@ func (s *ArchiverSuite) SetupTest() {
 	})
 	s.NoError(err)
 
-	s.a = NewArchiver(s.store, s.tx, NewTemporaryCloner(s.tmpFs), ls)
-	s.a.Notifiers.Warn = func(j *Job, err error) {
-		s.NoError(err, "job: %v", j)
-	}
+	s.a = NewArchiver(log15.New(), s.store, s.tx, NewTemporaryCloner(s.tmpFs), ls)
 }
 
 func (s *ArchiverSuite) TearDownTest() {

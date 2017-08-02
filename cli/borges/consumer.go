@@ -29,36 +29,16 @@ func (c *consumerCmd) Execute(args []string) error {
 	}
 
 	wp := borges.NewArchiverWorkerPool(
+		log,
 		core.ModelRepositoryStore(),
 		core.RootedTransactioner(),
 		borges.NewTemporaryCloner(core.TemporaryFilesystem()),
 		core.Locking(),
-		c.startNotifier, c.stopNotifier, c.warnNotifier)
+	)
 	wp.SetWorkerCount(c.WorkersCount)
 
 	ac := borges.NewConsumer(q, wp)
-	ac.Notifiers.QueueError = c.queueErrorNotifier
 	ac.Start()
 
 	return nil
-}
-
-func (c *consumerCmd) startNotifier(ctx *borges.WorkerContext, j *borges.Job) {
-	log.Debug("job started", "WorkerID", ctx.ID, "RepositoryID", j.RepositoryID)
-}
-
-func (c *consumerCmd) stopNotifier(ctx *borges.WorkerContext, j *borges.Job, err error) {
-	if err != nil {
-		log.Error("job errored", "WorkerID", ctx.ID, "RepositoryID", j.RepositoryID, "error", err)
-	} else {
-		log.Info("job done", "WorkerID", ctx.ID, "RepositoryID", j.RepositoryID)
-	}
-}
-
-func (c *consumerCmd) warnNotifier(ctx *borges.WorkerContext, j *borges.Job, err error) {
-	log.Warn("job warning", "WorkerID", ctx.ID, "RepositoryID", j.RepositoryID, "error", err)
-}
-
-func (c *consumerCmd) queueErrorNotifier(err error) {
-	log.Error("queue error", "error", err)
 }

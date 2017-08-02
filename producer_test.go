@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/inconshreveable/log15"
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -36,7 +37,7 @@ func (s *ProducerSuite) SetupSuite() {
 
 func (s *ProducerSuite) newProducer() *Producer {
 	storer := model.NewRepositoryStore(s.DB)
-	return NewProducer(NewMentionJobIter(s.mentionsQueue, storer), s.queue)
+	return NewProducer(log15.New(), NewMentionJobIter(s.mentionsQueue, storer), s.queue)
 }
 
 func (s *ProducerSuite) newJob() *queue.Job {
@@ -59,12 +60,6 @@ func (s *ProducerSuite) TestStartStop() {
 	err := s.mentionsQueue.Publish(s.newJob())
 	assert.NoError(err)
 
-	var doneCalled int
-	p.Notifiers.Done = func(j *Job, err error) {
-		doneCalled++
-		assert.NoError(err)
-	}
-
 	go p.Start()
 
 	time.Sleep(time.Millisecond * 100)
@@ -76,7 +71,6 @@ func (s *ProducerSuite) TestStartStop() {
 	assert.NotNil(j)
 
 	p.Stop()
-	assert.True(doneCalled == 1)
 }
 
 func (s *ProducerSuite) TestStartStop_TwoEqualsJobs() {
@@ -88,12 +82,6 @@ func (s *ProducerSuite) TestStartStop_TwoEqualsJobs() {
 
 	err = s.mentionsQueue.Publish(s.newJob())
 	assert.NoError(err)
-
-	var doneCalled int
-	p.Notifiers.Done = func(j *Job, err error) {
-		doneCalled++
-		assert.NoError(err)
-	}
 
 	go p.Start()
 
@@ -117,30 +105,11 @@ func (s *ProducerSuite) TestStartStop_TwoEqualsJobs() {
 	assert.NoError(j.Decode(&jobOne))
 
 	p.Stop()
-	assert.True(doneCalled == 2)
-
 	assert.Equal(jobOne.RepositoryID, jobTwo.RepositoryID)
 }
 
-func (s *ProducerSuite) TestStartStop_ErrorNotifier() {
-	assert := require.New(s.T())
-	p := NewProducer(&DummyJobIter{}, s.queue)
-
-	var errorCalled int
-	p.Notifiers.QueueError = func(err error) {
-		errorCalled++
-		assert.Error(err)
-	}
-
-	go p.Start()
-
-	time.Sleep(time.Millisecond * 100)
-	p.Stop()
-	assert.True(errorCalled == 1)
-}
-
 func (s *ProducerSuite) TestStartStop_ErrorNoNotifier() {
-	p := NewProducer(&DummyJobIter{}, s.queue)
+	p := NewProducer(log15.New(), &DummyJobIter{}, s.queue)
 
 	go p.Start()
 
