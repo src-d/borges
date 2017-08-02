@@ -228,21 +228,61 @@ func (r *temporaryRepository) StoreConfig(mr *model.Repository) error {
 		return err
 	}
 
-	remote, ok := c.Remotes[id]
-	if ok {
-		if stringSliceEqual(remote.URLs, mr.Endpoints) {
-			return nil
-		}
+	updated := false
+	updated = updateConfigRemote(c, id, mr) || updated
+	_, _ = c.Marshal()
+	updated = updateConfigIsFork(c, id, mr) || updated
 
-		remote.URLs = mr.Endpoints
-	} else {
-		c.Remotes[id] = &config.RemoteConfig{
-			Name: id,
-			URLs: mr.Endpoints,
-		}
+	if !updated {
+		return nil
 	}
 
 	return storer.SetConfig(c)
+}
+
+func updateConfigRemote(c *config.Config, id string, mr *model.Repository) bool {
+	remote, ok := c.Remotes[id]
+	if ok {
+		if stringSliceEqual(remote.URLs, mr.Endpoints) {
+			return false
+		}
+
+		remote.URLs = nil
+		// Force marshalling of remote back into raw config so that order of
+		// endpoints is preserved.
+		_, _ = c.Marshal()
+
+		remote.URLs = mr.Endpoints
+		return true
+	}
+
+	c.Remotes[id] = &config.RemoteConfig{
+		Name: id,
+		URLs: mr.Endpoints,
+	}
+
+	return true
+}
+
+func updateConfigIsFork(c *config.Config, id string, mr *model.Repository) bool {
+	const (
+		section = "remote"
+		key     = "isfork"
+	)
+
+	isFork := false
+	if mr.IsFork != nil {
+		isFork = *mr.IsFork
+	}
+
+	val := strconv.FormatBool(isFork)
+	ss := c.Raw.Section(section).Subsection(id)
+	if ss.Option(key) == val {
+		return false
+	}
+
+	ss.SetOption(key, val)
+	return true
 }
 
 func (r *temporaryRepository) Close() error {
