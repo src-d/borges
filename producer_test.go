@@ -9,8 +9,7 @@ import (
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"gopkg.in/src-d/core-retrieval.v0"
-	rmodel "gopkg.in/src-d/core-retrieval.v0/model"
+	"gopkg.in/src-d/core-retrieval.v0/model"
 	"gopkg.in/src-d/framework.v0/queue"
 )
 
@@ -36,18 +35,14 @@ func (s *ProducerSuite) SetupSuite() {
 }
 
 func (s *ProducerSuite) newProducer() *Producer {
-	DropTables("repository")
-	DropIndexes("idx_endpoints")
-	CreateRepositoryTable()
-	storer := core.ModelRepositoryStore()
-
+	storer := model.NewRepositoryStore(s.DB)
 	return NewProducer(NewMentionJobIter(s.mentionsQueue, storer), s.queue)
 }
 
 func (s *ProducerSuite) newJob() *queue.Job {
 	j := queue.NewJob()
-	m := &rmodel.Mention{
-		VCS:      rmodel.GIT,
+	m := &model.Mention{
+		VCS:      model.GIT,
 		Provider: "TEST_PROVIDER",
 		Endpoint: testEndpoint,
 	}
