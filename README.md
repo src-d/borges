@@ -18,7 +18,7 @@ repositories.
 Run `borges --help` to get help about the main commands (producer and consumer)
 and their options.
 
-## Setting up borges configuration
+## Setting up borges
 
 Borges needs a database and a broker to do its job. It will connect to a postgres database by default
 and use rabbitMQ as default too. If you want to set up some configuration
@@ -33,23 +33,23 @@ about the database, you can do it through the following environment variables:
 * `CONFIG_DBTIMEOUT`, by default: `30s`
 
 To config other imprtant settings you should use:
-* `CONFIG_TEMP_DIR`, by default: `/tmp/sourced`
-* `CONFIG_BROKER`, by default: `amqp://localhost:5672`
-* `CONFIG_ROOT_REPOSITORIES_DIR`,  (where to leave siva files) by default: `/tmp/root-repositories`
+* `CONFIG_TEMP_DIR`: Local path to store temporal files needed by the Borges consumer, by default: `/tmp/sourced`
+* `CONFIG_BROKER`: by default: `amqp://localhost:5672`
+* `CONFIG_ROOT_REPOSITORIES_DIR`: where to leave siva files, if no HDFS connection url is provided, this will be a local path. If not, it will be an HDFS folder, by default: `/tmp/root-repositories`
 * `CONFIG_LOCKING`, by default: `local:`, other options: `etcd:`
-* `CONFIG_HDFS`, (host:port) by default: `""`
+* `CONFIG_HDFS`: (host:port) If this property is not provided, all root repositories will be stored into the local fs, by default: `""`
 
 ## Producer
 
 The producer runs as a service. It determines which repositories should be
 updated next and enqueues new jobs for them.
 
-To launch the producer you just have to run with the default configuration:
+To launch the producer you just have to run it with the default configuration:
 
     borges producer
 
-Producer reads repository's urls that it have to download from a database by default, but it can
-read them directly from a file with the cli option:
+Producer reads [mentions](https://github.com/src-d/core-retrieval/blob/master/model/mention.go) from rovers rabbit queue by default, but it can
+read urls directly from a file with the cli option:
 
     borges producer --source=file --file /path/to/file
 
@@ -92,7 +92,7 @@ To run a consumer instance from the command line with default configuration:
 
     borges consumer
 
-You can select the number of worker the consumer use, by default it uses 8:
+You can select the number of workers to use, by default it uses 8:
 
     borges consumer --workers=20
 
@@ -120,7 +120,7 @@ they will just retry until it does.
 - `make dependencies` to download vendor dependencies using Glide.
 - `make packages` to generate binaries for several platforms.
 
-You will find binaries in `borges_linux_amd64/borges` and `borges_darwin_amd64/borges`.
+You will find the built binaries in `borges_linux_amd64/borges` and `borges_darwin_amd64/borges`.
 
 If you're running borges for the first time, make sure you initialize the schema of the database first. You can do so by running the following command:
 
@@ -148,7 +148,7 @@ Borges has 2 runtime dependencies and has tests that depend on them:
     Consumers make SIVA files with RootedRepositories, but all repository metadata is stored in PostgreSQL.
     You can run one in Docker with the following command:
     ```
-    docker run --name postgres  -e POSTGRES_USER=testing -e POSTGRES_PASSWORD=testing  -p 5432:5432 -d postgres
+    docker run --name postgres  -e POSTGRES_DB=testing -e POSTGRES_USER=testing -e POSTGRES_PASSWORD=testing  -p 5432:5432 -d postgres
     # to check it manually, use
     docker exec -ti some-postgres psql -U testing
     ```
