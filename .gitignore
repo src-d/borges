@@ -33,3 +33,8 @@ vendor/
 .ci/
 Makefile.main
 coverage.txt
+
+# Built binaries
+bin/
+build/
+
