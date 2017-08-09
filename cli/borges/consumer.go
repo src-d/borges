@@ -8,7 +8,7 @@ import (
 
 const (
 	consumerCmdName      = "consumer"
-	consumerCmdShortDesc = "consume jobs from a queue a process them."
+	consumerCmdShortDesc = "consume jobs from a queue and process them"
 	consumerCmdLongDesc  = ""
 )
 
