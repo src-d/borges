@@ -26,6 +26,8 @@ var (
 	ErrEndpointsEmpty         = errors.NewKind("endpoints is empty")
 	ErrRepositoryIDNotFound   = errors.NewKind("repository id not found: %s")
 	ErrChanges                = errors.NewKind("error computing changes")
+	ErrAlreadyFetching        = errors.NewKind("repository %s was already in a fetching status")
+	ErrSetStatus              = errors.NewKind("unable to set repository to status: %s")
 )
 
 // Archiver archives repositories. Archiver instances are thread-safe and can
@@ -76,7 +78,6 @@ func (a *Archiver) Do(j *Job) error {
 }
 
 func (a *Archiver) do(log log15.Logger, j *Job) (err error) {
-
 	now := time.Now()
 
 	r, err := a.getRepositoryModel(j)
@@ -88,6 +89,20 @@ func (a *Archiver) do(log log15.Logger, j *Job) (err error) {
 		"status", r.Status,
 		"last-fetch", r.FetchedAt,
 		"references", len(r.References))
+
+	if err := a.canProcessRepository(r); err != nil {
+		log.Warn("cannot process repository",
+			"id", r.ID.String(),
+			"last-fetch", r.FetchedAt,
+			"reason", err,
+		)
+
+		return err
+	}
+
+	if err := a.dbUpdateRepositoryStatus(r, model.Fetching); err != nil {
+		return ErrSetStatus.Wrap(err, model.Fetching)
+	}
 
 	endpoint, err := selectEndpoint(r.Endpoints)
 	if err != nil {
@@ -107,12 +122,13 @@ func (a *Archiver) do(log log15.Logger, j *Job) (err error) {
 			finalErr = ErrClone.Wrap(err, endpoint)
 		}
 
+		status := model.Pending
 		if err == transport.ErrRepositoryNotFound {
-			r.Status = model.NotFound
+			status = model.NotFound
 			finalErr = nil
 		}
 
-		if err := a.dbUpdateFailedRepository(r); err != nil {
+		if err := a.dbUpdateFailedRepository(r, status); err != nil {
 			return err
 		}
 
@@ -138,10 +154,24 @@ func (a *Archiver) do(log log15.Logger, j *Job) (err error) {
 	log.Debug("changes obtained", "roots", len(changes))
 	if err := a.pushChangesToRootedRepositories(log, j, r, gr, changes, now); err != nil {
 		log.Error("repository processed with errors", "error", err)
+
+		r.FetchErrorAt = &now
+		if updateErr := a.dbUpdateFailedRepository(r, model.Pending); updateErr != nil {
+			return ErrSetStatus.Wrap(updateErr, model.Pending)
+		}
+
 		return err
 	}
 
 	log.Debug("repository processed")
+	return nil
+}
+
+func (a *Archiver) canProcessRepository(repo *model.Repository) error {
+	if repo.Status == model.Fetching {
+		return ErrAlreadyFetching.New(repo.ID)
+	}
+
 	return nil
 }
 
@@ -308,8 +338,17 @@ func updateRepositoryReferences(oldRefs []*model.Reference, commands []*Command,
 	return result
 }
 
-func (a *Archiver) dbUpdateFailedRepository(repoDb *model.Repository) error {
-	_, err := a.RepositoryStorage.Update(repoDb,
+func (a *Archiver) dbUpdateRepositoryStatus(repo *model.Repository, status model.FetchStatus) error {
+	_, err := a.RepositoryStorage.Update(
+		repo,
+		model.Schema.Repository.Status,
+	)
+	return err
+}
+
+func (a *Archiver) dbUpdateFailedRepository(repo *model.Repository, status model.FetchStatus) error {
+	repo.Status = status
+	_, err := a.RepositoryStorage.Update(repo,
 		model.Schema.Repository.UpdatedAt,
 		model.Schema.Repository.FetchErrorAt,
 		model.Schema.Repository.References,
@@ -321,7 +360,6 @@ func (a *Archiver) dbUpdateFailedRepository(repoDb *model.Repository) error {
 
 // Updates DB: status, fetch time, commit time
 func (a *Archiver) dbUpdateRepository(repoDb *model.Repository, then time.Time) error {
-
 	repoDb.Status = model.Fetched
 	repoDb.FetchedAt = &then
 	repoDb.LastCommitAt = lastCommitTime(repoDb.References)

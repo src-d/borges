@@ -161,6 +161,23 @@ func (s *ArchiverSuite) TestNotExistingRepository() {
 	s.Equal(model.NotFound, mr.Status)
 }
 
+func (s *ArchiverSuite) TestProcessingRepository() {
+	rid := s.newRepositoryModel("git://foo.bar.baz")
+	repo, err := s.store.FindOne(model.NewRepositoryQuery().FindByID(rid))
+	s.NoError(err)
+	repo.Status = model.Fetching
+	_, err = s.store.Save(repo)
+	s.NoError(err)
+
+	err = s.a.Do(&Job{RepositoryID: uuid.UUID(rid)})
+	s.True(ErrAlreadyFetching.Is(err))
+
+	mr, err := s.store.FindOne(model.NewRepositoryQuery().FindByID(rid))
+	s.NoError(err)
+
+	s.Equal(model.Fetching, mr.Status)
+}
+
 func (s *ArchiverSuite) newRepositoryModel(endpoint string) kallax.ULID {
 	mr := model.NewRepository()
 	mr.Endpoints = append(mr.Endpoints, endpoint)

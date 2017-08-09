@@ -25,9 +25,9 @@ import:
   - storage/filesystem
   - utils/ioutil
 - package: gopkg.in/src-d/go-kallax.v1
-  version: ^1.2.7
+  version: 1.2.x
 - package: gopkg.in/src-d/core-retrieval.v0
-  version: 066728d73336d0685822ab5549e3cd106a85ab4d
+  version: 86edcacd5511381170a836d5ddd0ae062d075e46
   subpackages:
   - model
   - repository
