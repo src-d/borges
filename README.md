@@ -50,24 +50,12 @@ they will just retry until it does.
 - `make dependencies` to download vendor dependencies using Glide.
 - `make packages` to generate binaries for several platforms.
 
-You will find binaries in `borges_linux_amd64/borges` and `borges_darwin_amd64/borges`. 
+You will find binaries in `borges_linux_amd64/borges` and `borges_darwin_amd64/borges`.
 
-If running for the first time, you also need to add the following table to PostgreSQL:
+If you're running borges for the first time, make sure you initialize the schema of the database first. You can do so by running the following command:
 
-```sql
-CREATE TABLE IF NOT EXISTS repositories (
-    id uuid PRIMARY KEY,
-    created_at timestamptz,
-    updated_at timestamptz,
-    endpoints text[],
-    status varchar(20),
-    fetched_at timestamptz,
-    fetch_error_at timestamptz,
-    last_commit_at timestamptz,
-    _references jsonb
-);
-    
-CREATE INDEX idx_endpoints on "repositories" USING GIN ("endpoints");
+```
+borges init
 ```
 
 ## Test

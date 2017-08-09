@@ -1,5 +1,5 @@
-hash: 494e7800fcb2650325dad2a984d37da778d8535cf72eb71923cf403bcd6062c0
-updated: 2017-08-08T18:24:26.559640091+02:00
+hash: 9932a10757f2ad8e10b9002ab0cc0ee7c90dcb4d31c73015e4dc32f72fe0616d
+updated: 2017-08-09T17:43:03.142733435+02:00
 imports:
 - name: github.com/colinmarc/hdfs
   version: d9614569203878ff04bb4420b929923949e855fc
@@ -42,9 +42,9 @@ imports:
   subpackages:
   - oid
 - name: github.com/Masterminds/squirrel
-  version: 20f192218cf52a73397fa2df45bdda720f3e47c8
+  version: 3c07e090bf7ba1ae79ff08462c323e25196e164b
 - name: github.com/mattn/go-colorable
-  version: 3fa8c76f9daed4067e4a806fb7e4dc86455c6d6a
+  version: 6c0fd4aa6ec5818d5e3ea9e03ae436972a6c5a9a
 - name: github.com/mattn/go-isatty
   version: fc9e8d8ef48496124e79ae0df75490096eccf6fe
 - name: github.com/mcuadros/go-defaults
@@ -76,7 +76,7 @@ imports:
 - name: github.com/streadway/amqp
   version: 2cbfe40c9341ad63ba23e53013b3ddc7989d801c
 - name: github.com/stretchr/testify
-  version: f6abca593680b2315d2075e0f5e2a9751e3f431a
+  version: 05e8a0eda380579888eb53c394909df027f06991
   subpackages:
   - assert
   - require
@@ -107,14 +107,14 @@ imports:
   subpackages:
   - unix
 - name: golang.org/x/text
-  version: cfdf022e86b4ecfb646e1efbd7db175dd623a8fa
+  version: 3bd178b88a8180be2df394a1fbb81313916f0e7b
   subpackages:
   - secure/bidirule
   - transform
   - unicode/bidi
   - unicode/norm
 - name: google.golang.org/appengine
-  version: ad2570cd3913654e00c5f0183b39d2f998e54046
+  version: c5a90ac045b779001847fec87403f5cba090deae
   subpackages:
   - datastore
   - internal
@@ -125,7 +125,7 @@ imports:
   - internal/modules
   - internal/remote_api
 - name: google.golang.org/genproto
-  version: b0a3dcfcd1a9bd48e63634bd8802960804cf8315
+  version: 09f6ed296fc66555a25fe4ce95173148778dfa85
   subpackages:
   - googleapis/rpc/status
 - name: google.golang.org/grpc
@@ -152,10 +152,11 @@ imports:
   - stack
   - term
 - name: gopkg.in/src-d/core-retrieval.v0
-  version: 86edcacd5511381170a836d5ddd0ae062d075e46
+  version: 6a67746f6ec820392eb0b8253d8150717f14d8ee
   subpackages:
   - model
   - repository
+  - schema
   - test
 - name: gopkg.in/src-d/framework.v0
   version: b7e5e412473a20a56c0543f898624f024b164087
@@ -222,11 +223,11 @@ imports:
   - utils/merkletrie/internal/frame
   - utils/merkletrie/noder
 - name: gopkg.in/src-d/go-kallax.v1
-  version: 398b52f91a8aabf0fef63234fc5367bce55002e4
+  version: 80487620b6c62eb3f558bf9863be31842912dd47
   subpackages:
   - types
 - name: gopkg.in/src-d/go-siva.v1
-  version: df707095626f384ce2dc1a83b30f9a21d69b9dfc
+  version: 1b9a917e872d49accbc4f4283b4fc0beb40e91b8
 - name: gopkg.in/vmihailenco/msgpack.v2
   version: f4f8982de4ef0de18be76456617cc3f5d8d8141e
   subpackages:
