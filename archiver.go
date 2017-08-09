@@ -38,6 +38,9 @@ type Archiver struct {
 	// TemporaryCloner is used to clone repositories into temporary storage.
 	TemporaryCloner TemporaryCloner
 
+	// Timeout is the deadline to cancel a job.
+	Timeout time.Duration
+
 	// RepositoryStore is the database where repository models are stored.
 	RepositoryStorage *model.RepositoryStore
 
@@ -52,10 +55,11 @@ type Archiver struct {
 
 func NewArchiver(log log15.Logger, r *model.RepositoryStore,
 	tx repository.RootedTransactioner, tc TemporaryCloner,
-	ls lock.Session) *Archiver {
+	ls lock.Session, to time.Duration) *Archiver {
 	return &Archiver{
 		log:                 log,
 		TemporaryCloner:     tc,
+		Timeout:             to,
 		RepositoryStorage:   r,
 		RootedTransactioner: tx,
 		LockSession:         ls,
@@ -78,6 +82,8 @@ func (a *Archiver) Do(j *Job) error {
 func (a *Archiver) do(log log15.Logger, j *Job) (err error) {
 
 	now := time.Now()
+	ctx, cancel := context.WithTimeout(context.Background(), a.Timeout)
+	defer cancel()
 
 	r, err := a.getRepositoryModel(j)
 	if err != nil {
@@ -97,7 +103,7 @@ func (a *Archiver) do(log log15.Logger, j *Job) (err error) {
 	log = log.New("endpoint", endpoint)
 
 	gr, err := a.TemporaryCloner.Clone(
-		context.TODO(),
+		ctx,
 		j.RepositoryID.String(),
 		endpoint)
 	if err != nil {
@@ -136,7 +142,7 @@ func (a *Archiver) do(log log15.Logger, j *Job) (err error) {
 	}
 
 	log.Debug("changes obtained", "roots", len(changes))
-	if err := a.pushChangesToRootedRepositories(log, j, r, gr, changes, now); err != nil {
+	if err := a.pushChangesToRootedRepositories(ctx, log, j, r, gr, changes, now); err != nil {
 		log.Error("repository processed with errors", "error", err)
 		return err
 	}
@@ -173,7 +179,7 @@ func selectEndpoint(endpoints []string) (string, error) {
 	return endpoints[0], nil
 }
 
-func (a *Archiver) pushChangesToRootedRepositories(ctxLog log15.Logger,
+func (a *Archiver) pushChangesToRootedRepositories(ctx context.Context, ctxLog log15.Logger,
 	j *Job, r *model.Repository, tr TemporaryRepository, changes Changes,
 	now time.Time) error {
 
@@ -189,7 +195,7 @@ func (a *Archiver) pushChangesToRootedRepositories(ctxLog log15.Logger,
 		}
 
 		log.Debug("push changes to rooted repository started")
-		if err := a.pushChangesToRootedRepository(r, tr, ic, cs); err != nil {
+		if err := a.pushChangesToRootedRepository(ctx, r, tr, ic, cs); err != nil {
 			err = ErrPushToRootedRepository.Wrap(err, ic.String())
 			log.Error("error pushing changes to rooted repository", "error", err)
 			failedInits = append(failedInits, ic)
@@ -224,7 +230,7 @@ func (a *Archiver) pushChangesToRootedRepositories(ctxLog log15.Logger,
 	return checkFailedInits(changes, failedInits)
 }
 
-func (a *Archiver) pushChangesToRootedRepository(r *model.Repository, tr TemporaryRepository, ic model.SHA1, changes []*Command) error {
+func (a *Archiver) pushChangesToRootedRepository(ctx context.Context, r *model.Repository, tr TemporaryRepository, ic model.SHA1, changes []*Command) error {
 	tx, err := a.RootedTransactioner.Begin(plumbing.Hash(ic))
 	if err != nil {
 		return err
@@ -243,7 +249,7 @@ func (a *Archiver) pushChangesToRootedRepository(r *model.Repository, tr Tempora
 		}
 
 		refspecs := a.changesToPushRefSpec(r.ID, changes)
-		if err := tr.Push(context.TODO(), url, refspecs); err != nil {
+		if err := tr.Push(ctx, url, refspecs); err != nil {
 			_ = tx.Rollback()
 			return err
 		}
@@ -378,7 +384,8 @@ func NewArchiverWorkerPool(
 	r *model.RepositoryStore,
 	tx repository.RootedTransactioner,
 	tc TemporaryCloner,
-	ls lock.Service) *WorkerPool {
+	ls lock.Service,
+	to time.Duration) *WorkerPool {
 
 	do := func(log log15.Logger, j *Job) error {
 		lsess, err := ls.NewSession(&lock.SessionConfig{TTL: 10 * time.Second})
@@ -386,7 +393,7 @@ func NewArchiverWorkerPool(
 			return err
 		}
 
-		a := NewArchiver(log, r, tx, tc, lsess)
+		a := NewArchiver(log, r, tx, tc, lsess, to)
 		return a.Do(j)
 	}
 
