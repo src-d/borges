@@ -1,5 +1,5 @@
-hash: 53c5ffcad8cf1f68382e05c04e71bc81ceaa9fb857526b591e9df58d1d261a90
-updated: 2017-08-10T10:36:35.705687591+02:00
+hash: 5225b49d18af617b93b23cabf99c34bf85f735ef2773ded22373825976b0cdde
+updated: 2017-08-10T11:44:00.661738385+02:00
 imports:
 - name: github.com/colinmarc/hdfs
   version: d9614569203878ff04bb4420b929923949e855fc
@@ -148,7 +148,7 @@ imports:
   - stack
   - term
 - name: gopkg.in/src-d/core-retrieval.v0
-  version: 6a67746f6ec820392eb0b8253d8150717f14d8ee
+  version: 7426f069e342b557b38853af1e372aa664a1678f
   subpackages:
   - model
   - repository
