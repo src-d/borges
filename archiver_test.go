@@ -210,6 +210,19 @@ func (s *ArchiverSuite) TestProcessingRepository() {
 	s.Equal(model.Fetching, mr.Status)
 }
 
+func (s *ArchiverSuite) TestDbUpdateRepositoryStatus() {
+	rid := s.newRepositoryModel("git://foo.bar.qux")
+	repo, err := s.store.FindOne(model.NewRepositoryQuery().FindByID(rid))
+	s.NoError(err)
+
+	s.NoError(s.a.dbUpdateRepositoryStatus(repo, model.Fetching))
+
+	mr, err := s.store.FindOne(model.NewRepositoryQuery().FindByID(rid))
+	s.NoError(err)
+
+	s.Equal(model.Fetching, mr.Status)
+}
+
 func (s *ArchiverSuite) newRepositoryModel(endpoint string) kallax.ULID {
 	mr := model.NewRepository()
 	mr.Endpoints = append(mr.Endpoints, endpoint)
