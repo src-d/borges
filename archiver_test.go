@@ -1,6 +1,7 @@
 package borges
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -41,6 +42,8 @@ type ArchiverSuite struct {
 	a        *Archiver
 }
 
+const defaultTimeout = 1 * time.Second
+
 func (s *ArchiverSuite) SetupTest() {
 	fixtures.Init()
 	s.Suite.Setup()
@@ -68,7 +71,7 @@ func (s *ArchiverSuite) SetupTest() {
 	})
 	s.NoError(err)
 
-	s.a = NewArchiver(log15.New(), s.store, s.tx, NewTemporaryCloner(s.tmpFs), ls)
+	s.a = NewArchiver(log15.New(), s.store, s.tx, NewTemporaryCloner(s.tmpFs), ls, defaultTimeout)
 }
 
 func (s *ArchiverSuite) TearDownTest() {
@@ -76,6 +79,35 @@ func (s *ArchiverSuite) TearDownTest() {
 
 	s.Suite.TearDown()
 	fixtures.Clean()
+}
+
+func (s *ArchiverSuite) TestCheckTimeout() {
+	const smallTimeout = 1 * time.Nanosecond
+	s.a.Timeout = smallTimeout
+	defer func() { s.a.Timeout = defaultTimeout }()
+	for _, ct := range ChangesFixtures {
+		if ct.OldReferences == nil {
+			continue
+		}
+
+		s.T().Run(ct.TestName, func(t *testing.T) {
+			require := require.New(t)
+
+			var rid kallax.ULID
+			r, err := ct.OldRepository()
+			require.NoError(err)
+			err = WithInProcRepository(r, func(url string) error {
+				rid = s.newRepositoryModel(url)
+				return s.a.Do(&Job{RepositoryID: uuid.UUID(rid)})
+			})
+
+			require.Error(err)
+			require.Contains(err.Error(), context.DeadlineExceeded.Error())
+
+			_, err = s.store.FindOne(model.NewRepositoryQuery().FindByID(rid).FindByStatus(model.Pending))
+			require.NoError(err)
+		})
+	}
 }
 
 func (s *ArchiverSuite) TestReferenceUpdate() {
