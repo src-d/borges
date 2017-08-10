@@ -1,5 +1,5 @@
-hash: 9932a10757f2ad8e10b9002ab0cc0ee7c90dcb4d31c73015e4dc32f72fe0616d
-updated: 2017-08-09T17:43:03.142733435+02:00
+hash: 53c5ffcad8cf1f68382e05c04e71bc81ceaa9fb857526b591e9df58d1d261a90
+updated: 2017-08-10T10:36:35.705687591+02:00
 imports:
 - name: github.com/colinmarc/hdfs
   version: d9614569203878ff04bb4420b929923949e855fc
@@ -33,6 +33,8 @@ imports:
   - io
 - name: github.com/jessevdk/go-flags
   version: 96dc06278ce32a0e9d957d590bb987c81ee66407
+- name: github.com/kelseyhightower/envconfig
+  version: 70f0258d44cbaa3b6a2581d82f58da01a38e4de4
 - name: github.com/lann/builder
   version: f22ce00fd9394014049dad11c244859432bd6820
 - name: github.com/lann/ps
@@ -47,8 +49,6 @@ imports:
   version: 6c0fd4aa6ec5818d5e3ea9e03ae436972a6c5a9a
 - name: github.com/mattn/go-isatty
   version: fc9e8d8ef48496124e79ae0df75490096eccf6fe
-- name: github.com/mcuadros/go-defaults
-  version: e1c978be3307be96ef03a0bd25d719ab50d277e4
 - name: github.com/oklog/ulid
   version: 66bb6560562feca7045b23db1ae85b01260f87c5
 - name: github.com/pkg/errors
@@ -59,14 +59,10 @@ imports:
   - difflib
 - name: github.com/satori/go.uuid
   version: 879c5887cd475cd7864858769793b2ceb0d44feb
-- name: github.com/serenize/snaker
-  version: 1c7f65329f6524115af8ca01ab604c00cddf5558
 - name: github.com/sergi/go-diff
   version: feef008d51ad2b3778f85d387ccf91735543008d
   subpackages:
   - diffmatchpatch
-- name: github.com/src-d/envconfig
-  version: 34ca5bb0e3815d60fe5008b1dd188beb83e2e7df
 - name: github.com/src-d/gcfg
   version: f187355171c936ac84a82793659ebb4936bc1c23
   subpackages:
@@ -159,7 +155,7 @@ imports:
   - schema
   - test
 - name: gopkg.in/src-d/framework.v0
-  version: b7e5e412473a20a56c0543f898624f024b164087
+  version: f1a98e57ed5f295ca8272ebd21280f87b753786f
   subpackages:
   - configurable
   - database
