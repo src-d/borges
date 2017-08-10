@@ -2,12 +2,9 @@ package borges
 
 import (
 	stderrors "errors"
-	"fmt"
 	"io"
-	"strings"
 
 	"github.com/satori/go.uuid"
-	"gopkg.in/src-d/core-retrieval.v0"
 	"gopkg.in/src-d/core-retrieval.v0/model"
 	"gopkg.in/src-d/go-errors.v0"
 	"gopkg.in/src-d/go-kallax.v1"
@@ -120,43 +117,6 @@ func getUniqueEndpoints(re, ne []string) ([]string, bool) {
 	}
 
 	return result, true
-}
-
-// TODO temporal
-func DropTables(names ...string) {
-	smt := fmt.Sprintf("DROP TABLE IF EXISTS %s;", strings.Join(names, ", "))
-	if _, err := core.Database().Exec(smt); err != nil {
-		panic(err)
-	}
-}
-
-// TODO temporal
-func DropIndexes(names ...string) {
-	smt := fmt.Sprintf("DROP INDEX IF EXISTS %s;", strings.Join(names, ", "))
-	if _, err := core.Database().Exec(smt); err != nil {
-		panic(err)
-	}
-}
-
-// TODO temporal delete when kallax implements it
-func CreateRepositoryTable() {
-	_, err := core.Database().Exec(`CREATE TABLE IF NOT EXISTS repositories (
-	id uuid PRIMARY KEY,
-	created_at timestamptz,
-	updated_at timestamptz,
-	endpoints text[],
-	status varchar(20),
-	fetched_at timestamptz,
-	fetch_error_at timestamptz,
-	last_commit_at timestamptz,
-	is_fork boolean,
-	_references jsonb
-	);
-	CREATE INDEX idx_endpoints on "repositories" USING GIN ("endpoints");`)
-
-	if err != nil {
-		panic(err)
-	}
 }
 
 // Referencer can retrieve reference models (*model.Reference).

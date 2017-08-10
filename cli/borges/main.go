@@ -21,15 +21,19 @@ var (
 	log     log15.Logger
 )
 
+type loggerCmd struct {
+	LogLevel string `short:"" long:"loglevel" description:"max log level enabled" default:"info"`
+	LogFile  string `short:"" long:"logfile" description:"path to file where logs will be stored" default:""`
+}
+
 type cmd struct {
+	loggerCmd
 	Queue        string `long:"queue" default:"borges" description:"queue name"`
-	LogLevel     string `short:"" long:"loglevel" description:"max log level enabled" default:"info"`
-	LogFile      string `short:"" long:"logfile" description:"path to file where logs will be stored" default:""`
 	Profiler     bool   `long:"profiler" description:"start CPU, memory and block profilers"`
 	ProfilerPort int    `long:"profiler-port" description:"port to bind profiler to" default:"6061"`
 }
 
-func (c *cmd) ChangeLogLevel() {
+func (c *loggerCmd) ChangeLogLevel() {
 	lvl, err := log15.LvlFromString(c.LogLevel)
 	if err != nil {
 		panic(fmt.Sprintf("unknown level name %q", c.LogLevel))
@@ -76,6 +80,10 @@ func main() {
 
 	if _, err := parser.AddCommand(producerCmdName, producerCmdShortDesc,
 		producerCmdLongDesc, &producerCmd{}); err != nil {
+		panic(err)
+	}
+
+	if _, err := parser.AddCommand(initCmdName, initCmdShortDesc, initCmdLongDesc, new(initCmd)); err != nil {
 		panic(err)
 	}
 
