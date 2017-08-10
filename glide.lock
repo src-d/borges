@@ -1,5 +1,5 @@
-hash: 5225b49d18af617b93b23cabf99c34bf85f735ef2773ded22373825976b0cdde
-updated: 2017-08-10T11:44:00.661738385+02:00
+hash: aecfbcb5f1c65c8846946cd39d873f3107fa9a465093a688ad3e68cb9b8947bb
+updated: 2017-08-10T15:30:13.758505567+02:00
 imports:
 - name: github.com/colinmarc/hdfs
   version: d9614569203878ff04bb4420b929923949e855fc
@@ -49,6 +49,8 @@ imports:
   version: 6c0fd4aa6ec5818d5e3ea9e03ae436972a6c5a9a
 - name: github.com/mattn/go-isatty
   version: fc9e8d8ef48496124e79ae0df75490096eccf6fe
+- name: github.com/mitchellh/go-homedir
+  version: b8bc1bf767474819792c23f32d8286a45736f1c6
 - name: github.com/oklog/ulid
   version: 66bb6560562feca7045b23db1ae85b01260f87c5
 - name: github.com/pkg/errors
@@ -176,7 +178,7 @@ imports:
 - name: gopkg.in/src-d/go-errors.v0
   version: 6f07baca276330431b44ece8ee84ac98167bc4ea
 - name: gopkg.in/src-d/go-git.v4
-  version: 9befb514d83e22268d00ab2c0fdd797b3742f0e9
+  version: 773841734e11f0f607f6b047235f8527d475538f
   repo: https://github.com/src-d/go-git.git
   subpackages:
   - config
