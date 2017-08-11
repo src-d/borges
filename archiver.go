@@ -112,6 +112,9 @@ func (a *Archiver) do(log log15.Logger, j *Job) (err error) {
 
 	endpoint, err := selectEndpoint(r.Endpoints)
 	if err != nil {
+		if err := a.dbUpdateFailedRepository(r, model.Pending); err != nil {
+			log15.Error("error setting repo as failed", "id", r.ID, "err", err)
+		}
 		return err
 	}
 
@@ -154,6 +157,10 @@ func (a *Archiver) do(log log15.Logger, j *Job) (err error) {
 	changes, err := NewChanges(oldRefs, newRefs)
 	if err != nil {
 		log.Error("error computing changes", "error", err)
+		if err := a.dbUpdateFailedRepository(r, model.Pending); err != nil {
+			log15.Error("error setting repo as failed", "id", r.ID, "err", err)
+		}
+
 		return ErrChanges.Wrap(err)
 	}
 
@@ -257,6 +264,12 @@ func (a *Archiver) pushChangesToRootedRepositories(ctx context.Context, ctxLog l
 		}
 	}
 
+	if len(changes) == 0 {
+		if err := a.dbUpdateRepository(r, now); err != nil {
+			ctxLog.Error("error updating repository in databbase", "error", err)
+		}
+	}
+
 	return checkFailedInits(changes, failedInits)
 }
 
@@ -345,6 +358,7 @@ func updateRepositoryReferences(oldRefs []*model.Reference, commands []*Command,
 }
 
 func (a *Archiver) dbUpdateRepositoryStatus(repo *model.Repository, status model.FetchStatus) error {
+	repo.Status = status
 	_, err := a.RepositoryStorage.Update(
 		repo,
 		model.Schema.Repository.Status,
