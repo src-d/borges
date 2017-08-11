@@ -176,6 +176,7 @@ func (b *temporaryRepositoryBuilder) Clone(
 		return nil, err
 	}
 
+	start := time.Now()
 	o := &git.FetchOptions{
 		RefSpecs: []config.RefSpec{FetchRefSpec, FetchHEAD},
 	}
@@ -183,6 +184,7 @@ func (b *temporaryRepositoryBuilder) Clone(
 	if err == git.NoErrAlreadyUpToDate || err == transport.ErrEmptyRemoteRepository {
 		r, err = git.Init(memory.NewStorage(), nil)
 	}
+	log15.Debug("git remote has been fetched", "endpoint", endpoint, "elapsed", time.Since(start))
 
 	if err != nil {
 		_ = util.RemoveAll(b.TempFilesystem, dir)

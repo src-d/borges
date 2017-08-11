@@ -120,6 +120,7 @@ func (a *Archiver) do(log log15.Logger, j *Job) (err error) {
 
 	log = log.New("endpoint", endpoint)
 
+	start := time.Now()
 	gr, err := a.TemporaryCloner.Clone(
 		ctx,
 		j.RepositoryID.String(),
@@ -145,13 +146,14 @@ func (a *Archiver) do(log log15.Logger, j *Job) (err error) {
 		return finalErr
 	}
 
+	log.Debug("remote repository cloned", "elapsed", time.Since(start))
 	defer func() {
 		if cErr := gr.Close(); cErr != nil && err == nil {
 			err = ErrCleanRepositoryDir.Wrap(cErr)
 		}
 	}()
-	log.Debug("remote repository cloned")
 
+	start = time.Now()
 	oldRefs := NewModelReferencer(r)
 	newRefs := gr
 	changes, err := NewChanges(oldRefs, newRefs)
@@ -164,7 +166,8 @@ func (a *Archiver) do(log log15.Logger, j *Job) (err error) {
 		return ErrChanges.Wrap(err)
 	}
 
-	log.Debug("changes obtained", "roots", len(changes))
+	log.Debug("changes obtained", "roots", len(changes), "elapsed", time.Since(start))
+	start = time.Now()
 	if err := a.pushChangesToRootedRepositories(ctx, log, j, r, gr, changes, now); err != nil {
 		log.Error("repository processed with errors", "error", err)
 
@@ -175,6 +178,7 @@ func (a *Archiver) do(log log15.Logger, j *Job) (err error) {
 
 		return err
 	}
+	log.Debug("changes pushed to rooted repositories", "elapsed", time.Since(start))
 
 	log.Debug("repository processed")
 	return nil
@@ -232,6 +236,7 @@ func (a *Archiver) pushChangesToRootedRepositories(ctx context.Context, ctxLog l
 		}
 
 		log.Debug("push changes to rooted repository started")
+		start := time.Now()
 		if err := a.pushChangesToRootedRepository(ctx, r, tr, ic, cs); err != nil {
 			err = ErrPushToRootedRepository.Wrap(err, ic.String())
 			log.Error("error pushing changes to rooted repository", "error", err)
@@ -242,16 +247,17 @@ func (a *Archiver) pushChangesToRootedRepositories(ctx context.Context, ctxLog l
 
 			continue
 		}
-		log.Debug("push changes to rooted repository finished")
+		log.Debug("push changes to rooted repository finished", "elapsed", time.Since(start))
 
 		log.Debug("update repository references started")
+		start = time.Now()
 		r.References = updateRepositoryReferences(r.References, cs, ic)
 		if err := a.dbUpdateRepository(r, now); err != nil {
 			err = ErrPushToRootedRepository.Wrap(err, ic.String())
 			log.Error("error updating repository in database", "error", err)
 			failedInits = append(failedInits, ic)
 		}
-		log.Debug("update repository references finished")
+		log.Debug("update repository references finished", "elapsed", time.Since(start))
 
 		select {
 		case <-ch:
