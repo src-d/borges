@@ -1,5 +1,5 @@
-hash: aecfbcb5f1c65c8846946cd39d873f3107fa9a465093a688ad3e68cb9b8947bb
-updated: 2017-08-10T15:30:13.758505567+02:00
+hash: 8f88c1ca526c0f2168deda688f54af023ce9c0d66be604eae48a518eed7485dc
+updated: 2017-08-29T13:50:18.018807868+02:00
 imports:
 - name: github.com/colinmarc/hdfs
   version: d9614569203878ff04bb4420b929923949e855fc
@@ -178,7 +178,7 @@ imports:
 - name: gopkg.in/src-d/go-errors.v0
   version: 6f07baca276330431b44ece8ee84ac98167bc4ea
 - name: gopkg.in/src-d/go-git.v4
-  version: 773841734e11f0f607f6b047235f8527d475538f
+  version: 3ca370277427c5d508f0dedacbd559523a305121
   repo: https://github.com/src-d/go-git.git
   subpackages:
   - config
