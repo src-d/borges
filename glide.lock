@@ -1,5 +1,5 @@
-hash: 8f88c1ca526c0f2168deda688f54af023ce9c0d66be604eae48a518eed7485dc
-updated: 2017-08-29T13:50:18.018807868+02:00
+hash: 9d04849d4205f53f0cda0546a0c2cac038562582d6f9054078aab0d24e059702
+updated: 2017-08-30T12:06:45.049242185+02:00
 imports:
 - name: github.com/colinmarc/hdfs
   version: d9614569203878ff04bb4420b929923949e855fc
@@ -167,7 +167,8 @@ imports:
   version: 763351934333e34370292b308c74bcb71035e22a
   repo: https://github.com/src-d/go-billy-siva.git
 - name: gopkg.in/src-d/go-billy.v3
-  version: c329b7bc7b9d24905d2bc1b85bfa29f7ae266314
+  version: d0dc16de10d86398cc9aba4513a2453b401eceb3
+  repo: https://github.com/src-d/go-billy.git
   subpackages:
   - helper/chroot
   - helper/mount

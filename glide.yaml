@@ -7,7 +7,8 @@ import:
 - package: github.com/satori/go.uuid
   version: ^1.1.0
 - package: gopkg.in/src-d/go-billy.v3
-  version: ^3.0.1
+  version: d0dc16de10d86398cc9aba4513a2453b401eceb3
+  repo: https://github.com/src-d/go-billy.git
 - package: gopkg.in/src-d/go-billy-siva.v3
   version: 763351934333e34370292b308c74bcb71035e22a
   repo: https://github.com/src-d/go-billy-siva.git
