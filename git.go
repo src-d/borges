@@ -58,6 +58,7 @@ func (r gitReferencer) References() ([]*model.Reference, error) {
 	}
 
 	var refs []*model.Reference
+	var seen = make(map[model.SHA1][]model.SHA1)
 	return refs, iter.ForEach(func(ref *plumbing.Reference) error {
 		//TODO: add tags support
 		if ref.Type() != plumbing.HashReference || ref.Name().IsRemote() {
@@ -73,7 +74,7 @@ func (r gitReferencer) References() ([]*model.Reference, error) {
 			return err
 		}
 
-		roots, err := rootCommits(r.Repository, c.Hash)
+		roots, err := rootCommits(r.Repository, c.Hash, seen)
 		if err != nil {
 			return err
 		}
@@ -89,23 +90,67 @@ func (r gitReferencer) References() ([]*model.Reference, error) {
 	})
 }
 
-func rootCommits(r *git.Repository, from plumbing.Hash) ([]model.SHA1, error) {
-	var roots []model.SHA1
+// maybeRoot is a commit hash that may or may not be a root commit.
+type maybeRoot struct {
+	hash   model.SHA1
+	isRoot bool
+}
 
-	cIter, err := r.Log(&git.LogOptions{From: from})
+func rootCommits(r *git.Repository, from plumbing.Hash, seen map[model.SHA1][]model.SHA1) ([]model.SHA1, error) {
+	commit, err := r.CommitObject(from)
 	if err != nil {
 		return nil, err
 	}
 
-	err = cIter.ForEach(func(wc *object.Commit) error {
-		if wc.NumParents() == 0 {
-			roots = append(roots, model.SHA1(wc.Hash))
+	iter := object.NewCommitPreorderIter(commit, nil)
+	var maybeRoots []maybeRoot
+	for {
+		wc, err := iter.Next()
+		if err == io.EOF {
+			break
 		}
 
-		return nil
-	})
+		if err != nil {
+			return nil, err
+		}
 
-	return roots, err
+		if roots, ok := seen[model.SHA1(wc.Hash)]; ok {
+			// if only one root is cached for this commit and it's the commit
+			// itself, it means that we have a root commit. There may be more
+			// commits after it, so we ignore the cache and keep going.
+			if !(len(roots) == 1 && roots[0] == model.SHA1(wc.Hash)) {
+				if len(maybeRoots) == 0 {
+					return roots, nil
+				}
+
+				for _, root := range roots {
+					maybeRoots = append(maybeRoots, maybeRoot{root, true})
+				}
+				break
+			}
+		}
+
+		if wc.NumParents() == 0 {
+			maybeRoots = append(maybeRoots, maybeRoot{model.SHA1(wc.Hash), true})
+		} else {
+			maybeRoots = append(maybeRoots, maybeRoot{model.SHA1(wc.Hash), false})
+		}
+	}
+
+	var roots []model.SHA1
+	for i := len(maybeRoots) - 1; i >= 0; i-- {
+		root := maybeRoots[i]
+		if root.isRoot {
+			roots = append([]model.SHA1{root.hash}, roots...)
+			seen[root.hash] = []model.SHA1{root.hash}
+		} else if len(roots) > 0 {
+			if _, ok := seen[root.hash]; !ok {
+				seen[root.hash] = roots
+			}
+		}
+	}
+
+	return roots, nil
 }
 
 // ResolveCommit gets the hash of a commit that is referenced by a tag, per example.

@@ -26,6 +26,19 @@ func TestNewChanges(t *testing.T) {
 	}
 }
 
+func BenchmarkNewChanges(b *testing.B) {
+	for _, ct := range ChangesFixtures {
+		b.Run(ct.TestName, func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				oldRefs := NewModelReferencer(&model.Repository{References: ct.OldReferences})
+				newRefs := NewModelReferencer(&model.Repository{References: ct.NewReferences})
+				_, err := newChanges(timeNow, oldRefs, newRefs)
+				require.NoError(b, err)
+			}
+		})
+	}
+}
+
 func sortChanges(c Changes) {
 	for _, cmds := range c {
 		sort.Sort(cmdSort(cmds))
