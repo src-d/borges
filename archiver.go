@@ -232,7 +232,7 @@ func (a *Archiver) pushChangesToRootedRepositories(ctx context.Context, ctxLog l
 		}
 
 		log.Debug("push changes to rooted repository started")
-		if err := a.pushChangesToRootedRepository(ctx, r, tr, ic, cs); err != nil {
+		if err := a.pushChangesToRootedRepository(ctx, log, r, tr, ic, cs); err != nil {
 			err = ErrPushToRootedRepository.Wrap(err, ic.String())
 			log.Error("error pushing changes to rooted repository", "error", err)
 			failedInits = append(failedInits, ic)
@@ -273,8 +273,11 @@ func (a *Archiver) pushChangesToRootedRepositories(ctx context.Context, ctxLog l
 	return checkFailedInits(changes, failedInits)
 }
 
-func (a *Archiver) pushChangesToRootedRepository(ctx context.Context, r *model.Repository, tr TemporaryRepository, ic model.SHA1, changes []*Command) error {
+func (a *Archiver) pushChangesToRootedRepository(ctx context.Context, log log15.Logger, r *model.Repository, tr TemporaryRepository, ic model.SHA1, changes []*Command) error {
+	var rootedRepoCpStart = time.Now()
 	tx, err := a.RootedTransactioner.Begin(plumbing.Hash(ic))
+	sivaCpFromDuration := time.Now().Sub(rootedRepoCpStart)
+	log.Debug("Copy siva file from HDFS", "RootedRepository", ic, "copyFromRemote", int64(sivaCpFromDuration/time.Second))
 	if err != nil {
 		return err
 	}
@@ -297,7 +300,11 @@ func (a *Archiver) pushChangesToRootedRepository(ctx context.Context, r *model.R
 			return err
 		}
 
-		return tx.Commit()
+		var rootedRepoCpStart = time.Now()
+		err = tx.Commit()
+		sivaCpToDuration := time.Now().Sub(rootedRepoCpStart)
+		log.Debug("Copy siva file to HDFS", "RootedRepository", ic, "copyToRemote", int64(sivaCpToDuration/time.Second))
+		return err
 	})
 }
 
