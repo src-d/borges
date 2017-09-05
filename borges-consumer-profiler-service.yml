@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: borges-consumer-profiler
+  labels:
+    app: borges-consumer
+spec:
+  type: ClusterIP
+  ports:
+    - port: 6061
+      targetPort: 6061
+      protocol: TCP
+      name: borges-consumer-profiler
+  selector:
+    app: borges-consumer
