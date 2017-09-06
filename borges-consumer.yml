@@ -13,7 +13,7 @@ spec:
         srcd.host/type: worker
       containers:
       - name: borges
-        image: quay.io/srcd/borges:v0.6.5
+        image: quay.io/srcd/borges:v0.6.6
         ports:
           - containerPort: 6061
         args: ['borges','consumer','--workers=12','--loglevel=debug', '--timeout=2h', '--profiler' ]
