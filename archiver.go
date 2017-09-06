@@ -295,10 +295,15 @@ func (a *Archiver) pushChangesToRootedRepository(ctx context.Context, log log15.
 		}
 
 		refspecs := a.changesToPushRefSpec(r.ID, changes)
+		pushStart := time.Now()
 		if err := tr.Push(ctx, url, refspecs); err != nil {
+			onlyPushDurationSec := int64(time.Now().Sub(pushStart) / time.Second)
+			log.Error("error pushing 1 change for", "refs", refspecs, "error", err, "took", onlyPushDurationSec)
 			_ = tx.Rollback()
 			return err
 		}
+		onlyPushDurationSec := int64(time.Now().Sub(pushStart) / time.Second)
+		log.Error("1 change pushed", "took", onlyPushDurationSec)
 
 		var rootedRepoCpStart = time.Now()
 		err = tx.Commit()
