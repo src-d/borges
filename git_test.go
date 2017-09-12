@@ -14,6 +14,7 @@ import (
 	"gopkg.in/src-d/go-billy.v3/memfs"
 	"gopkg.in/src-d/go-billy.v3/osfs"
 	"gopkg.in/src-d/go-git.v4"
+	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport"
 	"gopkg.in/src-d/go-git.v4/storage/filesystem"
 	"gopkg.in/src-d/go-git.v4/storage/memory"
@@ -189,4 +190,36 @@ func TestStoreConfig(t *testing.T) {
 		isFork := cfg.Raw.Section("remote").Subsection(id.String()).Option("isfork")
 		require.Equal("true", isFork)
 	}
+}
+
+func TestRootCommits_NoSkipParents(t *testing.T) {
+	fixtures.Init()
+	defer fixtures.Clean()
+
+	require := require.New(t)
+
+	fixtures := ChangesFixtures[multipleRootsFixture]
+	r, err := fixtures.NewRepository()
+	require.NoError(err)
+
+	start, err := r.CommitObject(plumbing.Hash(branchOneHash))
+	require.NoError(err)
+
+	roots, err := rootCommits(
+		r,
+		start,
+		map[plumbing.Hash][]model.SHA1{
+			plumbing.NewHash("a511fa38233896f50bcc8a5f8d0f30b872484852"): []model.SHA1{
+				model.NewSHA1("8ec19d64748c54c6d047f30c81b4c444a8232b41"),
+				model.NewSHA1("04fffad6eacd4512554cb22ca3a0d6b8a38a96cc"),
+			},
+		},
+	)
+	require.NoError(err)
+
+	require.Equal([]model.SHA1{
+		model.NewSHA1("8ec19d64748c54c6d047f30c81b4c444a8232b41"),
+		model.NewSHA1("04fffad6eacd4512554cb22ca3a0d6b8a38a96cc"),
+		model.NewSHA1("058cec4b81e8f0a9c3763e0671bbfba0666a4b33"),
+	}, roots)
 }
