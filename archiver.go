@@ -303,7 +303,7 @@ func (a *Archiver) pushChangesToRootedRepository(ctx context.Context, log log15.
 			return err
 		}
 		onlyPushDurationSec := int64(time.Now().Sub(pushStart) / time.Second)
-		log.Error("1 change pushed", "took", onlyPushDurationSec)
+		log.Debug("1 change pushed", "took", onlyPushDurationSec)
 
 		var rootedRepoCpStart = time.Now()
 		err = tx.Commit()
