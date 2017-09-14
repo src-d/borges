@@ -1,0 +1,49 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: borges-consumer
+spec:
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: borges-consumer
+    spec:
+      nodeSelector:
+        srcd.host/type: worker
+      containers:
+      - name: borges
+        image: quay.io/srcd/borges:v0.6.6
+        ports:
+          - containerPort: 6061
+        args: ['borges','consumer','--workers=12','--loglevel=debug', '--timeout=2h', '--profiler' ]
+        env:
+        - name: CONFIG_BROKER
+          value: 'amqp://guest:guest@rabbitmq:5672'
+        - name: CONFIG_DBUSER
+          value: testing
+        - name: CONFIG_DBPASS
+          value: testing
+        - name: CONFIG_DBHOST
+          value: postgres
+        - name: CONFIG_DBNAME
+          value: testing
+        - name: CONFIG_TEMP_DIR
+          value: /borges/tmp
+        - name: CONFIG_ROOT_REPOSITORIES_DIR
+          value: /borges/root-repositories
+        - name: CONFIG_LOCKING
+          value: 'etcd:http://etcd:2379'
+        - name: HADOOP_USER_NAME
+          value: root
+        - name: CONFIG_HDFS
+          value: 'hdfs-namenode:8020'
+        volumeMounts:
+        - mountPath: /borges
+          name: tmp-vol
+      volumes:
+      - name: tmp-vol
+        emptyDir:
+          medium: "Memory"
+      imagePullSecrets:
+      - name: quay
