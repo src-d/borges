@@ -58,7 +58,7 @@ func (r gitReferencer) References() ([]*model.Reference, error) {
 	}
 
 	var refs []*model.Reference
-	var seen = make(map[model.SHA1][]model.SHA1)
+	var seenRoots = make(map[plumbing.Hash][]model.SHA1)
 	return refs, iter.ForEach(func(ref *plumbing.Reference) error {
 		//TODO: add tags support
 		if ref.Type() != plumbing.HashReference || ref.Name().IsRemote() {
@@ -74,7 +74,7 @@ func (r gitReferencer) References() ([]*model.Reference, error) {
 			return err
 		}
 
-		roots, err := rootCommits(r.Repository, c.Hash, seen)
+		roots, err := rootCommits(r.Repository, c, seenRoots)
 		if err != nil {
 			return err
 		}
@@ -90,67 +90,124 @@ func (r gitReferencer) References() ([]*model.Reference, error) {
 	})
 }
 
-// maybeRoot is a commit hash that may or may not be a root commit.
-type maybeRoot struct {
-	hash   model.SHA1
-	isRoot bool
+type commitFrame struct {
+	cursor int
+	hashes []plumbing.Hash
 }
 
-func rootCommits(r *git.Repository, from plumbing.Hash, seen map[model.SHA1][]model.SHA1) ([]model.SHA1, error) {
-	commit, err := r.CommitObject(from)
-	if err != nil {
-		return nil, err
+func newCommitFrame(hashes ...plumbing.Hash) *commitFrame {
+	return &commitFrame{0, hashes}
+}
+
+// lastHash returns the last visited hash, assuming one has at least been
+// visited before. That is, this should not be called before incrementing
+// the cursor for the first time.
+func (f *commitFrame) lastHash() plumbing.Hash {
+	return f.hashes[f.cursor-1]
+}
+
+// rootCommits returns the commits with no parents reachable from `start`.
+// To do so, all the commits are iterated using a stack where frames are
+// the parent commits of the last visited hash of the previous frame.
+//
+// As we go down, if a commit has parents, we add a new frame to the stack
+// with these parents as hashes.
+// If the commit does not have parents its a root, so we add it to the list
+// found roots and keep going.
+//
+// If we have not visited all the hashes in the current frame it means we have
+// to switch branches. That means caching the roots found so far for the last
+// visited commit in the frame and reset the roots so we can find the ones
+// for the new root. If these branches converge nothing happens, that
+// point will be cached and we'll load them from the cache and continue.
+// If we have visited all the hashes in the current frame we cache the found
+// roots and move all the roots found in all the hashes in the frame to the
+// last visited hash of the previous frame. The found roots now will be the
+// same roots we pushed to the previous frame.
+//
+// After repeating this process, when we get to the root frame, we just have to
+// return the roots cached for it, which will be the roots of all reachable
+// commits from the start.
+func rootCommits(
+	r *git.Repository,
+	start *object.Commit,
+	seenRoots map[plumbing.Hash][]model.SHA1,
+) ([]model.SHA1, error) {
+	stack := []*commitFrame{
+		newCommitFrame(start.Hash),
 	}
-
-	iter := object.NewCommitPreorderIter(commit, nil)
-	var maybeRoots []maybeRoot
-	for {
-		wc, err := iter.Next()
-		if err == io.EOF {
-			break
-		}
-
-		if err != nil {
-			return nil, err
-		}
-
-		if roots, ok := seen[model.SHA1(wc.Hash)]; ok {
-			// if only one root is cached for this commit and it's the commit
-			// itself, it means that we have a root commit. There may be more
-			// commits after it, so we ignore the cache and keep going.
-			if !(len(roots) == 1 && roots[0] == model.SHA1(wc.Hash)) {
-				if len(maybeRoots) == 0 {
-					return roots, nil
-				}
-
-				for _, root := range roots {
-					maybeRoots = append(maybeRoots, maybeRoot{root, true})
-				}
-				break
-			}
-		}
-
-		if wc.NumParents() == 0 {
-			maybeRoots = append(maybeRoots, maybeRoot{model.SHA1(wc.Hash), true})
-		} else {
-			maybeRoots = append(maybeRoots, maybeRoot{model.SHA1(wc.Hash), false})
-		}
-	}
-
+	store := r.Storer
 	var roots []model.SHA1
-	for i := len(maybeRoots) - 1; i >= 0; i-- {
-		root := maybeRoots[i]
-		if root.isRoot {
-			roots = append([]model.SHA1{root.hash}, roots...)
-			seen[root.hash] = []model.SHA1{root.hash}
-		} else if len(roots) > 0 {
-			if _, ok := seen[root.hash]; !ok {
-				seen[root.hash] = roots
+
+	for {
+		current := len(stack) - 1
+		if current < 0 {
+			return nil, nil
+		}
+
+		frame := stack[current]
+		if len(frame.hashes) <= frame.cursor {
+			roots = deduplicateHashes(roots)
+			seenRoots[frame.lastHash()] = roots
+
+			// root frame is guaranteed to have just one hash
+			if current == 0 {
+				return seenRoots[frame.lastHash()], nil
 			}
+
+			// move all the roots of all the branches to the last visited
+			// hash of the previous frame
+			prevFrame := stack[current-1]
+
+			prevHash := prevFrame.lastHash()
+			for _, h := range frame.hashes {
+				seenRoots[prevHash] = append(seenRoots[prevHash], seenRoots[h]...)
+			}
+
+			roots = deduplicateHashes(seenRoots[prevHash])
+			seenRoots[prevHash] = roots
+
+			stack = stack[:current]
+			continue
+		} else if frame.cursor > 0 {
+			// if the frame cursor is bigger than 0 and we're not done with it
+			// cache the roots of the previous hash and start anew with the
+			// next branch.
+			seenRoots[frame.lastHash()] = deduplicateHashes(roots)
+			roots = nil
+		}
+
+		frame.cursor++
+		hash := frame.lastHash()
+		// use cached roots for this commit, if any
+		if cachedRoots, ok := seenRoots[hash]; ok {
+			roots = cachedRoots
+			continue
+		}
+
+		var c *object.Commit
+		if hash != start.Hash {
+			obj, err := store.EncodedObject(plumbing.CommitObject, hash)
+			if err != nil {
+				return nil, err
+			}
+
+			do, err := object.DecodeObject(store, obj)
+			if err != nil {
+				return nil, err
+			}
+
+			c = do.(*object.Commit)
+		} else {
+			c = start
+		}
+
+		if c.NumParents() > 0 {
+			stack = append(stack, newCommitFrame(c.ParentHashes...))
+		} else {
+			roots = append(roots, model.SHA1(c.Hash))
 		}
 	}
-
-	return roots, nil
 }
 
 // ResolveCommit gets the hash of a commit that is referenced by a tag, per example.
@@ -362,4 +419,29 @@ func stringSliceEqual(a, b []string) bool {
 	}
 
 	return true
+}
+
+func deduplicateHashes(hashes []model.SHA1) []model.SHA1 {
+	var set hashSet
+	for _, h := range hashes {
+		set.add(h)
+	}
+	return []model.SHA1(set)
+}
+
+type hashSet []model.SHA1
+
+func (hs *hashSet) add(hash model.SHA1) {
+	if !hs.contains(hash) {
+		*hs = append(*hs, hash)
+	}
+}
+
+func (hs hashSet) contains(hash model.SHA1) bool {
+	for _, h := range hs {
+		if h == hash {
+			return true
+		}
+	}
+	return false
 }

@@ -279,6 +279,8 @@ func testUpdateCommand(old, new *model.Reference) *Command {
 	}
 }
 
+const multipleRootsFixture = 9
+
 var ChangesFixtures = []*ChangesFixture{{
 	TestName:      "no previous references and no updates",
 	OldReferences: nil,
@@ -462,7 +464,7 @@ var ChangesFixtures = []*ChangesFixture{{
 			testAddCommand(fixtureReferences.ByName("refs/heads/rootReference")),
 		},
 	},
-}, {
+}, { // multipleRootsFixture
 	TestName: "all reference are new except one (updated with new init)",
 	OldReferences: []*model.Reference{
 		withRoots(
