@@ -10,7 +10,7 @@ spec:
     spec:
       containers:
       - name: borges
-        image: quay.io/srcd/borges:v0.6.6
+        image: quay.io/srcd/borges:v0.7.0
         command: ['borges','producer','--mentionsqueue=rovers']
         env:
         - name: CONFIG_BROKER
@@ -25,5 +25,3 @@ spec:
           value: testing
       imagePullSecrets:
       - name: quay
-#      nodeSelector:
-#        kubernetes.io/hostname: ""
