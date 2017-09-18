@@ -62,6 +62,12 @@ http://github.com/c/repo3
 http://github.com/d/repo4.git
 ```
 
+When jobs fail they're sent to the buried queue. If you want to requeue them, you can pass the `--republish-buried` flag (this only works for the `mentions` source). For example:
+
+```
+borges producer --republish-buried
+```
+
 So a possible command to launch the producer could be:
 
 ```bash

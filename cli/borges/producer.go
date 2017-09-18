@@ -19,9 +19,10 @@ const (
 
 type producerCmd struct {
 	cmd
-	Source        string `long:"source" default:"mentions" description:"source to produce jobs from (mentions, file)"`
-	MentionsQueue string `long:"mentionsqueue" default:"rovers" description:"queue name used to obtain mentions if the source type is 'mentions'"`
-	File          string `long:"file" description:"path to a file to read URLs from, used with --source=file"`
+	Source          string `long:"source" default:"mentions" description:"source to produce jobs from (mentions, file)"`
+	MentionsQueue   string `long:"mentionsqueue" default:"rovers" description:"queue name used to obtain mentions if the source type is 'mentions'"`
+	File            string `long:"file" description:"path to a file to read URLs from, used with --source=file"`
+	RepublishBuried bool   `long:"republish-buried" description:"republishes again all buried jobs before starting to listen for mentions, used with --source=mentions"`
 }
 
 func (c *producerCmd) Execute(args []string) error {
@@ -55,6 +56,12 @@ func (c *producerCmd) jobIter(b queue.Broker) (borges.JobIter, error) {
 		q, err := b.Queue(c.MentionsQueue)
 		if err != nil {
 			return nil, err
+		}
+
+		if c.RepublishBuried {
+			if err := q.RepublishBuried(); err != nil {
+				return nil, err
+			}
 		}
 		return borges.NewMentionJobIter(q, storer), nil
 	case "file":
