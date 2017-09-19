@@ -19,7 +19,7 @@ for saving storage space and keeping repositories up-to-date.
 
  - **Rooted Repository**: a standard Git repository that stores all objects from all repositories that share common history, identified by same initial commit. It is stored in [Siva](https://github.com/src-d/go-siva) file format.
 
-   ![Root Repository explanatory diagram](TODO)
+   ![Root Repository explanatory diagram](https://user-images.githubusercontent.com/5582506/30617179-2aba194a-9d95-11e7-8fd5-0a87c2a595f9.png)
 
 Consumers and Producers run independently, communicating though a RabbitMQ instance
 and storing repository meta-data in PostgeSQL.
@@ -62,8 +62,7 @@ To launch the producer you just have to run it with the default configuration:
 
     borges producer
 
-Producer reads [mentions](https://github.com/src-d/core-retrieval/blob/master/model/mention.go) from rovers rabbit queue by default, but it can
-read urls directly from a file with the cli option:
+Producer reads [mentions](https://github.com/src-d/core-retrieval/blob/master/model/mention.go) from [Rover](https://github.com/src-d/rovers)'s RabbitMQ queue, but it can also read URLs directly from a file with the special CLI option:
 
     borges producer --source=file --file /path/to/file
 
@@ -164,7 +163,7 @@ Borges has 2 runtime dependencies and has tests that depend on them:
 
   - PostgreSQL
 
-    Consumers creates [siva files] with *Rooted Repositories*, but all repository metadata is stored in PostgreSQL.
+    Consumers creates [siva files](https://github.com/src-d/go-siva) with *Rooted Repositories*, but all repository metadata is stored in PostgreSQL.
     You can run one in Docker with the following command:
     ```
     docker run --name postgres  -e POSTGRES_DB=testing -e POSTGRES_USER=testing -e POSTGRES_PASSWORD=testing  -p 5432:5432 -d postgres
