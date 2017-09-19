@@ -2,27 +2,41 @@
 borges [![Build Status](https://travis-ci.org/src-d/borges.svg?branch=master)](https://travis-ci.org/src-d/borges) [![codecov.io](https://codecov.io/gh/src-d/borges/branch/master/graph/badge.svg?token=ETL49e3u1L)](https://codecov.io/gh/src-d/borges) [![GitHub version](https://badge.fury.io/gh/src-d%2Fborges.svg)](https://github.com/src-d/borges/releases)
 ======
 
-**borges** archives repositories in a universal git library.
+**borges** collects and stores Git repositories.
 
 > I have always imagined that Paradise will be a kind of library.
 
-borges uses the producer/consumer pattern, where a producer generates jobs and
-one or more consumers get the jobs and execute them. Each borges job triggers
-an update of a repository.
+Borges is a set of tools for collection and storage of Git repositories at large scale.
+It is a distributed system, similar to a search engine, that uses a custom
+repository storage [file format](https://blog.sourced.tech/post/siva/) and is optimized
+for saving storage space and keeping repositories up-to-date.
 
-Read the borges package godoc for further details on how borges archives
-repositories.
+## Key concepts
+
+ - **Borges producer**: a stand-alone process that reads repository URLs (from RabbitMQ or file) and schedules fetching this repository.
+
+ - **Borges consumer**: a stand-alone process that takes URL from RabbitMQ, clones remote repository and pushes it to the appropriate *Rooted Repository* in the storage (local filesystem or HDFS).
+
+ - **Rooted Repository**: a standard Git repository that stores all objects from all repositories that share common history, identified by same initial commit. It is stored in [Siva](https://github.com/src-d/go-siva) file format.
+
+   ![Root Repository explanatory diagram](TODO)
+
+Consumers and Producers run independently, communicating though a RabbitMQ instance
+and storing repository meta-data in PostgeSQL.
+
+Read the borges package godoc for further details on how does borges archive
+the repositories.
 
 ## CLI
 
-Run `borges --help` to get help about the main commands (producer and consumer)
-and their options.
+Both producer and consumer are shipped as a single binary,
+see `borges --help` to get details about the main commands and their options.
 
 ## Setting up borges
 
-Borges needs a database and a broker to do its job. It will connect to a postgres database by default
-and use rabbitMQ as default too. If you want to set up some configuration
-about the database, you can do it through the following environment variables:
+Borges needs a database and a message broker to do its job. 
+It works with a PostgeSQL database by default and uses RabbitMQ. 
+To configuring those, you can use following environment variables:
 * `CONFIG_DBUSER`, by default: `testing`
 * `CONFIG_DBPASS`, by default: `testing`
 * `CONFIG_DBHOST`, by default: `0.0.0.0`
@@ -32,12 +46,12 @@ about the database, you can do it through the following environment variables:
 * `CONFIG_DBAPPNAME`, by default: ``
 * `CONFIG_DBTIMEOUT`, by default: `30s`
 
-To config other imprtant settings you should use:
+Other important settings are:
 * `CONFIG_TEMP_DIR`: Local path to store temporal files needed by the Borges consumer, by default: `/tmp/sourced`
 * `CONFIG_BROKER`: by default: `amqp://localhost:5672`
-* `CONFIG_ROOT_REPOSITORIES_DIR`: where to leave siva files, if no HDFS connection url is provided, this will be a local path. If not, it will be an HDFS folder, by default: `/tmp/root-repositories`
+* `CONFIG_ROOT_REPOSITORIES_DIR`: .siva file storage. If no HDFS connection url is provided, this will be a path in local filesystem. Otherwise, it will be an HDFS directory, by default: `/tmp/root-repositories`
 * `CONFIG_LOCKING`, by default: `local:`, other options: `etcd:`
-* `CONFIG_HDFS`: (host:port) If this property is not provided, all root repositories will be stored into the local fs, by default: `""`
+* `CONFIG_HDFS`: (host:port) If this property is not provided, all root repositories will be stored into the local filesystem, by default: `""`
 
 ## Producer
 
@@ -79,19 +93,18 @@ CONFIG_BROKER="amqp://guest:guest@rabbitmq:5672" \
 borges producer --loglevel=debug
 ```
 
-If you need some help just type `borges producer -h`
+For more details, use `borges producer -h`.
 
 ## Consumer
 
 The consumer runs as a service. It gets jobs from the queue and dispatches them
-to a worker pool.
+to a goroutine workers pool.
 
 Each job is a request to update a repository. It can be a new or an existing
-one. The repository is fetched (incrementally when possible) and each reference
-is pushed to a local repository dedicated to all references from all repositories
-that share the same **init commit**.
+one. The remote repository is fetched (incrementally when possible) and each reference
+is then pushed to a specific [Rooted Repository](#key-concepts), dedicated to storing all references from repositories that share the same *initial commit*.
 
-Note that borges should be the only one creating and writing to our repository
+Note that borges should be the only one creating and writing to the repository
 storage.
 
 To run a consumer instance from the command line with default configuration:
@@ -110,7 +123,7 @@ CONFIG_ROOT_REPOSITORIES_DIR="/borges/root-repositories"  \
 borges consumer --workers=20 --loglevel=debug
 ```
 
-To get help run `borges consumer -h`
+For more details, use `borges consumer -h`
 
 ## Administration Notes
 
@@ -146,12 +159,12 @@ Borges has 2 runtime dependencies and has tests that depend on them:
     ```
     docker run -d --hostname rabbit --name rabbit -p 8080:15672 -p 5672:5672 rabbitmq:3-management
     ```
-    Note: a hostname needs to be provided, due to the fact that rabbitmq stores data according to the host name
+    Note: a hostname needs to be provided, due to the fact that RabbitMQ stores data according to the host name
 
 
   - PostgreSQL
 
-    Consumers make SIVA files with RootedRepositories, but all repository metadata is stored in PostgreSQL.
+    Consumers creates [siva files] with *Rooted Repositories*, but all repository metadata is stored in PostgreSQL.
     You can run one in Docker with the following command:
     ```
     docker run --name postgres  -e POSTGRES_DB=testing -e POSTGRES_USER=testing -e POSTGRES_PASSWORD=testing  -p 5432:5432 -d postgres
