@@ -103,6 +103,10 @@ func (a *Archiver) do(log log15.Logger, j *Job) (err error) {
 			"reason", err,
 		)
 
+		if err := a.dbUpdateRepositoryStatus(r, model.Pending); err != nil {
+			return ErrSetStatus.Wrap(err, model.Pending)
+		}
+
 		return err
 	}
 
@@ -164,7 +168,7 @@ func (a *Archiver) do(log log15.Logger, j *Job) (err error) {
 		return ErrChanges.Wrap(err)
 	}
 
-	log.Debug("changes obtained", "roots", len(changes))
+	log.Debug("changes obtained", "changes", len(changes))
 	if err := a.pushChangesToRootedRepositories(ctx, log, j, r, gr, changes, now); err != nil {
 		log.Error("repository processed with errors", "error", err)
 
@@ -266,7 +270,7 @@ func (a *Archiver) pushChangesToRootedRepositories(ctx context.Context, ctxLog l
 
 	if len(changes) == 0 {
 		if err := a.dbUpdateRepository(r, now); err != nil {
-			ctxLog.Error("error updating repository in databbase", "error", err)
+			ctxLog.Error("error updating repository in database", "error", err)
 		}
 	}
 
