@@ -34,8 +34,8 @@ see `borges --help` to get details about the main commands and their options.
 
 ## Setting up borges
 
-Borges needs a database and a message broker to do its job. 
-It works with a PostgeSQL database by default and uses RabbitMQ. 
+Borges needs a database and a message broker to do its job.
+It works with a PostgeSQL database by default and uses RabbitMQ.
 To configuring those, you can use following environment variables:
 * `CONFIG_DBUSER`, by default: `testing`
 * `CONFIG_DBPASS`, by default: `testing`
@@ -129,6 +129,69 @@ For more details, use `borges consumer -h`
 Both the producer and consumer services will run even if they cannot connect to
 the queue, or even if the queue is malfunctioning. If the queue does not work,
 they will just retry until it does.
+
+# Quickstart using docker containers
+
+## Download the images
+
+Download the latest borges image
+
+```
+docker pull quay.io/srcd/borges
+```
+
+And then the PostgreSQL and RabbitMQ images (you can skip this step if you already have that setup for [rovers](https://github.com/src-d/rovers)).
+
+```
+docker pull postgres:9.6-alpine
+docker pull rabbitmq:3-management
+```
+
+## Running everything
+
+Start RabbitMQ and PostgreSQL (you can skip this step if you already have that setup for [rovers](https://github.com/src-d/rovers).
+
+```
+docker run -d --name postgres -e POSTGRES_PASSWORD=testing -p 5432:5432 -e POSTGRES_USER=testing postgres
+docker run -d --hostname rabbitmq --name rabbitmq -p 8081:15672 -p 5672:5672 rabbitmq:3-management
+```
+
+Now, you can start the borges consumer, the component that will be listenning for jobs and processing repositories.
+
+```
+docker run --name borges_consumer --link rabbitmq --link postgres \
+        -v /path/to/store/repos/locally:/borges/root-repositories \
+        -e CONFIG_DBUSER=testing -e CONFIG_DBPASS=testing \
+        -e CONFIG_DBHOST=postgres -e CONFIG_DBNAME=testing \
+        -e CONFIG_BROKER_URL=amqp://guest:guest@rabbitmq:5672/ \
+        -e CONFIG_ROOT_REPOSITORIES_DIR=/borges/root-repositories \
+        quay.io/srcd/borges /bin/sh -c "borges init; borges consumer --loglevel=debug --workers=8"
+```
+
+Be sure to replace `/path/to/store/repos/locally` with the path on your hard drive where you want your root repositories (as siva files) stored.
+
+Finally, you need to send jobs to the borges consumer using the borges producer. If you have [rovers](https://github.com/src-d/rovers) setup already, you may want to use the rovers' mentions as the source.
+
+```
+docker run --name borges_consumer --link rabbitmq --link postgres \
+        -e CONFIG_DBUSER=testing -e CONFIG_DBPASS=testing \
+        -e CONFIG_DBHOST=postgres -e CONFIG_DBNAME=testing \
+        -e CONFIG_BROKER_URL=amqp://guest:guest@rabbitmq:5672/ \
+        quay.io/srcd/borges borges producer --loglevel=debug
+```
+
+However, you can also process just a specific list of repositories without having to setup rovers on your own. Write the repository URLs in a file, one repository per line and feed it to the borges producer with the `file` source. (This example assumes you have a `repos.txt` in the current directory).
+
+```
+docker run --name borges_consumer_file --link rabbitmq --link postgres \
+        -e $(pwd):/opt/borges
+        -e CONFIG_DBUSER=testing -e CONFIG_DBPASS=testing \
+        -e CONFIG_DBHOST=postgres -e CONFIG_DBNAME=testing \
+        -e CONFIG_BROKER_URL=amqp://guest:guest@rabbitmq:5672/ \
+        quay.io/srcd/borges borges producer --loglevel=debug --source=file --file=/opt/borges/repos.txt
+```
+
+Congratulations, now you have a fully working repository processing pipeline!
 
 # Development
 
