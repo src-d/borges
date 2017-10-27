@@ -1,12 +1,14 @@
 package borges
 
 import (
+	"database/sql"
 	"io"
 	"io/ioutil"
 	"strings"
 	"testing"
 
 	"github.com/satori/go.uuid"
+	"github.com/src-d/borges/storage"
 	"github.com/stretchr/testify/suite"
 	"gopkg.in/src-d/core-retrieval.v0/model"
 	"gopkg.in/src-d/core-retrieval.v0/test"
@@ -34,19 +36,19 @@ func (s *LineJobIterSuite) TestGetJobsWithTwoRepos() {
 https://foo/baz.git`
 	r := ioutil.NopCloser(strings.NewReader(text))
 
-	storer := model.NewRepositoryStore(s.DB)
+	storer := storage.FromDatabase(s.DB)
 
 	iter := NewLineJobIter(r, storer)
 
 	j, err := iter.Next()
 	s.NoError(err)
-	ID, err := getIDByEndpoint("git://foo/bar.git", storer)
+	ID, err := getIDByEndpoint("git://foo/bar.git", s.DB)
 	s.NoError(err)
 	s.Equal(&Job{RepositoryID: ID}, j)
 
 	j, err = iter.Next()
 	s.NoError(err)
-	ID, err = getIDByEndpoint("https://foo/baz.git", storer)
+	ID, err = getIDByEndpoint("https://foo/baz.git", s.DB)
 	s.NoError(err)
 	s.Equal(&Job{RepositoryID: ID}, j)
 
@@ -76,7 +78,7 @@ func (s *LineJobIterSuite) TestNonAbsoluteURL() {
 	text := "foo"
 	r := ioutil.NopCloser(strings.NewReader(text))
 
-	storer := model.NewRepositoryStore(s.DB)
+	storer := storage.FromDatabase(s.DB)
 
 	iter := NewLineJobIter(r, storer)
 
@@ -97,7 +99,7 @@ func (s *LineJobIterSuite) TestBadURL() {
 	text := "://"
 	r := ioutil.NopCloser(strings.NewReader(text))
 
-	storer := model.NewRepositoryStore(s.DB)
+	storer := storage.FromDatabase(s.DB)
 
 	iter := NewLineJobIter(r, storer)
 
@@ -114,10 +116,10 @@ func (s *LineJobIterSuite) TestBadURL() {
 	s.Nil(j)
 }
 
-func getIDByEndpoint(endpoint string, store *model.RepositoryStore) (uuid.UUID, error) {
+func getIDByEndpoint(endpoint string, db *sql.DB) (uuid.UUID, error) {
 	q := model.NewRepositoryQuery().
 		Where(kallax.ArrayContains(model.Schema.Repository.Endpoints, endpoint))
-	r, err := store.FindOne(q)
+	r, err := model.NewRepositoryStore(db).FindOne(q)
 	if err != nil {
 		return uuid.Nil, err
 	}

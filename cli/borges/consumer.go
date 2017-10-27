@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/src-d/borges"
+	"github.com/src-d/borges/storage"
 
 	"gopkg.in/src-d/core-retrieval.v0"
 )
@@ -38,7 +39,7 @@ func (c *consumerCmd) Execute(args []string) error {
 
 	wp := borges.NewArchiverWorkerPool(
 		log,
-		core.ModelRepositoryStore(),
+		storage.FromDatabase(core.Database()),
 		core.RootedTransactioner(),
 		borges.NewTemporaryCloner(core.TemporaryFilesystem()),
 		core.Locking(),

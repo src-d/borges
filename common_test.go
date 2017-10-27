@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/satori/go.uuid"
+	"github.com/src-d/borges/storage"
 	"github.com/stretchr/testify/suite"
 	"gopkg.in/src-d/core-retrieval.v0/model"
 	"gopkg.in/src-d/core-retrieval.v0/test"
@@ -55,7 +56,7 @@ func (s *BaseQueueSuite) connectQueue() {
 type RepositoryIDSuite struct {
 	test.Suite
 
-	storer *model.RepositoryStore
+	storer storage.RepoStore
 
 	isTrue  bool
 	isFalse bool
@@ -123,18 +124,15 @@ func (s *RepositoryIDSuite) TestRepositoryIDNotEqualID() {
 }
 
 func (s *RepositoryIDSuite) getRepository(id uuid.UUID) *model.Repository {
-	rs, err := s.storer.Find(model.NewRepositoryQuery().FindByID(kallax.ULID(id)))
+	repo, err := s.storer.Get(kallax.ULID(id))
 	s.NoError(err)
-	r, err := rs.One()
-	s.NoError(err)
-
-	return r
+	return repo
 }
 
 func (s *RepositoryIDSuite) SetupTest() {
 	s.Setup()
 
-	s.storer = model.NewRepositoryStore(s.DB)
+	s.storer = storage.FromDatabase(s.DB)
 
 	s.isTrue = true
 	s.isFalse = false

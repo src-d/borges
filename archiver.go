@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/inconshreveable/log15"
+	"github.com/src-d/borges/storage"
 	"gopkg.in/src-d/core-retrieval.v0/model"
 	"gopkg.in/src-d/core-retrieval.v0/repository"
 	"gopkg.in/src-d/framework.v0/lock"
@@ -43,8 +44,8 @@ type Archiver struct {
 	// Timeout is the deadline to cancel a job.
 	Timeout time.Duration
 
-	// RepositoryStore is the database where repository models are stored.
-	RepositoryStorage *model.RepositoryStore
+	// Store is the component where repository models are stored.
+	Store storage.RepoStore
 
 	// RootedTransactioner is used to push new references to our repository
 	// storage.
@@ -55,14 +56,14 @@ type Archiver struct {
 	LockSession lock.Session
 }
 
-func NewArchiver(log log15.Logger, r *model.RepositoryStore,
+func NewArchiver(log log15.Logger, r storage.RepoStore,
 	tx repository.RootedTransactioner, tc TemporaryCloner,
 	ls lock.Session, to time.Duration) *Archiver {
 	return &Archiver{
 		log:                 log,
 		TemporaryCloner:     tc,
 		Timeout:             to,
-		RepositoryStorage:   r,
+		Store:               r,
 		RootedTransactioner: tx,
 		LockSession:         ls,
 	}
@@ -106,13 +107,13 @@ func (a *Archiver) do(log log15.Logger, j *Job) (err error) {
 		return err
 	}
 
-	if err := a.dbUpdateRepositoryStatus(r, model.Fetching); err != nil {
+	if err := a.Store.SetStatus(r, model.Fetching); err != nil {
 		return ErrSetStatus.Wrap(err, model.Fetching)
 	}
 
 	endpoint, err := selectEndpoint(r.Endpoints)
 	if err != nil {
-		if err := a.dbUpdateFailedRepository(r, model.Pending); err != nil {
+		if err := a.Store.UpdateFailed(r, model.Pending); err != nil {
 			log15.Error("error setting repo as failed", "id", r.ID, "err", err)
 		}
 		return err
@@ -137,7 +138,7 @@ func (a *Archiver) do(log log15.Logger, j *Job) (err error) {
 			finalErr = nil
 		}
 
-		if err := a.dbUpdateFailedRepository(r, status); err != nil {
+		if err := a.Store.UpdateFailed(r, status); err != nil {
 			return err
 		}
 
@@ -157,7 +158,7 @@ func (a *Archiver) do(log log15.Logger, j *Job) (err error) {
 	changes, err := NewChanges(oldRefs, newRefs)
 	if err != nil {
 		log.Error("error computing changes", "error", err)
-		if err := a.dbUpdateFailedRepository(r, model.Pending); err != nil {
+		if err := a.Store.UpdateFailed(r, model.Pending); err != nil {
 			log15.Error("error setting repo as failed", "id", r.ID, "err", err)
 		}
 
@@ -169,7 +170,7 @@ func (a *Archiver) do(log log15.Logger, j *Job) (err error) {
 		log.Error("repository processed with errors", "error", err)
 
 		r.FetchErrorAt = &now
-		if updateErr := a.dbUpdateFailedRepository(r, model.Pending); updateErr != nil {
+		if updateErr := a.Store.UpdateFailed(r, model.Pending); updateErr != nil {
 			return ErrSetStatus.Wrap(updateErr, model.Pending)
 		}
 
@@ -189,8 +190,7 @@ func (a *Archiver) canProcessRepository(repo *model.Repository) error {
 }
 
 func (a *Archiver) getRepositoryModel(j *Job) (*model.Repository, error) {
-	q := model.NewRepositoryQuery().FindByID(kallax.ULID(j.RepositoryID))
-	r, err := a.RepositoryStorage.FindOne(q)
+	r, err := a.Store.Get(kallax.ULID(j.RepositoryID))
 	if err != nil {
 		return nil, ErrRepositoryIDNotFound.Wrap(err, j.RepositoryID.String())
 	}
@@ -246,7 +246,7 @@ func (a *Archiver) pushChangesToRootedRepositories(ctx context.Context, ctxLog l
 
 		log.Debug("update repository references started")
 		r.References = updateRepositoryReferences(r.References, cs, ic)
-		if err := a.dbUpdateRepository(r, now); err != nil {
+		if err := a.Store.UpdateFetched(r, now); err != nil {
 			err = ErrPushToRootedRepository.Wrap(err, ic.String())
 			log.Error("error updating repository in database", "error", err)
 			failedInits = append(failedInits, ic)
@@ -265,7 +265,7 @@ func (a *Archiver) pushChangesToRootedRepositories(ctx context.Context, ctxLog l
 	}
 
 	if len(changes) == 0 {
-		if err := a.dbUpdateRepository(r, now); err != nil {
+		if err := a.Store.UpdateFetched(r, now); err != nil {
 			ctxLog.Error("error updating repository in databbase", "error", err)
 		}
 	}
@@ -369,59 +369,6 @@ func updateRepositoryReferences(oldRefs []*model.Reference, commands []*Command,
 	return result
 }
 
-func (a *Archiver) dbUpdateRepositoryStatus(repo *model.Repository, status model.FetchStatus) error {
-	repo.Status = status
-	_, err := a.RepositoryStorage.Update(
-		repo,
-		model.Schema.Repository.Status,
-	)
-	return err
-}
-
-func (a *Archiver) dbUpdateFailedRepository(repo *model.Repository, status model.FetchStatus) error {
-	repo.Status = status
-	_, err := a.RepositoryStorage.Update(repo,
-		model.Schema.Repository.UpdatedAt,
-		model.Schema.Repository.FetchErrorAt,
-		model.Schema.Repository.References,
-		model.Schema.Repository.Status,
-	)
-
-	return err
-}
-
-// Updates DB: status, fetch time, commit time
-func (a *Archiver) dbUpdateRepository(repoDb *model.Repository, then time.Time) error {
-	repoDb.Status = model.Fetched
-	repoDb.FetchedAt = &then
-	repoDb.LastCommitAt = lastCommitTime(repoDb.References)
-
-	_, err := a.RepositoryStorage.Update(repoDb,
-		model.Schema.Repository.UpdatedAt,
-		model.Schema.Repository.FetchedAt,
-		model.Schema.Repository.LastCommitAt,
-		model.Schema.Repository.Status,
-		model.Schema.Repository.References,
-	)
-
-	return err
-}
-
-func lastCommitTime(refs []*model.Reference) *time.Time {
-	if len(refs) == 0 {
-		return nil
-	}
-
-	var last time.Time
-	for _, ref := range refs {
-		if last.Before(ref.Time) {
-			last = ref.Time
-		}
-	}
-
-	return &last
-}
-
 func checkFailedInits(changes Changes, failed []model.SHA1) error {
 	n := len(failed)
 	if n == 0 {
@@ -445,7 +392,7 @@ func checkFailedInits(changes Changes, failed []model.SHA1) error {
 // are equal to the Archiver notifiers but with additional WorkerContext.
 func NewArchiverWorkerPool(
 	log log15.Logger,
-	r *model.RepositoryStore,
+	r storage.RepoStore,
 	tx repository.RootedTransactioner,
 	tc TemporaryCloner,
 	ls lock.Service,
