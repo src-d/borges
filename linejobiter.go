@@ -6,18 +6,18 @@ import (
 	"io"
 	"net/url"
 
-	"gopkg.in/src-d/core-retrieval.v0/model"
+	"github.com/src-d/borges/storage"
 )
 
 type lineJobIter struct {
-	storer *model.RepositoryStore
+	storer storage.RepoStore
 	*bufio.Scanner
 	r io.ReadCloser
 }
 
 // NewLineJobIter returns a JobIter that returns jobs generated from a reader
 // with a list of repository URLs, one per line.
-func NewLineJobIter(r io.ReadCloser, storer *model.RepositoryStore) JobIter {
+func NewLineJobIter(r io.ReadCloser, storer storage.RepoStore) JobIter {
 	return &lineJobIter{
 		storer:  storer,
 		Scanner: bufio.NewScanner(r),

@@ -12,6 +12,7 @@ import (
 
 	"github.com/inconshreveable/log15"
 	"github.com/satori/go.uuid"
+	"github.com/src-d/borges/storage"
 	"github.com/src-d/go-git-fixtures"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -33,7 +34,8 @@ func TestArchiver(t *testing.T) {
 type ArchiverSuite struct {
 	test.Suite
 
-	store    *model.RepositoryStore
+	rawStore *model.RepositoryStore
+	store    storage.RepoStore
 	tmpPath  string
 	tx       rrepository.RootedTransactioner
 	txFs     billy.Filesystem
@@ -48,7 +50,8 @@ func (s *ArchiverSuite) SetupTest() {
 	fixtures.Init()
 	s.Suite.Setup()
 
-	s.store = model.NewRepositoryStore(s.DB)
+	s.rawStore = model.NewRepositoryStore(s.DB)
+	s.store = storage.FromDatabase(s.DB)
 
 	var err error
 	s.tmpPath, err = ioutil.TempDir(os.TempDir(),
@@ -104,7 +107,7 @@ func (s *ArchiverSuite) TestCheckTimeout() {
 			require.Error(err)
 			require.Contains(err.Error(), context.DeadlineExceeded.Error())
 
-			_, err = s.store.FindOne(model.NewRepositoryQuery().FindByID(rid).FindByStatus(model.Pending))
+			_, err = s.rawStore.FindOne(model.NewRepositoryQuery().FindByID(rid).FindByStatus(model.Pending))
 			require.NoError(err)
 		})
 	}
@@ -141,11 +144,11 @@ func (s *ArchiverSuite) TestFixtures() {
 			require.NoError(err)
 
 			err = WithInProcRepository(nr, func(url string) error {
-				mr, err := s.store.FindOne(model.NewRepositoryQuery().FindByID(rid))
+				mr, err := s.rawStore.FindOne(model.NewRepositoryQuery().FindByID(rid))
 				require.NoError(err)
 				mr.Endpoints = nil
 				mr.Endpoints = append(mr.Endpoints, url)
-				updated, err := s.store.Save(mr)
+				updated, err := s.rawStore.Save(mr)
 				require.NoError(err)
 				require.True(updated, err)
 				return s.a.Do(&Job{RepositoryID: uuid.UUID(mr.ID)})
@@ -158,7 +161,7 @@ func (s *ArchiverSuite) TestFixtures() {
 			checkReferences(t, nr, ct.NewReferences)
 
 			// check references in database
-			mr, err := s.store.FindOne(model.NewRepositoryQuery().FindByID(rid))
+			mr, err := s.rawStore.FindOne(model.NewRepositoryQuery().FindByID(rid))
 			require.NoError(err)
 			checkReferencesInDB(t, mr, ct.NewReferences)
 
@@ -187,7 +190,7 @@ func (s *ArchiverSuite) TestNotExistingRepository() {
 	err := s.a.Do(&Job{RepositoryID: uuid.UUID(rid)})
 	s.NoError(err)
 
-	mr, err := s.store.FindOne(model.NewRepositoryQuery().FindByID(rid))
+	mr, err := s.rawStore.FindOne(model.NewRepositoryQuery().FindByID(rid))
 	s.NoError(err)
 
 	s.Equal(model.NotFound, mr.Status)
@@ -195,29 +198,16 @@ func (s *ArchiverSuite) TestNotExistingRepository() {
 
 func (s *ArchiverSuite) TestProcessingRepository() {
 	rid := s.newRepositoryModel("git://foo.bar.baz")
-	repo, err := s.store.FindOne(model.NewRepositoryQuery().FindByID(rid))
+	repo, err := s.rawStore.FindOne(model.NewRepositoryQuery().FindByID(rid))
 	s.NoError(err)
 	repo.Status = model.Fetching
-	_, err = s.store.Save(repo)
+	_, err = s.rawStore.Save(repo)
 	s.NoError(err)
 
 	err = s.a.Do(&Job{RepositoryID: uuid.UUID(rid)})
 	s.True(ErrAlreadyFetching.Is(err))
 
-	mr, err := s.store.FindOne(model.NewRepositoryQuery().FindByID(rid))
-	s.NoError(err)
-
-	s.Equal(model.Fetching, mr.Status)
-}
-
-func (s *ArchiverSuite) TestDbUpdateRepositoryStatus() {
-	rid := s.newRepositoryModel("git://foo.bar.qux")
-	repo, err := s.store.FindOne(model.NewRepositoryQuery().FindByID(rid))
-	s.NoError(err)
-
-	s.NoError(s.a.dbUpdateRepositoryStatus(repo, model.Fetching))
-
-	mr, err := s.store.FindOne(model.NewRepositoryQuery().FindByID(rid))
+	mr, err := s.rawStore.FindOne(model.NewRepositoryQuery().FindByID(rid))
 	s.NoError(err)
 
 	s.Equal(model.Fetching, mr.Status)
@@ -226,7 +216,7 @@ func (s *ArchiverSuite) TestDbUpdateRepositoryStatus() {
 func (s *ArchiverSuite) newRepositoryModel(endpoint string) kallax.ULID {
 	mr := model.NewRepository()
 	mr.Endpoints = append(mr.Endpoints, endpoint)
-	updated, err := s.store.Save(mr)
+	updated, err := s.rawStore.Save(mr)
 	s.NoError(err)
 	s.False(updated)
 

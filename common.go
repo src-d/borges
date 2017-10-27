@@ -5,9 +5,9 @@ import (
 	"io"
 
 	"github.com/satori/go.uuid"
+	"github.com/src-d/borges/storage"
 	"gopkg.in/src-d/core-retrieval.v0/model"
 	"gopkg.in/src-d/go-errors.v0"
-	"gopkg.in/src-d/go-kallax.v1"
 )
 
 var (
@@ -36,41 +36,24 @@ type JobIter interface {
 
 // RepositoryID tries to find a repository by the endpoint into the database.
 // If no repository is found, it creates a new one and returns the ID.
-func RepositoryID(endpoints []string, isFork *bool, storer *model.RepositoryStore) (uuid.UUID, error) {
-	q := make([]interface{}, len(endpoints))
-	for _, ep := range endpoints {
-		q = append(q, ep)
-	}
-
-	rs, err := storer.Find(
-		model.NewRepositoryQuery().
-			Where(kallax.And(kallax.ArrayOverlap(
-				model.Schema.Repository.Endpoints, q...,
-			))),
-	)
+func RepositoryID(endpoints []string, isFork *bool, storer storage.RepoStore) (uuid.UUID, error) {
+	repositories, err := storer.GetByEndpoints(endpoints...)
 	if err != nil {
 		return uuid.Nil, err
 	}
 
-	repositories, err := rs.All()
-	if err != nil {
-		return uuid.Nil, err
-	}
-
-	l := len(repositories)
-	switch {
-	case l == 0:
+	if len(repositories) == 0 {
 		r := model.NewRepository()
 		r.Endpoints = endpoints
 		r.IsFork = isFork
-		if _, err := storer.Save(r); err != nil {
+		if err := storer.Create(r); err != nil {
 			return uuid.Nil, err
 		}
 
 		return uuid.UUID(r.ID), nil
-	case l > 1:
-		// TODO log error printing the ids and the endpoint
 	}
+
+	// TODO log error printing the ids and the endpoint
 
 	r := repositories[0]
 
@@ -78,10 +61,7 @@ func RepositoryID(endpoints []string, isFork *bool, storer *model.RepositoryStor
 	allEndpoints, update := getUniqueEndpoints(r.Endpoints, endpoints)
 
 	if update {
-		sf := []kallax.SchemaField{model.Schema.Repository.Endpoints}
-
-		r.Endpoints = allEndpoints
-		if _, err := storer.Update(r, sf...); err != nil {
+		if err := storer.SetEndpoints(r, allEndpoints...); err != nil {
 			return uuid.Nil, err
 		}
 	}
