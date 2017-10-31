@@ -13,16 +13,20 @@ for saving storage space and keeping repositories up-to-date.
 
 ## Key concepts
 
- - **Borges producer**: a stand-alone process that reads repository URLs (from RabbitMQ or file) and schedules fetching this repository.
+ - **Borges producer**: a standalone process that reads repository URLs (from RabbitMQ or file) and schedules fetching this repository.
 
- - **Borges consumer**: a stand-alone process that takes URL from RabbitMQ, clones remote repository and pushes it to the appropriate *Rooted Repository* in the storage (local filesystem or HDFS).
+ - **Borges consumer**: a standalone process that takes URLs from RabbitMQ, clones remote repository and pushes it to the appropriate *Rooted Repository* in the storage (local filesystem or HDFS).
+
+ - **Borges packer**: a standalone process that takes repository paths (or URLs) from a file and packs them into siva files (as a *Rooted Repository*) in the given output directory.
 
  - **Rooted Repository**: a standard Git repository that stores all objects from all repositories that share common history, identified by same initial commit. It is stored in [Siva](https://github.com/src-d/go-siva) file format.
 
    ![Root Repository explanatory diagram](https://user-images.githubusercontent.com/5582506/30617179-2aba194a-9d95-11e7-8fd5-0a87c2a595f9.png)
 
-Consumers and Producers run independently, communicating though a RabbitMQ instance
-and storing repository meta-data in PostgeSQL.
+Consumer and Producer run independently, communicating though a RabbitMQ instance
+and storing repository meta-data in PostgreSQL.
+
+Packer does not need a RabbitMQ or a PostgreSQL instance and is not meant to be used as a pipeline, that's what consumer and producer are meant for.
 
 Read the borges package godoc for further details on how does borges archive
 the repositories.
@@ -123,6 +127,32 @@ borges consumer --workers=20 --loglevel=debug
 ```
 
 For more details, use `borges consumer -h`
+
+## Packer
+
+The packer runs as a one time command getting jobs from a file with a repository path (or URL) per line and distributes these jobs across many workers to group them into *Rooted Repositories* and pack them as siva files.
+
+This command does not need a PostgreSQL or a RabbitMQ connection and can be used locally without no internet connection if all the repositories to pack are local.
+
+Imagine we have the following file `repos.txt` with the repositories we want to pack:
+
+```
+git://github.com/yada/yada.git
+https://github.com/foo/bar
+file:///home/me/some-repo
+/home/me/another-repo
+```
+If no protocol is specified it will be treated as an absolute path to a repository, which can be a bare repository or a regular git repository.
+
+You can pack the previous repos running this command:
+```
+borges pack --file=repos.txt --to=/home/me/packed-repos
+```
+
+With the `--to` argument you can specify where you want the siva files stored. If the directory does not exist it will be created. If you omit this argument siva files will be stored in `$PWD/repositories` by default.
+
+For more detauls, use `borges pack -h`
+
 
 ## Administration Notes
 

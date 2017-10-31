@@ -8,6 +8,7 @@ import (
 
 	"github.com/inconshreveable/log15"
 	"github.com/satori/go.uuid"
+	"github.com/src-d/borges/storage"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"gopkg.in/src-d/core-retrieval.v0/model"
@@ -36,7 +37,7 @@ func (s *ProducerSuite) SetupSuite() {
 }
 
 func (s *ProducerSuite) newProducer() *Producer {
-	storer := model.NewRepositoryStore(s.DB)
+	storer := storage.FromDatabase(s.DB)
 	return NewProducer(log15.New(), NewMentionJobIter(s.mentionsQueue, storer), s.queue)
 }
 

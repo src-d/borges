@@ -87,6 +87,10 @@ func main() {
 		panic(err)
 	}
 
+	if _, err := parser.AddCommand(packerCmdName, packerCmdShortDesc, packerCmdLongDesc, new(packerCmd)); err != nil {
+		panic(err)
+	}
+
 	if _, err := parser.Parse(); err != nil {
 		if err, ok := err.(*flags.Error); ok {
 			if err.Type == flags.ErrHelp {

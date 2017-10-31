@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/src-d/borges"
+	"github.com/src-d/borges/storage"
 
 	"gopkg.in/src-d/core-retrieval.v0"
 	"gopkg.in/src-d/framework.v0/queue"
@@ -49,7 +50,7 @@ func (c *producerCmd) Execute(args []string) error {
 }
 
 func (c *producerCmd) jobIter(b queue.Broker) (borges.JobIter, error) {
-	storer := core.ModelRepositoryStore()
+	storer := storage.FromDatabase(core.Database())
 
 	switch c.Source {
 	case "mentions":

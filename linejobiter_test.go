@@ -1,12 +1,17 @@
 package borges
 
 import (
+	"database/sql"
+	"fmt"
 	"io"
 	"io/ioutil"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/satori/go.uuid"
+	"github.com/src-d/borges/storage"
 	"github.com/stretchr/testify/suite"
 	"gopkg.in/src-d/core-retrieval.v0/model"
 	"gopkg.in/src-d/core-retrieval.v0/test"
@@ -34,19 +39,19 @@ func (s *LineJobIterSuite) TestGetJobsWithTwoRepos() {
 https://foo/baz.git`
 	r := ioutil.NopCloser(strings.NewReader(text))
 
-	storer := model.NewRepositoryStore(s.DB)
+	storer := storage.FromDatabase(s.DB)
 
 	iter := NewLineJobIter(r, storer)
 
 	j, err := iter.Next()
 	s.NoError(err)
-	ID, err := getIDByEndpoint("git://foo/bar.git", storer)
+	ID, err := getIDByEndpoint("git://foo/bar.git", s.DB)
 	s.NoError(err)
 	s.Equal(&Job{RepositoryID: ID}, j)
 
 	j, err = iter.Next()
 	s.NoError(err)
-	ID, err = getIDByEndpoint("https://foo/baz.git", storer)
+	ID, err = getIDByEndpoint("https://foo/baz.git", s.DB)
 	s.NoError(err)
 	s.Equal(&Job{RepositoryID: ID}, j)
 
@@ -76,7 +81,7 @@ func (s *LineJobIterSuite) TestNonAbsoluteURL() {
 	text := "foo"
 	r := ioutil.NopCloser(strings.NewReader(text))
 
-	storer := model.NewRepositoryStore(s.DB)
+	storer := storage.FromDatabase(s.DB)
 
 	iter := NewLineJobIter(r, storer)
 
@@ -97,7 +102,7 @@ func (s *LineJobIterSuite) TestBadURL() {
 	text := "://"
 	r := ioutil.NopCloser(strings.NewReader(text))
 
-	storer := model.NewRepositoryStore(s.DB)
+	storer := storage.FromDatabase(s.DB)
 
 	iter := NewLineJobIter(r, storer)
 
@@ -114,10 +119,44 @@ func (s *LineJobIterSuite) TestBadURL() {
 	s.Nil(j)
 }
 
-func getIDByEndpoint(endpoint string, store *model.RepositoryStore) (uuid.UUID, error) {
+func (s *LineJobIterSuite) TestLocalPaths() {
+	require := s.Require()
+	dir, err := ioutil.TempDir(os.TempDir(), "linejobiter")
+	require.NoError(err)
+
+	bareRepo := filepath.Join(dir, "bare-repo")
+	require.NoError(os.Mkdir(bareRepo, 0755))
+
+	repo := filepath.Join(dir, "repo")
+	require.NoError(os.MkdirAll(filepath.Join(repo, ".git"), 0755))
+
+	r := ioutil.NopCloser(strings.NewReader(fmt.Sprintf("%s\n%s", bareRepo, repo)))
+
+	storer := storage.FromDatabase(s.DB)
+
+	iter := NewLineJobIter(r, storer)
+
+	j, err := iter.Next()
+	s.NoError(err)
+	ID, err := getIDByEndpoint(fmt.Sprintf("file://%s", bareRepo), s.DB)
+	s.NoError(err)
+	s.Equal(&Job{RepositoryID: ID}, j)
+
+	j, err = iter.Next()
+	s.NoError(err)
+	ID, err = getIDByEndpoint(fmt.Sprintf("file://%s/.git", repo), s.DB)
+	s.NoError(err)
+	s.Equal(&Job{RepositoryID: ID}, j)
+
+	j, err = iter.Next()
+	s.Equal(io.EOF, err)
+	s.Nil(j)
+}
+
+func getIDByEndpoint(endpoint string, db *sql.DB) (uuid.UUID, error) {
 	q := model.NewRepositoryQuery().
 		Where(kallax.ArrayContains(model.Schema.Repository.Endpoints, endpoint))
-	r, err := store.FindOne(q)
+	r, err := model.NewRepositoryStore(db).FindOne(q)
 	if err != nil {
 		return uuid.Nil, err
 	}
