@@ -1,5 +1,5 @@
-hash: 0cb16b56ac8b37df2381f3ec5cbba00ec0ee6aab7304c59f7b4c4da3133e8819
-updated: 2017-09-14T15:17:56.796986441+02:00
+hash: f363c62db00f649929961ad87a2bc5052460148aace625fb717f6d70aeaa6539
+updated: 2017-10-31T11:46:53.238339821+01:00
 imports:
 - name: github.com/colinmarc/hdfs
   version: d9614569203878ff04bb4420b929923949e855fc
@@ -20,13 +20,15 @@ imports:
   version: 04cdfd42973bb9c8589fd6a731800cf222fde1a9
   subpackages:
   - spew
+- name: github.com/go-stack/stack
+  version: 817915b46b97fd7bb80e8ab6b69f01a53ac3eebf
 - name: github.com/golang/protobuf
   version: 5a0f697c9ed9d68fef0116532c6e05cfeae00e55
   subpackages:
   - proto
   - ptypes/any
 - name: github.com/inconshreveable/log15
-  version: b105bd37f74e5d9dc7b6ad7806715c7a2b83fd3f
+  version: 0decfc6c20d9ca0ad143b0e89dcaa20f810b4fb3
 - name: github.com/jbenet/go-context
   version: d14ea06fba99483203c19d92cfcd13ebe73135f4
   subpackages:
@@ -157,7 +159,7 @@ imports:
   - schema
   - test
 - name: gopkg.in/src-d/framework.v0
-  version: f1a98e57ed5f295ca8272ebd21280f87b753786f
+  version: de3fb5b0ec70c176c0678e9b31d89d09fa8065cb
   subpackages:
   - configurable
   - database
