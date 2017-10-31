@@ -1,5 +1,5 @@
-hash: f363c62db00f649929961ad87a2bc5052460148aace625fb717f6d70aeaa6539
-updated: 2017-10-31T11:46:53.238339821+01:00
+hash: 96e9397157911de5c897f9d1ee26767546cca648507a93a97d0095c4dab072c6
+updated: 2017-10-31T15:50:31.243843465+01:00
 imports:
 - name: github.com/colinmarc/hdfs
   version: d9614569203878ff04bb4420b929923949e855fc
@@ -159,7 +159,7 @@ imports:
   - schema
   - test
 - name: gopkg.in/src-d/framework.v0
-  version: de3fb5b0ec70c176c0678e9b31d89d09fa8065cb
+  version: 0cdb1d20af0bbdec954974214ad0f5062ffe4289
   subpackages:
   - configurable
   - database

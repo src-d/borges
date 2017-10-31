@@ -33,7 +33,7 @@ import:
   - model
   - repository
 - package: gopkg.in/src-d/framework.v0
-  version: de3fb5b0ec70c176c0678e9b31d89d09fa8065cb
+  version: 0cdb1d20af0bbdec954974214ad0f5062ffe4289
   subpackages:
   - lock
   - queue

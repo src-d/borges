@@ -38,6 +38,11 @@ func (i *lineJobIter) Next() (*Job, error) {
 	}
 
 	line := string(i.Bytes())
+	// check if the line is an absolute path to a directory.
+	// If the path is a directory we can look for the .git directory to try
+	// to guess if it's a git repo or a bare repo.
+	// If .git does not exist it will be treated as a bare repo (even if it's
+	// not).
 	if path.IsAbs(line) {
 		dotGit := filepath.Join(line, ".git")
 		if _, err := os.Stat(dotGit); os.IsNotExist(err) {

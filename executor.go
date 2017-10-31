@@ -56,7 +56,10 @@ func (p *Executor) start() error {
 	for {
 		if err := p.consumeJobs(); err == io.EOF {
 			return p.wp.Close()
+		} else if err != nil {
+			p.log.Error("error consuming jobs", "err", err)
 		}
+
 		<-time.After(5 * time.Second)
 	}
 }
@@ -105,11 +108,16 @@ func (p *Executor) consumeJobs() error {
 		}
 
 		if err == queue.ErrAlreadyClosed {
-			return nil
+			return io.EOF
 		}
 
 		if err != nil {
 			return err
+		}
+
+		if j == nil {
+			_ = iter.Close()
+			return io.EOF
 		}
 
 		var job Job
