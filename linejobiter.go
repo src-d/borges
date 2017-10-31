@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"io"
 	"net/url"
+	"os"
+	"path"
+	"path/filepath"
 
 	"github.com/src-d/borges/storage"
 )
@@ -35,6 +38,17 @@ func (i *lineJobIter) Next() (*Job, error) {
 	}
 
 	line := string(i.Bytes())
+	if path.IsAbs(line) {
+		dotGit := filepath.Join(line, ".git")
+		if _, err := os.Stat(dotGit); os.IsNotExist(err) {
+			line = fmt.Sprintf("file://%s", line)
+		} else if err != nil {
+			return nil, fmt.Errorf("expecting remote or local repository, instead %q was found", line)
+		} else {
+			line = fmt.Sprintf("file://%s", dotGit)
+		}
+	}
+
 	u, err := url.Parse(line)
 	if err != nil {
 		return nil, err

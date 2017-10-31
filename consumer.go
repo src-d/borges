@@ -40,11 +40,11 @@ func (c *Consumer) Start() {
 	c.m.Unlock()
 
 	defer func() { close(c.done) }()
-Outer:
+
 	for {
 		select {
 		case <-c.quit:
-			break Outer
+			return
 		default:
 			if err := c.consumeQueue(c.Queue); err != nil {
 				c.notifyQueueError(err)
@@ -53,8 +53,6 @@ Outer:
 			c.backoff()
 		}
 	}
-
-	return
 }
 
 // Stop stops the consumer. Note that it does not close the underlying queue

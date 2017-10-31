@@ -209,7 +209,7 @@ func TestRootCommits_NoSkipParents(t *testing.T) {
 		r,
 		start,
 		map[plumbing.Hash][]model.SHA1{
-			plumbing.NewHash("a511fa38233896f50bcc8a5f8d0f30b872484852"): []model.SHA1{
+			plumbing.NewHash("a511fa38233896f50bcc8a5f8d0f30b872484852"): {
 				model.NewSHA1("8ec19d64748c54c6d047f30c81b4c444a8232b41"),
 				model.NewSHA1("04fffad6eacd4512554cb22ca3a0d6b8a38a96cc"),
 			},

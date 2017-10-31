@@ -5,25 +5,25 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/suite"
-	core "gopkg.in/src-d/core-retrieval.v0"
 	"gopkg.in/src-d/core-retrieval.v0/model"
+	"gopkg.in/src-d/core-retrieval.v0/test"
 	kallax "gopkg.in/src-d/go-kallax.v1"
 )
 
 type DatabaseSuite struct {
-	suite.Suite
+	test.Suite
 	store    *dbRepoStore
 	rawStore *model.RepositoryStore
 }
 
 func (s *DatabaseSuite) SetupTest() {
-	db := core.Database()
-	s.rawStore = model.NewRepositoryStore(db)
-	s.store = FromDatabase(db).(*dbRepoStore)
+	s.Setup()
+	s.rawStore = model.NewRepositoryStore(s.DB)
+	s.store = FromDatabase(s.DB).(*dbRepoStore)
 }
 
 func (s *DatabaseSuite) TearDownTest() {
-	s.rawStore.RawExec("DELETE FROM repositories")
+	s.TearDown()
 }
 
 func (s *DatabaseSuite) TestGet() {

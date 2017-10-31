@@ -2,8 +2,11 @@ package borges
 
 import (
 	"database/sql"
+	"fmt"
 	"io"
 	"io/ioutil"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -110,6 +113,40 @@ func (s *LineJobIterSuite) TestBadURL() {
 	j, err = iter.Next()
 	s.Equal(io.EOF, err)
 	s.Nil(j)
+
+	j, err = iter.Next()
+	s.Equal(io.EOF, err)
+	s.Nil(j)
+}
+
+func (s *LineJobIterSuite) TestLocalPaths() {
+	require := s.Require()
+	dir, err := ioutil.TempDir(os.TempDir(), "linejobiter")
+	require.NoError(err)
+
+	bareRepo := filepath.Join(dir, "bare-repo")
+	require.NoError(os.Mkdir(bareRepo, 0755))
+
+	repo := filepath.Join(dir, "repo")
+	require.NoError(os.MkdirAll(filepath.Join(repo, ".git"), 0755))
+
+	r := ioutil.NopCloser(strings.NewReader(fmt.Sprintf("%s\n%s", bareRepo, repo)))
+
+	storer := storage.FromDatabase(s.DB)
+
+	iter := NewLineJobIter(r, storer)
+
+	j, err := iter.Next()
+	s.NoError(err)
+	ID, err := getIDByEndpoint(fmt.Sprintf("file://%s", bareRepo), s.DB)
+	s.NoError(err)
+	s.Equal(&Job{RepositoryID: ID}, j)
+
+	j, err = iter.Next()
+	s.NoError(err)
+	ID, err = getIDByEndpoint(fmt.Sprintf("file://%s/.git", repo), s.DB)
+	s.NoError(err)
+	s.Equal(&Job{RepositoryID: ID}, j)
 
 	j, err = iter.Next()
 	s.Equal(io.EOF, err)
