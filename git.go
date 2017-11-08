@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"path/filepath"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/inconshreveable/log15"
@@ -28,6 +29,9 @@ const (
 	FetchRefSpec = config.RefSpec("refs/*:refs/*")
 	FetchHEAD    = config.RefSpec("HEAD:refs/heads/HEAD")
 )
+
+// gitClientMut synchronises the usage of go-git transport client.
+var gitClientMut sync.RWMutex
 
 type TemporaryRepository interface {
 	io.Closer
@@ -318,6 +322,9 @@ func (r *temporaryRepository) Push(
 		RemoteName: remoteName,
 		RefSpecs:   refspecs,
 	}
+
+	gitClientMut.RLock()
+	defer gitClientMut.RUnlock()
 	return remote.PushContext(ctx, o)
 }
 
@@ -336,8 +343,15 @@ func WithInProcRepository(r *git.Repository, f func(string) error) error {
 
 	loader := server.MapLoader{ep.String(): r.Storer}
 	s := server.NewClient(loader)
+	gitClientMut.Lock()
 	client.InstallProtocol(proto, s)
-	defer client.InstallProtocol(proto, nil)
+	gitClientMut.Unlock()
+
+	defer func() {
+		gitClientMut.Lock()
+		client.InstallProtocol(proto, nil)
+		gitClientMut.Unlock()
+	}()
 
 	return f(url)
 }
