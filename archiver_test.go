@@ -99,7 +99,8 @@ func (s *ArchiverSuite) TestCheckTimeout() {
 			var rid kallax.ULID
 			r, err := ct.OldRepository()
 			require.NoError(err)
-			err = WithInProcRepository(r, func(url string) error {
+			var hash model.SHA1
+			err = withInProcRepository(hash, r, func(url string) error {
 				rid = s.newRepositoryModel(url)
 				return s.a.Do(&Job{RepositoryID: uuid.UUID(rid)})
 			})
@@ -130,11 +131,12 @@ func (s *ArchiverSuite) TestFixtures() {
 	for _, ct := range ChangesFixtures {
 		s.T().Run(ct.TestName, func(t *testing.T) {
 			require := require.New(t)
+			var hash model.SHA1
 
 			or, err := ct.OldRepository()
 			var rid kallax.ULID
 			// emulate initial status of a repository
-			err = WithInProcRepository(or, func(url string) error {
+			err = withInProcRepository(hash, or, func(url string) error {
 				rid = s.newRepositoryModel(url)
 				return s.a.Do(&Job{RepositoryID: uuid.UUID(rid)})
 			})
@@ -143,7 +145,7 @@ func (s *ArchiverSuite) TestFixtures() {
 			nr, err := ct.NewRepository()
 			require.NoError(err)
 
-			err = WithInProcRepository(nr, func(url string) error {
+			err = withInProcRepository(hash, nr, func(url string) error {
 				mr, err := s.rawStore.FindOne(model.NewRepositoryQuery().FindByID(rid))
 				require.NoError(err)
 				mr.Endpoints = nil
