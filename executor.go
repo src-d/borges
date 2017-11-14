@@ -74,8 +74,6 @@ func (p *Executor) queueJobs() error {
 			return nil
 		}
 
-		p.log.Debug("got job", "id", job.RepositoryID)
-
 		if err != nil {
 			p.logError(err)
 			continue
