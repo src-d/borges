@@ -10,7 +10,7 @@ spec:
     spec:
       containers:
       - name: borges
-        image: quay.io/srcd/borges:v0.8.1
+        image: quay.io/srcd/borges:v0.8.2
         command: ['borges','producer','--mentionsqueue=rovers', '--metrics']
         env:
         - name: CONFIG_BROKER
