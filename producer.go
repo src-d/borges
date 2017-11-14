@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/inconshreveable/log15"
+	"github.com/src-d/borges/metrics"
 	"gopkg.in/src-d/framework.v0/queue"
 )
 
@@ -73,8 +74,10 @@ func (p *Producer) start() {
 		}
 
 		if err := p.add(j); err != nil {
+			metrics.RepoProduceFailed()
 			log.Error("error adding job to the queue", "job", j.RepositoryID, "error", err)
 		} else {
+			metrics.RepoProduced()
 			log.Info("job queued", "job", j.RepositoryID)
 		}
 	}

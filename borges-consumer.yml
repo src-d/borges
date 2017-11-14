@@ -13,10 +13,10 @@ spec:
         srcd.host/type: worker
       containers:
       - name: borges
-        image: quay.io/srcd/borges:v0.7.0
+        image: quay.io/srcd/borges:v0.8.1
         ports:
           - containerPort: 6061
-        args: ['borges','consumer','--workers=12','--loglevel=debug', '--timeout=2h']
+        args: ['borges','consumer','--workers=12','--loglevel=debug', '--timeout=2h', '--metrics']
         env:
         - name: CONFIG_BROKER
           value: 'amqp://guest:guest@rabbitmq:5672'

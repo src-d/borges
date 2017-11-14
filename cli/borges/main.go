@@ -8,6 +8,7 @@ import (
 
 	"github.com/inconshreveable/log15"
 	"github.com/jessevdk/go-flags"
+	"github.com/src-d/borges/metrics"
 )
 
 const (
@@ -29,11 +30,17 @@ type loggerCmd struct {
 type cmd struct {
 	loggerCmd
 	Queue        string `long:"queue" default:"borges" description:"queue name"`
+	Metrics      bool   `long:"metrics" description:"expose a metrics endpoint using an HTTP server"`
+	MetricsPort  int    `long:"metrics-port" description:"port to bind metrics to" default:"6062"`
 	Profiler     bool   `long:"profiler" description:"start CPU, memory and block profilers"`
 	ProfilerPort int    `long:"profiler-port" description:"port to bind profiler to" default:"6061"`
 }
 
-func (c *loggerCmd) ChangeLogLevel() {
+func (c *loggerCmd) init() {
+	c.changeLogLevel()
+}
+
+func (c *loggerCmd) changeLogLevel() {
 	lvl, err := log15.LvlFromString(c.LogLevel)
 	if err != nil {
 		panic(fmt.Sprintf("unknown level name %q", c.LogLevel))
@@ -47,14 +54,32 @@ func (c *loggerCmd) ChangeLogLevel() {
 	log15.Root().SetHandler(log15.LvlFilterHandler(lvl, log15.MultiHandler(handlers...)))
 }
 
-func (c *cmd) startProfilingHTTPServerMaybe(port int) {
+func (c *cmd) init() {
+	c.loggerCmd.init()
+	c.maybeStartProfiler()
+	c.maybeStartMetrics()
+}
+
+func (c *cmd) maybeStartProfiler() {
 	if c.Profiler {
 		addr := fmt.Sprintf("0.0.0.0:%d", c.ProfilerPort)
 		go func() {
-			log15.Debug("Started CPU, memory and block profilers at", "address", addr)
+			log.Debug("Started CPU, memory and block profilers at", "address", addr)
 			err := http.ListenAndServe(addr, nil)
 			if err != nil {
-				log15.Warn("Profiler failed to listen and serve at", "address", addr, "error", err)
+				log.Warn("Profiler failed to listen and serve at", "address", addr, "error", err)
+			}
+		}()
+	}
+}
+
+func (c *cmd) maybeStartMetrics() {
+	if c.Metrics {
+		addr := fmt.Sprintf("0.0.0.0:%d", c.MetricsPort)
+		go func() {
+			log.Debug("Started metrics service at", "address", addr)
+			if err := metrics.Start(addr); err != nil {
+				log.Warn("metrics service stopped", "err", err)
 			}
 		}()
 	}
