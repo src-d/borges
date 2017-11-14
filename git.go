@@ -4,9 +4,10 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"math/rand"
 	"path/filepath"
 	"strconv"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/inconshreveable/log15"
@@ -17,6 +18,7 @@ import (
 	"gopkg.in/src-d/go-git.v4/config"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
+	"gopkg.in/src-d/go-git.v4/plumbing/storer"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport/client"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport/server"
@@ -326,19 +328,69 @@ func (r *temporaryRepository) Close() error {
 	return util.RemoveAll(r.TempFilesystem, r.TempPath)
 }
 
-func WithInProcRepository(r *git.Repository, f func(string) error) error {
-	proto := fmt.Sprintf("borges%d", rand.Uint32())
-	url := fmt.Sprintf("%s://%s", proto, "repo")
-	ep, err := transport.NewEndpoint(url)
-	if err != nil {
-		return err
+// sivaLoader loads a go-git storer.Storer for the given endpoint,
+// which is expected to be using the siva protocol siva://<hash>
+type sivaLoader struct {
+	mut   *sync.RWMutex
+	repos map[model.SHA1]storer.Storer
+}
+
+// add associates a new hash to a go-git storer.
+func (l *sivaLoader) add(hash model.SHA1, storer storer.Storer) {
+	l.mut.Lock()
+	defer l.mut.Unlock()
+	l.repos[hash] = storer
+}
+
+// remove removes the association between a hash and its storer.
+func (l *sivaLoader) remove(hash model.SHA1) {
+	l.mut.Lock()
+	defer l.mut.Unlock()
+	delete(l.repos, hash)
+}
+
+// Load a storer from the endpoint received in format siva://[hash]
+func (l *sivaLoader) Load(ep transport.Endpoint) (storer.Storer, error) {
+	if !strings.HasPrefix(ep.String(), "siva://") {
+		return nil, transport.ErrRepositoryNotFound
 	}
 
-	loader := server.MapLoader{ep.String(): r.Storer}
-	s := server.NewClient(loader)
-	client.InstallProtocol(proto, s)
-	defer client.InstallProtocol(proto, nil)
+	l.mut.RLock()
+	defer l.mut.RUnlock()
 
+	hash := model.NewSHA1(ep.String()[len("siva://"):])
+	s, ok := l.repos[hash]
+	if !ok {
+		return nil, transport.ErrRepositoryNotFound
+	}
+
+	return s, nil
+}
+
+// defaultLoader is a rootedRepoLoader that will be used in the siva
+// protocol installation.
+var defaultLoader = &sivaLoader{
+	new(sync.RWMutex),
+	make(map[model.SHA1]storer.Storer),
+}
+
+// protoInstalled keeps the installation of the siva protocol synchronized.
+var protoInstalled sync.Once
+
+// installProtocol will install the siva protocol, making sure it's only
+// installed once.
+func installProtocol() {
+	protoInstalled.Do(func() {
+		client.InstallProtocol("siva", server.NewClient(defaultLoader))
+	})
+}
+
+func withInProcRepository(hash model.SHA1, r *git.Repository, f func(string) error) error {
+	installProtocol()
+	defaultLoader.add(hash, r.Storer)
+	defer defaultLoader.remove(hash)
+
+	url := fmt.Sprintf("siva://%s", hash)
 	return f(url)
 }
 

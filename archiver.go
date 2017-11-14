@@ -288,7 +288,7 @@ func (a *Archiver) pushChangesToRootedRepository(ctx context.Context, log log15.
 		return err
 	}
 
-	return WithInProcRepository(rr, func(url string) error {
+	return withInProcRepository(ic, rr, func(url string) error {
 		if err := StoreConfig(rr, r); err != nil {
 			_ = tx.Rollback()
 			return err
