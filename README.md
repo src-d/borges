@@ -56,6 +56,7 @@ Other important settings are:
 * `CONFIG_ROOT_REPOSITORIES_DIR`: .siva file storage. If no HDFS connection url is provided, this will be a path in local filesystem. Otherwise, it will be an HDFS directory, by default: `/tmp/root-repositories`
 * `CONFIG_LOCKING`, by default: `local:`, other options: `etcd:`
 * `CONFIG_HDFS`: (host:port) If this property is not provided, all root repositories will be stored into the local filesystem, by default: `""`
+* `CONFIG_BUCKETSIZE`, by default: `0`, number of characters used from the siva file name to create bucket directories. The value `0` means that all files will be saved at the same level.
 
 ## Producer
 
