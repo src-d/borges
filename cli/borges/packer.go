@@ -29,7 +29,7 @@ type packerCmd struct {
 }
 
 func (c *packerCmd) Execute(args []string) error {
-	c.ChangeLogLevel()
+	c.init()
 
 	log.Info("initializing pack process", "file", c.File, "output", c.OutputDir)
 

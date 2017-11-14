@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/inconshreveable/log15"
+	"github.com/src-d/borges/metrics"
 	"github.com/src-d/borges/storage"
 	"gopkg.in/src-d/core-retrieval.v0/model"
 	"gopkg.in/src-d/core-retrieval.v0/repository"
@@ -83,7 +84,22 @@ func (a *Archiver) Do(j *Job) error {
 }
 
 func (a *Archiver) do(log log15.Logger, j *Job) (err error) {
-	now := time.Now()
+	var (
+		success  bool
+		notFound bool
+		now      = time.Now()
+	)
+
+	defer func() {
+		if success {
+			metrics.RepoProcessed(time.Since(now))
+		} else if notFound {
+			metrics.RepoNotFound()
+		} else {
+			metrics.RepoFailed()
+		}
+	}()
+
 	ctx, cancel := context.WithTimeout(context.Background(), a.Timeout)
 	defer cancel()
 
@@ -104,6 +120,7 @@ func (a *Archiver) do(log log15.Logger, j *Job) (err error) {
 			"reason", err,
 		)
 
+		metrics.RepoSkipped()
 		return err
 	}
 
@@ -136,6 +153,7 @@ func (a *Archiver) do(log log15.Logger, j *Job) (err error) {
 		if err == transport.ErrRepositoryNotFound {
 			status = model.NotFound
 			finalErr = nil
+			notFound = true
 		}
 
 		if err := a.Store.UpdateFailed(r, status); err != nil {
@@ -177,6 +195,7 @@ func (a *Archiver) do(log log15.Logger, j *Job) (err error) {
 		return err
 	}
 
+	success = true
 	log.Debug("repository processed")
 	return nil
 }

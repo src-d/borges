@@ -22,8 +22,7 @@ type consumerCmd struct {
 }
 
 func (c *consumerCmd) Execute(args []string) error {
-	c.ChangeLogLevel()
-	c.startProfilingHTTPServerMaybe(c.ProfilerPort)
+	c.init()
 
 	b := core.Broker()
 	defer b.Close()

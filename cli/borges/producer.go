@@ -27,8 +27,7 @@ type producerCmd struct {
 }
 
 func (c *producerCmd) Execute(args []string) error {
-	c.ChangeLogLevel()
-	c.startProfilingHTTPServerMaybe(c.ProfilerPort + 1)
+	c.init()
 
 	b := core.Broker()
 	defer b.Close()

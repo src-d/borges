@@ -20,7 +20,7 @@ type initCmd struct {
 }
 
 func (c *initCmd) Execute(args []string) error {
-	c.ChangeLogLevel()
+	c.init()
 
 	db, err := database.Default()
 	if err != nil {
