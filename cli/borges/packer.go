@@ -86,7 +86,7 @@ func (c *packerCmd) newRootedTransactioner() (repository.RootedTransactioner, er
 		return nil, err
 	}
 
-	copier := repository.NewLocalCopier(osfs.New(c.OutputDir))
+	copier := repository.NewLocalCopier(osfs.New(c.OutputDir), 0)
 
 	return repository.NewSivaRootedTransactioner(
 		copier,
