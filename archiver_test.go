@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"os"
+	"path"
 	"strings"
 	"testing"
 	"time"
@@ -28,7 +29,8 @@ import (
 )
 
 func TestArchiver(t *testing.T) {
-	suite.Run(t, new(ArchiverSuite))
+	suite.Run(t, &ArchiverSuite{bucket: 0})
+	suite.Run(t, &ArchiverSuite{bucket: 2})
 }
 
 type ArchiverSuite struct {
@@ -42,6 +44,7 @@ type ArchiverSuite struct {
 	tmpFs    billy.Filesystem
 	rootedFs billy.Filesystem
 	a        *Archiver
+	bucket   int
 }
 
 const defaultTimeout = 1 * time.Second
@@ -67,7 +70,7 @@ func (s *ArchiverSuite) SetupTest() {
 	s.tmpFs, err = fs.Chroot("tmp")
 	s.NoError(err)
 
-	s.tx = rrepository.NewSivaRootedTransactioner(rrepository.NewLocalCopier(s.rootedFs), s.txFs)
+	s.tx = rrepository.NewSivaRootedTransactioner(rrepository.NewLocalCopier(s.rootedFs, s.bucket), s.txFs)
 
 	ls, err := lock.NewLocal().NewSession(&lock.SessionConfig{
 		Timeout: time.Second * 1,
@@ -127,6 +130,30 @@ func (s *ArchiverSuite) TestReferenceUpdate() {
 	}
 }
 
+func (s *ArchiverSuite) getFileNames(p string) ([]string, error) {
+	files := make([]string, 10)
+
+	dirents, err := s.rootedFs.ReadDir(p)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, file := range dirents {
+		if file.IsDir() {
+			f, err := s.getFileNames(path.Join(p, file.Name()))
+			if err != nil {
+				return nil, err
+			}
+
+			files = append(files, f...)
+		} else {
+			files = append(files, file.Name())
+		}
+	}
+
+	return files, nil
+}
+
 func (s *ArchiverSuite) TestFixtures() {
 	for _, ct := range ChangesFixtures {
 		s.T().Run(ct.TestName, func(t *testing.T) {
@@ -168,13 +195,13 @@ func (s *ArchiverSuite) TestFixtures() {
 			checkReferencesInDB(t, mr, ct.NewReferences)
 
 			// check references in siva files
-			fis, err := s.rootedFs.ReadDir(".")
+			fis, err := s.getFileNames(".")
 			if len(ct.NewReferences) != 0 {
 				require.NoError(err)
 				initHashesInStorage := make(map[string]bool)
 
 				for _, fi := range fis {
-					initHashesInStorage[strings.Replace(fi.Name(), ".siva", "", -1)] = true
+					initHashesInStorage[strings.Replace(fi, ".siva", "", -1)] = true
 				}
 
 				// we check that all the references that we have into the database exists as a rooted repository

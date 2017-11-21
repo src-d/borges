@@ -350,7 +350,7 @@ func (l *sivaLoader) remove(hash model.SHA1) {
 }
 
 // Load a storer from the endpoint received in format siva://[hash]
-func (l *sivaLoader) Load(ep transport.Endpoint) (storer.Storer, error) {
+func (l *sivaLoader) Load(ep *transport.Endpoint) (storer.Storer, error) {
 	if !strings.HasPrefix(ep.String(), "siva://") {
 		return nil, transport.ErrRepositoryNotFound
 	}

@@ -1,8 +1,8 @@
-hash: 96e9397157911de5c897f9d1ee26767546cca648507a93a97d0095c4dab072c6
-updated: 2017-10-31T15:50:31.243843465+01:00
+hash: 82a009cddf98cf605d3767faf66dc5d4f02f07a23d6bdd0c3873c148cf90df6d
+updated: 2017-11-21T12:03:27.570352665+01:00
 imports:
 - name: github.com/colinmarc/hdfs
-  version: d9614569203878ff04bb4420b929923949e855fc
+  version: 69e5098fa51e208a466aef9a5283b0101e6e4f54
   subpackages:
   - protocol/hadoop_common
   - protocol/hadoop_hdfs
@@ -21,7 +21,7 @@ imports:
   subpackages:
   - spew
 - name: github.com/go-stack/stack
-  version: 817915b46b97fd7bb80e8ab6b69f01a53ac3eebf
+  version: 259ab82a6cad3992b4e21ff5cac294ccb06474bc
 - name: github.com/golang/protobuf
   version: 5a0f697c9ed9d68fef0116532c6e05cfeae00e55
   subpackages:
@@ -36,27 +36,27 @@ imports:
 - name: github.com/jessevdk/go-flags
   version: 96dc06278ce32a0e9d957d590bb987c81ee66407
 - name: github.com/kelseyhightower/envconfig
-  version: 70f0258d44cbaa3b6a2581d82f58da01a38e4de4
+  version: 462fda1f11d8cad3660e52737b8beefd27acfb3f
 - name: github.com/lann/builder
   version: f22ce00fd9394014049dad11c244859432bd6820
 - name: github.com/lann/ps
   version: 62de8c46ede02a7675c4c79c84883eb164cb71e3
 - name: github.com/lib/pq
-  version: dd1fe2071026ce53f36a39112e645b4d4f5793a4
+  version: 8c6ee72f3e6bcb1542298dd5f76cb74af9742cec
   subpackages:
   - oid
 - name: github.com/Masterminds/squirrel
-  version: 3c07e090bf7ba1ae79ff08462c323e25196e164b
+  version: a6b93000bd219143c56c16e6cb1c4b91da3f224b
 - name: github.com/mattn/go-colorable
-  version: 6c0fd4aa6ec5818d5e3ea9e03ae436972a6c5a9a
+  version: 6fcc0c1fd9b620311d821b106a400b35dc95c497
 - name: github.com/mattn/go-isatty
-  version: fc9e8d8ef48496124e79ae0df75490096eccf6fe
+  version: 6ca4dbf54d38eea1a992b3c722a76a5d1c4cb25c
 - name: github.com/mitchellh/go-homedir
   version: b8bc1bf767474819792c23f32d8286a45736f1c6
 - name: github.com/oklog/ulid
-  version: 66bb6560562feca7045b23db1ae85b01260f87c5
+  version: eb55c82d96c77e196b269cb2ae3afda150454de7
 - name: github.com/pkg/errors
-  version: c605e284fe17294bda444b34710735b29d1a9d90
+  version: f15c970de5b76fac0b59abb32d62c17cc7bed265
 - name: github.com/pmezard/go-difflib
   version: d8ed2627bdf02c080bf22230dbb337003b7aba2d
   subpackages:
@@ -64,7 +64,7 @@ imports:
 - name: github.com/satori/go.uuid
   version: 879c5887cd475cd7864858769793b2ceb0d44feb
 - name: github.com/sergi/go-diff
-  version: feef008d51ad2b3778f85d387ccf91735543008d
+  version: 1744e2970ca51c86172c8190fadad617561ed6e7
   subpackages:
   - diffmatchpatch
 - name: github.com/src-d/gcfg
@@ -74,9 +74,9 @@ imports:
   - token
   - types
 - name: github.com/streadway/amqp
-  version: 2cbfe40c9341ad63ba23e53013b3ddc7989d801c
+  version: ff791c2d22d3f1588b4e2cc71a9fba5e1da90654
 - name: github.com/stretchr/testify
-  version: 05e8a0eda380579888eb53c394909df027f06991
+  version: 2aa2c176b9dab406a6970f6a55f513e8a8c8b18f
   subpackages:
   - assert
   - require
@@ -103,18 +103,18 @@ imports:
   - lex/httplex
   - trace
 - name: golang.org/x/sys
-  version: e48874b42435b4347fc52bdee0424a52abc974d7
+  version: bf42f188b9bc6f2cf5b8ee5a912ef1aedd0eba4c
   subpackages:
   - unix
 - name: golang.org/x/text
-  version: 3bd178b88a8180be2df394a1fbb81313916f0e7b
+  version: 88f656faf3f37f690df1a32515b479415e1a6769
   subpackages:
   - secure/bidirule
   - transform
   - unicode/bidi
   - unicode/norm
 - name: google.golang.org/appengine
-  version: c5a90ac045b779001847fec87403f5cba090deae
+  version: 9d8544a6b2c7df9cff240fcf92d7b2f59bc13416
   subpackages:
   - datastore
   - internal
@@ -125,7 +125,7 @@ imports:
   - internal/modules
   - internal/remote_api
 - name: google.golang.org/genproto
-  version: 09f6ed296fc66555a25fe4ce95173148778dfa85
+  version: 11c7f9e547da6db876260ce49ea7536985904c9b
   subpackages:
   - googleapis/rpc/status
 - name: google.golang.org/grpc
@@ -147,12 +147,9 @@ imports:
   - tap
   - transport
 - name: gopkg.in/inconshreveable/log15.v2
-  version: b105bd37f74e5d9dc7b6ad7806715c7a2b83fd3f
-  subpackages:
-  - stack
-  - term
+  version: 0decfc6c20d9ca0ad143b0e89dcaa20f810b4fb3
 - name: gopkg.in/src-d/core-retrieval.v0
-  version: 7426f069e342b557b38853af1e372aa664a1678f
+  version: 717f593d1c713dda02451939b54cdd537d19a326
   subpackages:
   - model
   - repository
@@ -181,7 +178,7 @@ imports:
 - name: gopkg.in/src-d/go-errors.v0
   version: 6f07baca276330431b44ece8ee84ac98167bc4ea
 - name: gopkg.in/src-d/go-git.v4
-  version: 7d1595faba108f5c6c9b678288eb5092ba555bd1
+  version: b08cc8dc5450981530af3e6f6ad1159ae8ea8705
   repo: https://github.com/src-d/go-git.git
   subpackages:
   - config
@@ -224,17 +221,17 @@ imports:
   - utils/merkletrie/internal/frame
   - utils/merkletrie/noder
 - name: gopkg.in/src-d/go-kallax.v1
-  version: 80487620b6c62eb3f558bf9863be31842912dd47
+  version: f672eea4a9b4cedc902c268f621ea6eddcad2522
   subpackages:
   - types
 - name: gopkg.in/src-d/go-siva.v1
-  version: 1b9a917e872d49accbc4f4283b4fc0beb40e91b8
+  version: b4cd504f9d6e57728058609e4540e931fbd41220
 - name: gopkg.in/vmihailenco/msgpack.v2
   version: f4f8982de4ef0de18be76456617cc3f5d8d8141e
   subpackages:
   - codes
 - name: gopkg.in/warnings.v0
-  version: 8a331561fe74dadba6edfc59f3be66c22c3b065d
+  version: ec4a0fea49c7b46c2aeb0b51aac55779c607e52b
 testImports:
 - name: github.com/alcortesm/tgz
   version: 9c5fe88206d7765837fed3732a42ef88fc51f1a1
