@@ -11,7 +11,7 @@ import (
 	core "gopkg.in/src-d/core-retrieval.v0"
 	"gopkg.in/src-d/core-retrieval.v0/repository"
 	"gopkg.in/src-d/framework.v0/queue"
-	"gopkg.in/src-d/go-billy.v3/osfs"
+	"gopkg.in/src-d/go-billy.v4/osfs"
 )
 
 const (

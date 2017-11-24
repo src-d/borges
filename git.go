@@ -12,8 +12,8 @@ import (
 
 	"github.com/inconshreveable/log15"
 	"gopkg.in/src-d/core-retrieval.v0/model"
-	"gopkg.in/src-d/go-billy.v3"
-	"gopkg.in/src-d/go-billy.v3/util"
+	"gopkg.in/src-d/go-billy.v4"
+	"gopkg.in/src-d/go-billy.v4/util"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/config"
 	"gopkg.in/src-d/go-git.v4/plumbing"
