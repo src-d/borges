@@ -1,5 +1,5 @@
-hash: 82a009cddf98cf605d3767faf66dc5d4f02f07a23d6bdd0c3873c148cf90df6d
-updated: 2017-11-21T12:03:27.570352665+01:00
+hash: da9fec73efc54d52535714dfc7ba6c4cac8e87886fbd2e3c1110b6ecadc85920
+updated: 2017-11-27T15:13:37.896581613+01:00
 imports:
 - name: github.com/colinmarc/hdfs
   version: 69e5098fa51e208a466aef9a5283b0101e6e4f54
@@ -86,9 +86,16 @@ imports:
 - name: golang.org/x/crypto
   version: dd85ac7e6a88fc6ca420478e934de5f1a42dd3c6
   subpackages:
+  - cast5
   - curve25519
   - ed25519
   - ed25519/internal/edwards25519
+  - openpgp
+  - openpgp/armor
+  - openpgp/elgamal
+  - openpgp/errors
+  - openpgp/packet
+  - openpgp/s2k
   - ssh
   - ssh/agent
   - ssh/knownhosts
@@ -106,6 +113,7 @@ imports:
   version: bf42f188b9bc6f2cf5b8ee5a912ef1aedd0eba4c
   subpackages:
   - unix
+  - windows
 - name: golang.org/x/text
   version: 88f656faf3f37f690df1a32515b479415e1a6769
   subpackages:
@@ -149,7 +157,8 @@ imports:
 - name: gopkg.in/inconshreveable/log15.v2
   version: 0decfc6c20d9ca0ad143b0e89dcaa20f810b4fb3
 - name: gopkg.in/src-d/core-retrieval.v0
-  version: 717f593d1c713dda02451939b54cdd537d19a326
+  version: 648fed91f1198add548d110f221d8dd507b38ce7
+  repo: https://github.com/src-d/core-retrieval.git
   subpackages:
   - model
   - repository
@@ -162,11 +171,11 @@ imports:
   - database
   - lock
   - queue
-- name: gopkg.in/src-d/go-billy-siva.v3
-  version: 763351934333e34370292b308c74bcb71035e22a
+- name: gopkg.in/src-d/go-billy-siva.v4
+  version: f93fdd282164999ad17f1d75eae1b435075797ae
   repo: https://github.com/src-d/go-billy-siva.git
-- name: gopkg.in/src-d/go-billy.v3
-  version: d0dc16de10d86398cc9aba4513a2453b401eceb3
+- name: gopkg.in/src-d/go-billy.v4
+  version: 8067977d87d9eb5abf9080359b978b32335a507b
   repo: https://github.com/src-d/go-billy.git
   subpackages:
   - helper/chroot
@@ -178,7 +187,7 @@ imports:
 - name: gopkg.in/src-d/go-errors.v0
   version: 6f07baca276330431b44ece8ee84ac98167bc4ea
 - name: gopkg.in/src-d/go-git.v4
-  version: b08cc8dc5450981530af3e6f6ad1159ae8ea8705
+  version: d92d437af0fb23865c79e45b4acd3d7544593260
   repo: https://github.com/src-d/go-git.git
   subpackages:
   - config
@@ -221,7 +230,7 @@ imports:
   - utils/merkletrie/internal/frame
   - utils/merkletrie/noder
 - name: gopkg.in/src-d/go-kallax.v1
-  version: f672eea4a9b4cedc902c268f621ea6eddcad2522
+  version: c2ebbd83ebfbcfc4f5974ecdb225183a521797e1
   subpackages:
   - types
 - name: gopkg.in/src-d/go-siva.v1
@@ -235,7 +244,7 @@ imports:
 testImports:
 - name: github.com/alcortesm/tgz
   version: 9c5fe88206d7765837fed3732a42ef88fc51f1a1
-- name: github.com/src-d/go-git-fixtures
-  version: 03ddd4bf3d4a1baf61e72fd8ee4746db9005f5e7
 - name: gopkg.in/check.v1
   version: 20d25e2804050c1cd24a7eea1e7a6447dd0e74ec
+- name: gopkg.in/src-d/go-git-fixtures.v3
+  version: ed7fd5f9824927bd7ba31d92f4a7073cfb95c78f

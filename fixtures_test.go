@@ -3,9 +3,9 @@ package borges
 import (
 	"time"
 
-	"github.com/src-d/go-git-fixtures"
+	"gopkg.in/src-d/go-git-fixtures.v3"
 	"gopkg.in/src-d/core-retrieval.v0/model"
-	"gopkg.in/src-d/go-billy.v3/memfs"
+	"gopkg.in/src-d/go-billy.v4/memfs"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/storage/filesystem"
