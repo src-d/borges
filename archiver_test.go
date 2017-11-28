@@ -47,7 +47,7 @@ type ArchiverSuite struct {
 	bucket   int
 }
 
-const defaultTimeout = 1 * time.Second
+const defaultTimeout = 1 * time.Minute
 
 func (s *ArchiverSuite) SetupTest() {
 	fixtures.Init()
@@ -73,7 +73,7 @@ func (s *ArchiverSuite) SetupTest() {
 	s.tx = rrepository.NewSivaRootedTransactioner(rrepository.NewLocalCopier(s.rootedFs, s.bucket), s.txFs)
 
 	ls, err := lock.NewLocal().NewSession(&lock.SessionConfig{
-		Timeout: time.Second * 1,
+		Timeout: defaultTimeout,
 	})
 	s.NoError(err)
 
