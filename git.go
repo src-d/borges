@@ -252,8 +252,11 @@ func (b *temporaryRepositoryBuilder) Clone(
 	ctx context.Context,
 	id, endpoint string,
 ) (TemporaryRepository, error) {
-	dir := filepath.Join("local_repos", id,
-		strconv.FormatInt(time.Now().UnixNano(), 10))
+	dir := filepath.Join(
+		"local_repos",
+		fmt.Sprintf("%s_%s",
+			id,
+			strconv.FormatInt(time.Now().UnixNano(), 10)))
 
 	tmpFs, err := b.TempFilesystem.Chroot(dir)
 	if err != nil {
