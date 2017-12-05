@@ -52,6 +52,7 @@ To configuring those, you can use following environment variables:
 
 Other important settings are:
 * `CONFIG_TEMP_DIR`: Local path to store temporal files needed by the Borges consumer, by default: `/tmp/sourced`
+* `CONFIG_CLEAN_TEMP_DIR`: Delete temporay directory before starting, by default: `false`
 * `CONFIG_BROKER`: by default: `amqp://localhost:5672`
 * `CONFIG_ROOT_REPOSITORIES_DIR`: .siva file storage. If no HDFS connection url is provided, this will be a path in local filesystem. Otherwise, it will be an HDFS directory, by default: `/tmp/root-repositories`
 * `CONFIG_LOCKING`, by default: `local:`, other options: `etcd:`
