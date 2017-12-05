@@ -1,5 +1,5 @@
-hash: da9fec73efc54d52535714dfc7ba6c4cac8e87886fbd2e3c1110b6ecadc85920
-updated: 2017-11-27T15:13:37.896581613+01:00
+hash: f2a480bb55998aa92a58a4ee298242bf468fe86d9bc0d9aa586677939959d0f7
+updated: 2017-12-05T11:49:53.389297887+01:00
 imports:
 - name: github.com/colinmarc/hdfs
   version: 69e5098fa51e208a466aef9a5283b0101e6e4f54
@@ -157,7 +157,7 @@ imports:
 - name: gopkg.in/inconshreveable/log15.v2
   version: 0decfc6c20d9ca0ad143b0e89dcaa20f810b4fb3
 - name: gopkg.in/src-d/core-retrieval.v0
-  version: 648fed91f1198add548d110f221d8dd507b38ce7
+  version: c95b30cba8413da91b7688a15edf95c221c44f3e
   repo: https://github.com/src-d/core-retrieval.git
   subpackages:
   - model
