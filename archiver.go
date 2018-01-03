@@ -423,6 +423,8 @@ func NewArchiverWorkerPool(
 			return err
 		}
 
+		defer lsess.Close()
+
 		a := NewArchiver(log, r, tx, tc, lsess, to)
 		return a.Do(j)
 	}
