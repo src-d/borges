@@ -195,7 +195,7 @@ docker run --name borges_consumer --link rabbitmq --link postgres \
         -v /path/to/store/repos/locally:/borges/root-repositories \
         -e CONFIG_DBUSER=testing -e CONFIG_DBPASS=testing \
         -e CONFIG_DBHOST=postgres -e CONFIG_DBNAME=testing \
-        -e CONFIG_BROKER_URL=amqp://guest:guest@rabbitmq:5672/ \
+        -e CONFIG_BROKER=amqp://guest:guest@rabbitmq:5672/ \
         -e CONFIG_ROOT_REPOSITORIES_DIR=/borges/root-repositories \
         quay.io/srcd/borges /bin/sh -c "borges init; borges consumer --loglevel=debug --workers=8"
 ```
@@ -208,7 +208,7 @@ Finally, you need to send jobs to the borges consumer using the borges producer.
 docker run --name borges_consumer --link rabbitmq --link postgres \
         -e CONFIG_DBUSER=testing -e CONFIG_DBPASS=testing \
         -e CONFIG_DBHOST=postgres -e CONFIG_DBNAME=testing \
-        -e CONFIG_BROKER_URL=amqp://guest:guest@rabbitmq:5672/ \
+        -e CONFIG_BROKER=amqp://guest:guest@rabbitmq:5672/ \
         quay.io/srcd/borges borges producer --loglevel=debug
 ```
 
@@ -219,7 +219,7 @@ docker run --name borges_consumer_file --link rabbitmq --link postgres \
         -e $(pwd):/opt/borges
         -e CONFIG_DBUSER=testing -e CONFIG_DBPASS=testing \
         -e CONFIG_DBHOST=postgres -e CONFIG_DBNAME=testing \
-        -e CONFIG_BROKER_URL=amqp://guest:guest@rabbitmq:5672/ \
+        -e CONFIG_BROKER=amqp://guest:guest@rabbitmq:5672/ \
         quay.io/srcd/borges borges producer --loglevel=debug --source=file --file=/opt/borges/repos.txt
 ```
 
