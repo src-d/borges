@@ -46,4 +46,4 @@ deploy:
     tags: true
 
 after_deploy:
-  - make docker-push
+  - make docker-push-latest
