@@ -166,10 +166,10 @@ they will just retry until it does.
 
 ## Download the images
 
-Download the latest borges image
+Download the latest borges image. Replace `[version]` with the latest [repository tag](https://quay.io/repository/srcd/borges?tag=latest&tab=tags). 
 
 ```
-docker pull quay.io/srcd/borges
+docker pull quay.io/srcd/borges:[version]
 ```
 
 And then the PostgreSQL and RabbitMQ images (you can skip this step if you already have that setup for [rovers](https://github.com/src-d/rovers)).
@@ -197,7 +197,7 @@ docker run --name borges_consumer --link rabbitmq --link postgres \
         -e CONFIG_DBHOST=postgres -e CONFIG_DBNAME=testing \
         -e CONFIG_BROKER_URL=amqp://guest:guest@rabbitmq:5672/ \
         -e CONFIG_ROOT_REPOSITORIES_DIR=/borges/root-repositories \
-        quay.io/srcd/borges /bin/sh -c "borges init; borges consumer --loglevel=debug --workers=8"
+        quay.io/srcd/borges:[version] /bin/sh -c "borges init; borges consumer --loglevel=debug --workers=8"
 ```
 
 Be sure to replace `/path/to/store/repos/locally` with the path on your hard drive where you want your root repositories (as siva files) stored.
@@ -209,7 +209,7 @@ docker run --name borges_consumer --link rabbitmq --link postgres \
         -e CONFIG_DBUSER=testing -e CONFIG_DBPASS=testing \
         -e CONFIG_DBHOST=postgres -e CONFIG_DBNAME=testing \
         -e CONFIG_BROKER_URL=amqp://guest:guest@rabbitmq:5672/ \
-        quay.io/srcd/borges borges producer --loglevel=debug
+        quay.io/srcd/borges:[version] borges producer --loglevel=debug
 ```
 
 However, you can also process just a specific list of repositories without having to setup rovers on your own. Write the repository URLs in a file, one repository per line and feed it to the borges producer with the `file` source. (This example assumes you have a `repos.txt` in the current directory).
@@ -220,7 +220,7 @@ docker run --name borges_consumer_file --link rabbitmq --link postgres \
         -e CONFIG_DBUSER=testing -e CONFIG_DBPASS=testing \
         -e CONFIG_DBHOST=postgres -e CONFIG_DBNAME=testing \
         -e CONFIG_BROKER_URL=amqp://guest:guest@rabbitmq:5672/ \
-        quay.io/srcd/borges borges producer --loglevel=debug --source=file --file=/opt/borges/repos.txt
+        quay.io/srcd/borges:[version] borges producer --loglevel=debug --source=file --file=/opt/borges/repos.txt
 ```
 
 Congratulations, now you have a fully working repository processing pipeline!
