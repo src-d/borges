@@ -423,7 +423,12 @@ func NewArchiverWorkerPool(
 			return err
 		}
 
-		defer lsess.Close()
+		defer func() {
+			err := lsess.Close()
+			if err != nil {
+				log.Error("error closing locking session", "error", err)
+			}
+		}()
 
 		a := NewArchiver(log, r, tx, tc, lsess, to)
 		return a.Do(j)
