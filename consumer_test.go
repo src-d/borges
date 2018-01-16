@@ -33,7 +33,9 @@ func (s *ConsumerSuite) TestConsumer_StartStop_FailedJob() {
 
 	c := s.newConsumer()
 
-	id := uuid.NewV4()
+	id, err := uuid.NewV4()
+	require.NoError(err)
+
 	var processedId uuid.UUID
 
 	processed := 0
@@ -64,7 +66,7 @@ func (s *ConsumerSuite) TestConsumer_StartStop_FailedJob() {
 	require.Error(timeoutChan(done, time.Second*5))
 	require.Equal(1, processed)
 
-	err := s.queue.RepublishBuried()
+	err = s.queue.RepublishBuried()
 	require.NoError(err)
 
 	require.NoError(timeoutChan(done, time.Second*10))
@@ -106,7 +108,11 @@ func (s *ConsumerSuite) TestConsumer_StartStop() {
 
 	for i := 0; i < 1; i++ {
 		job := queue.NewJob()
-		assert.NoError(job.Encode(&Job{RepositoryID: uuid.NewV4()}))
+
+		id, err := uuid.NewV4()
+		assert.NoError(err)
+
+		assert.NoError(job.Encode(&Job{RepositoryID: id}))
 		assert.NoError(s.queue.Publish(job))
 	}
 
