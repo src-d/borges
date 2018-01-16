@@ -42,13 +42,15 @@ func (s *ProducerSuite) newProducer() *Producer {
 }
 
 func (s *ProducerSuite) newJob() *queue.Job {
-	j := queue.NewJob()
+	j, err := queue.NewJob()
+	s.Assert().NoError(err)
+
 	m := &model.Mention{
 		VCS:      model.GIT,
 		Provider: "TEST_PROVIDER",
 		Endpoint: testEndpoint,
 	}
-	err := j.Encode(m)
+	err = j.Encode(m)
 	s.Assert().NoError(err)
 
 	return j

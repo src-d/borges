@@ -52,7 +52,8 @@ func (s *ConsumerSuite) TestConsumer_StartStop_FailedJob() {
 	}
 
 	for i := 0; i < 1; i++ {
-		job := queue.NewJob()
+		job, err := queue.NewJob()
+		require.NoError(err)
 		require.NoError(job.Encode(&Job{RepositoryID: id}))
 		require.NoError(s.queue.Publish(job))
 	}
@@ -107,7 +108,8 @@ func (s *ConsumerSuite) TestConsumer_StartStop() {
 	}
 
 	for i := 0; i < 1; i++ {
-		job := queue.NewJob()
+		job, err := queue.NewJob()
+		assert.NoError(err)
 
 		id, err := uuid.NewV4()
 		assert.NoError(err)
