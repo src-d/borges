@@ -1,5 +1,5 @@
-hash: f2a480bb55998aa92a58a4ee298242bf468fe86d9bc0d9aa586677939959d0f7
-updated: 2017-12-05T11:49:53.389297887+01:00
+hash: 99edc1c5afea6eab78eb6f9a597e08b8687908ba7f9f9f27e76523945d4333ee
+updated: 2018-01-16T10:22:45.444354+01:00
 imports:
 - name: github.com/colinmarc/hdfs
   version: 69e5098fa51e208a466aef9a5283b0101e6e4f54
@@ -17,7 +17,7 @@ imports:
   - etcdserver/etcdserverpb
   - mvcc/mvccpb
 - name: github.com/davecgh/go-spew
-  version: 04cdfd42973bb9c8589fd6a731800cf222fde1a9
+  version: ecdeabc65495df2dec95d7c4a4c3e021903035e5
   subpackages:
   - spew
 - name: github.com/go-stack/stack
@@ -37,32 +37,36 @@ imports:
   version: 96dc06278ce32a0e9d957d590bb987c81ee66407
 - name: github.com/kelseyhightower/envconfig
   version: 462fda1f11d8cad3660e52737b8beefd27acfb3f
+- name: github.com/kevinburke/ssh_config
+  version: 802051befeb51da415c46972b5caf36e7c33c53d
 - name: github.com/lann/builder
   version: f22ce00fd9394014049dad11c244859432bd6820
 - name: github.com/lann/ps
   version: 62de8c46ede02a7675c4c79c84883eb164cb71e3
 - name: github.com/lib/pq
-  version: 8c6ee72f3e6bcb1542298dd5f76cb74af9742cec
+  version: 83612a56d3dd153a94a629cd64925371c9adad78
   subpackages:
   - oid
 - name: github.com/Masterminds/squirrel
-  version: a6b93000bd219143c56c16e6cb1c4b91da3f224b
+  version: f3d8be4a3bca69543a71773c54dc7b44837ba14c
 - name: github.com/mattn/go-colorable
-  version: 6fcc0c1fd9b620311d821b106a400b35dc95c497
+  version: 6cc8b475d4682021d75d2cbe2bc481bec4ce98e5
 - name: github.com/mattn/go-isatty
   version: 6ca4dbf54d38eea1a992b3c722a76a5d1c4cb25c
 - name: github.com/mitchellh/go-homedir
   version: b8bc1bf767474819792c23f32d8286a45736f1c6
 - name: github.com/oklog/ulid
-  version: eb55c82d96c77e196b269cb2ae3afda150454de7
+  version: b38f8fcd3b93fd0e63dae168550d51a485185d60
+- name: github.com/pelletier/go-buffruneio
+  version: c37440a7cf42ac63b919c752ca73a85067e05992
 - name: github.com/pkg/errors
-  version: f15c970de5b76fac0b59abb32d62c17cc7bed265
+  version: e881fd58d78e04cf6d0de1217f8707c8cc2249bc
 - name: github.com/pmezard/go-difflib
-  version: d8ed2627bdf02c080bf22230dbb337003b7aba2d
+  version: 792786c7400a136282c1664665ae0a8db921c6c2
   subpackages:
   - difflib
 - name: github.com/satori/go.uuid
-  version: 879c5887cd475cd7864858769793b2ceb0d44feb
+  version: f58768cc1a7a7e77a3bd49e98cdd21419399b6a3
 - name: github.com/sergi/go-diff
   version: 1744e2970ca51c86172c8190fadad617561ed6e7
   subpackages:
@@ -74,9 +78,9 @@ imports:
   - token
   - types
 - name: github.com/streadway/amqp
-  version: ff791c2d22d3f1588b4e2cc71a9fba5e1da90654
+  version: a354ab84f102bc6eb31c9be006ca89446cf5b372
 - name: github.com/stretchr/testify
-  version: 2aa2c176b9dab406a6970f6a55f513e8a8c8b18f
+  version: 87b1dfb5b2fa649f52695dd9eae19abe404a4308
   subpackages:
   - assert
   - require
@@ -110,19 +114,19 @@ imports:
   - lex/httplex
   - trace
 - name: golang.org/x/sys
-  version: bf42f188b9bc6f2cf5b8ee5a912ef1aedd0eba4c
+  version: e48874b42435b4347fc52bdee0424a52abc974d7
   subpackages:
   - unix
   - windows
 - name: golang.org/x/text
-  version: 88f656faf3f37f690df1a32515b479415e1a6769
+  version: e19ae1496984b1c655b8044a65c0300a3c878dd3
   subpackages:
   - secure/bidirule
   - transform
   - unicode/bidi
   - unicode/norm
 - name: google.golang.org/appengine
-  version: 9d8544a6b2c7df9cff240fcf92d7b2f59bc13416
+  version: 5bee14b453b4c71be47ec1781b0fa61c2ea182db
   subpackages:
   - datastore
   - internal
@@ -133,7 +137,7 @@ imports:
   - internal/modules
   - internal/remote_api
 - name: google.golang.org/genproto
-  version: 11c7f9e547da6db876260ce49ea7536985904c9b
+  version: a8101f21cf983e773d0c1133ebc5424792003214
   subpackages:
   - googleapis/rpc/status
 - name: google.golang.org/grpc
@@ -187,7 +191,7 @@ imports:
 - name: gopkg.in/src-d/go-errors.v0
   version: 6f07baca276330431b44ece8ee84ac98167bc4ea
 - name: gopkg.in/src-d/go-git.v4
-  version: d92d437af0fb23865c79e45b4acd3d7544593260
+  version: 861e3996c09e960bfa64ec1c4141b23f6072ccee
   repo: https://github.com/src-d/go-git.git
   subpackages:
   - config
