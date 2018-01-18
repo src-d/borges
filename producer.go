@@ -86,7 +86,11 @@ func (p *Producer) start() {
 }
 
 func (p *Producer) add(j *Job) error {
-	qj := queue.NewJob()
+	qj, err := queue.NewJob()
+	if err != nil {
+		return err
+	}
+
 	if err := qj.Encode(j); err != nil {
 		return err
 	}

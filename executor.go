@@ -79,8 +79,12 @@ func (p *Executor) queueJobs() error {
 			continue
 		}
 
-		qj := queue.NewJob()
-		if err := qj.Encode(&job); err != nil {
+		qj, err := queue.NewJob()
+		if err != nil {
+			return err
+		}
+
+		if err = qj.Encode(&job); err != nil {
 			return err
 		}
 

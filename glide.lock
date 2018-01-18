@@ -1,5 +1,5 @@
-hash: f2a480bb55998aa92a58a4ee298242bf468fe86d9bc0d9aa586677939959d0f7
-updated: 2017-12-05T11:49:53.389297887+01:00
+hash: 6137884cabd96c092a707da8db04b46f41b1ceae26f382502e2226b0d9f819ee
+updated: 2018-01-17T18:03:02.792886171+01:00
 imports:
 - name: github.com/colinmarc/hdfs
   version: 69e5098fa51e208a466aef9a5283b0101e6e4f54
@@ -37,6 +37,8 @@ imports:
   version: 96dc06278ce32a0e9d957d590bb987c81ee66407
 - name: github.com/kelseyhightower/envconfig
   version: 462fda1f11d8cad3660e52737b8beefd27acfb3f
+- name: github.com/kevinburke/ssh_config
+  version: 802051befeb51da415c46972b5caf36e7c33c53d
 - name: github.com/lann/builder
   version: f22ce00fd9394014049dad11c244859432bd6820
 - name: github.com/lann/ps
@@ -55,6 +57,8 @@ imports:
   version: b8bc1bf767474819792c23f32d8286a45736f1c6
 - name: github.com/oklog/ulid
   version: eb55c82d96c77e196b269cb2ae3afda150454de7
+- name: github.com/pelletier/go-buffruneio
+  version: c37440a7cf42ac63b919c752ca73a85067e05992
 - name: github.com/pkg/errors
   version: f15c970de5b76fac0b59abb32d62c17cc7bed265
 - name: github.com/pmezard/go-difflib
@@ -62,7 +66,7 @@ imports:
   subpackages:
   - difflib
 - name: github.com/satori/go.uuid
-  version: 879c5887cd475cd7864858769793b2ceb0d44feb
+  version: 36e9d2ebbde5e3f13ab2e25625fd453271d6522e
 - name: github.com/sergi/go-diff
   version: 1744e2970ca51c86172c8190fadad617561ed6e7
   subpackages:
@@ -157,7 +161,7 @@ imports:
 - name: gopkg.in/inconshreveable/log15.v2
   version: 0decfc6c20d9ca0ad143b0e89dcaa20f810b4fb3
 - name: gopkg.in/src-d/core-retrieval.v0
-  version: c95b30cba8413da91b7688a15edf95c221c44f3e
+  version: 589b81070b58ffcbad230fb170e51ff1b66bc063
   repo: https://github.com/src-d/core-retrieval.git
   subpackages:
   - model
@@ -165,17 +169,17 @@ imports:
   - schema
   - test
 - name: gopkg.in/src-d/framework.v0
-  version: 0cdb1d20af0bbdec954974214ad0f5062ffe4289
+  version: 26d213e795a853ca89527aeedfcb0874d50d87d8
   subpackages:
   - configurable
   - database
   - lock
   - queue
 - name: gopkg.in/src-d/go-billy-siva.v4
-  version: f93fdd282164999ad17f1d75eae1b435075797ae
+  version: 593006c4c2ffd1bbf7b54f4a9cd2beb00c68054c
   repo: https://github.com/src-d/go-billy-siva.git
 - name: gopkg.in/src-d/go-billy.v4
-  version: 8067977d87d9eb5abf9080359b978b32335a507b
+  version: e940f8b62a8e61adc71f69802c1cc8305b64ec96
   repo: https://github.com/src-d/go-billy.git
   subpackages:
   - helper/chroot
@@ -187,7 +191,7 @@ imports:
 - name: gopkg.in/src-d/go-errors.v0
   version: 6f07baca276330431b44ece8ee84ac98167bc4ea
 - name: gopkg.in/src-d/go-git.v4
-  version: d92d437af0fb23865c79e45b4acd3d7544593260
+  version: e9247ce9c5ce12126f646ca3ddf0066e4829bd14
   repo: https://github.com/src-d/go-git.git
   subpackages:
   - config
@@ -234,7 +238,7 @@ imports:
   subpackages:
   - types
 - name: gopkg.in/src-d/go-siva.v1
-  version: b4cd504f9d6e57728058609e4540e931fbd41220
+  version: df707095626f384ce2dc1a83b30f9a21d69b9dfc
 - name: gopkg.in/vmihailenco/msgpack.v2
   version: f4f8982de4ef0de18be76456617cc3f5d8d8141e
   subpackages:
@@ -247,4 +251,4 @@ testImports:
 - name: gopkg.in/check.v1
   version: 20d25e2804050c1cd24a7eea1e7a6447dd0e74ec
 - name: gopkg.in/src-d/go-git-fixtures.v3
-  version: ed7fd5f9824927bd7ba31d92f4a7073cfb95c78f
+  version: a29d269c3be65e4d1b20c29133c74e0551e1aa5d
