@@ -39,8 +39,8 @@ see `borges --help` to get details about the main commands and their options.
 ## Setting up borges
 
 Borges needs a database and a message broker to do its job.
-It works with a PostgeSQL database by default and uses RabbitMQ.
-To configuring those, you can use following environment variables:
+It works with a PostgreSQL database by default and uses RabbitMQ.
+You can use the following environment variables to configure those:
 * `CONFIG_DBUSER`, by default: `testing`
 * `CONFIG_DBPASS`, by default: `testing`
 * `CONFIG_DBHOST`, by default: `0.0.0.0`
@@ -112,7 +112,7 @@ is then pushed to a specific [Rooted Repository](#key-concepts), dedicated to st
 Note that borges should be the only one creating and writing to the repository
 storage.
 
-To run a consumer instance from the command line with default configuration:
+To launch a consumer instance from the command line with default configuration:
 
     borges consumer
 
@@ -134,7 +134,7 @@ For more details, use `borges consumer -h`
 
 The packer runs as a one time command getting jobs from a file with a repository path (or URL) per line and distributes these jobs across many workers to group them into *Rooted Repositories* and pack them as siva files.
 
-This command does not need a PostgreSQL or a RabbitMQ connection and can be used locally without no internet connection if all the repositories to pack are local.
+This command does not need a PostgreSQL or a RabbitMQ connection and can be used locally without internet connection if all the repositories to pack are local.
 
 Imagine we have the following file `repos.txt` with the repositories we want to pack:
 
@@ -188,7 +188,7 @@ docker run -d --name postgres -e POSTGRES_PASSWORD=testing -p 5432:5432 -e POSTG
 docker run -d --hostname rabbitmq --name rabbitmq -p 8081:15672 -p 5672:5672 rabbitmq:3-management
 ```
 
-Now, you can start the borges consumer, the component that will be listenning for jobs and processing repositories.
+Now, you can start the borges consumer, the component that will be listening for jobs and processing repositories.
 
 ```
 docker run --name borges_consumer --link rabbitmq --link postgres \
