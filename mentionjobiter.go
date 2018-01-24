@@ -29,6 +29,9 @@ func (i *mentionJobIter) Next() (*Job, error) {
 	mention, j, err := i.getMention()
 
 	if err != nil {
+		if err == queue.ErrAlreadyClosed {
+			i.Close()
+		}
 		return nil, err
 	}
 
@@ -85,6 +88,7 @@ func getEndpoints(aliases []string, mainURL string) []string {
 
 func (i *mentionJobIter) Close() error {
 	if i.iter != nil {
+		defer func() { i.iter = nil }()
 		if err := i.iter.Close(); err != nil {
 			return err
 		}
