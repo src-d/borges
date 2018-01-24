@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"gopkg.in/src-d/core-retrieval.v0/model"
+	kallax "gopkg.in/src-d/go-kallax.v1"
 )
 
 func TestNewChanges(t *testing.T) {
@@ -20,6 +21,21 @@ func TestNewChanges(t *testing.T) {
 
 			sortChanges(changes)
 			sortChanges(ct.Changes)
+
+			// IDs in the fixtures and the real ones will not match
+			// so clear them before comparing
+			var emptyID kallax.ULID
+			for _, cmds := range changes {
+				for _, cmd := range cmds {
+					if cmd.Old != nil {
+						cmd.Old.ID = emptyID
+					}
+
+					if cmd.New != nil {
+						cmd.New.ID = emptyID
+					}
+				}
+			}
 
 			require.Equal(ct.Changes, changes)
 		})

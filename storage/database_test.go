@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"sort"
 	"testing"
 	"time"
 
@@ -117,6 +118,49 @@ func (s *DatabaseSuite) TestUpdateFetched() {
 	repo, err = s.store.Get(repo.ID)
 	require.NoError(err)
 	require.Equal(model.Fetched, repo.Status)
+}
+
+func (s *DatabaseSuite) TestUpdateWithRefsChanged() {
+	require := s.Require()
+
+	repo := s.createRepo(model.Fetching, "foo")
+	refs := []*model.Reference{
+		model.NewReference(),
+		model.NewReference(),
+	}
+
+	refs[0].Name = "foo"
+	refs[0].Repository = repo
+	refs[1].Name = "bar"
+	refs[1].Repository = repo
+
+	repo.References = refs
+
+	_, err := s.store.Save(repo)
+	require.NoError(err)
+
+	newRef := model.NewReference()
+	newRef.Repository = repo
+	newRef.Name = "baz"
+	repo.References = append(repo.References[1:], newRef)
+
+	repo.Status = model.Fetched
+	err = s.store.updateWithRefsChanged(repo, model.Schema.Repository.Status)
+	require.NoError(err)
+
+	var refStore model.ReferenceStore
+	kallax.StoreFrom(&refStore, s.store.RepositoryStore)
+	dbRefs, err := refStore.FindAll(model.NewReferenceQuery().FindByRepository(repo.ID))
+	require.NoError(err)
+
+	require.Len(dbRefs, 2)
+	refNames := []string{dbRefs[0].Name, dbRefs[1].Name}
+	sort.Strings(refNames)
+	require.Equal([]string{"bar", "baz"}, refNames)
+
+	r, err := s.store.FindOne(model.NewRepositoryQuery().FindByID(repo.ID))
+	require.NoError(err)
+	require.Equal(model.Fetched, r.Status)
 }
 
 func (s *DatabaseSuite) createRepo(status model.FetchStatus, remotes ...string) *model.Repository {

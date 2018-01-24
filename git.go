@@ -81,13 +81,13 @@ func (r gitReferencer) References() ([]*model.Reference, error) {
 			return err
 		}
 
-		refs = append(refs, &model.Reference{
-			Name:  ref.Name().String(),
-			Hash:  model.NewSHA1(ref.Hash().String()),
-			Init:  roots[0],
-			Roots: roots,
-			Time:  c.Committer.When,
-		})
+		reference := model.NewReference()
+		reference.Name = ref.Name().String()
+		reference.Hash = model.NewSHA1(ref.Hash().String())
+		reference.Init = roots[0]
+		reference.Roots = roots
+		reference.Time = c.Committer.When
+		refs = append(refs, reference)
 		return nil
 	})
 }

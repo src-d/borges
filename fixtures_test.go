@@ -3,9 +3,9 @@ package borges
 import (
 	"time"
 
-	"gopkg.in/src-d/go-git-fixtures.v3"
 	"gopkg.in/src-d/core-retrieval.v0/model"
 	"gopkg.in/src-d/go-billy.v4/memfs"
+	"gopkg.in/src-d/go-git-fixtures.v3"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/storage/filesystem"
@@ -32,10 +32,12 @@ func (f FixtureReferences) ByName(name string) *model.Reference {
 
 func withHash(h model.SHA1, r *model.Reference) *model.Reference {
 	return &model.Reference{
-		Name:  r.Name,
-		Hash:  h,
-		Init:  r.Init,
-		Roots: r.Roots,
+		ID:         r.ID,
+		Repository: r.Repository,
+		Name:       r.Name,
+		Hash:       h,
+		Init:       r.Init,
+		Roots:      r.Roots,
 		Timestamps: kallax.Timestamps{
 			CreatedAt: r.CreatedAt,
 		},
@@ -44,10 +46,12 @@ func withHash(h model.SHA1, r *model.Reference) *model.Reference {
 
 func withRoots(r *model.Reference, roots ...model.SHA1) *model.Reference {
 	return &model.Reference{
-		Name:  r.Name,
-		Hash:  r.Hash,
-		Init:  roots[0],
-		Roots: roots,
+		ID:         r.ID,
+		Repository: r.Repository,
+		Name:       r.Name,
+		Hash:       r.Hash,
+		Init:       roots[0],
+		Roots:      roots,
 		Timestamps: kallax.Timestamps{
 			CreatedAt: r.CreatedAt,
 		},
@@ -56,10 +60,12 @@ func withRoots(r *model.Reference, roots ...model.SHA1) *model.Reference {
 
 func withTime(r *model.Reference, firstSeenAt, updatedAt time.Time) *model.Reference {
 	return &model.Reference{
-		Name:  r.Name,
-		Hash:  r.Hash,
-		Init:  r.Init,
-		Roots: r.Roots,
+		ID:         r.ID,
+		Repository: r.Repository,
+		Name:       r.Name,
+		Hash:       r.Hash,
+		Init:       r.Init,
+		Roots:      r.Roots,
 		Timestamps: kallax.Timestamps{
 			CreatedAt: firstSeenAt,
 			UpdatedAt: updatedAt,
