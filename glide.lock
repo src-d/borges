@@ -161,7 +161,7 @@ imports:
 - name: gopkg.in/inconshreveable/log15.v2
   version: 0decfc6c20d9ca0ad143b0e89dcaa20f810b4fb3
 - name: gopkg.in/src-d/core-retrieval.v0
-  version: 589b81070b58ffcbad230fb170e51ff1b66bc063
+  version: 1bb87923d7c8dd4df78e96d46a254a3dcf24a360
   repo: https://github.com/src-d/core-retrieval.git
   subpackages:
   - model
