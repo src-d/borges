@@ -123,15 +123,14 @@ func addToChangesDfferenceBetweenOldAndNewRefs(
 			createdAt = oldRef.CreatedAt
 		}
 
-		newReference := &model.Reference{
-			Name:  newRef.Name,
-			Hash:  newRef.Hash,
-			Init:  newRef.Init,
-			Roots: newRef.Roots,
-			Timestamps: kallax.Timestamps{
-				CreatedAt: createdAt,
-				UpdatedAt: now,
-			},
+		newReference := model.NewReference()
+		newReference.Name = newRef.Name
+		newReference.Hash = newRef.Hash
+		newReference.Init = newRef.Init
+		newReference.Roots = newRef.Roots
+		newReference.Timestamps = kallax.Timestamps{
+			CreatedAt: createdAt,
+			UpdatedAt: now,
 		}
 		c.Add(newReference)
 
@@ -139,15 +138,15 @@ func addToChangesDfferenceBetweenOldAndNewRefs(
 	}
 
 	if newRef.Hash != oldRef.Hash {
-		updateReference := &model.Reference{
-			Name:  newRef.Name,
-			Hash:  newRef.Hash,
-			Init:  newRef.Init,
-			Roots: newRef.Roots,
-			Timestamps: kallax.Timestamps{
-				CreatedAt: oldRef.CreatedAt,
-				UpdatedAt: now,
-			},
+		updateReference := model.NewReference()
+		updateReference.Name = newRef.Name
+		updateReference.Name = newRef.Name
+		updateReference.Hash = newRef.Hash
+		updateReference.Init = newRef.Init
+		updateReference.Roots = newRef.Roots
+		updateReference.Timestamps = kallax.Timestamps{
+			CreatedAt: oldRef.CreatedAt,
+			UpdatedAt: now,
 		}
 		c.Update(oldRef, updateReference)
 	}

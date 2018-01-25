@@ -24,7 +24,7 @@ func (s *dbRepoStore) Create(repo *model.Repository) error {
 }
 
 func (s *dbRepoStore) Get(id kallax.ULID) (*model.Repository, error) {
-	q := model.NewRepositoryQuery().FindByID(id)
+	q := model.NewRepositoryQuery().WithReferences(nil).FindByID(id)
 	return s.FindOne(q)
 }
 
@@ -36,6 +36,7 @@ func (s *dbRepoStore) GetByEndpoints(endpoints ...string) ([]*model.Repository, 
 
 	rs, err := s.Find(
 		model.NewRepositoryQuery().
+			WithReferences(nil).
 			Where(kallax.And(kallax.ArrayOverlap(
 				model.Schema.Repository.Endpoints, q...,
 			))),
@@ -54,29 +55,24 @@ func (s *dbRepoStore) GetByEndpoints(endpoints ...string) ([]*model.Repository, 
 
 func (s *dbRepoStore) SetStatus(repo *model.Repository, status model.FetchStatus) error {
 	repo.Status = status
-	_, err := s.RepositoryStore.Update(
+	return s.updateWithRefsChanged(
 		repo,
 		model.Schema.Repository.Status,
 	)
-	return err
 }
 
 func (s *dbRepoStore) SetEndpoints(repo *model.Repository, endpoints ...string) error {
 	repo.Endpoints = endpoints
-	_, err := s.Update(repo, model.Schema.Repository.Endpoints)
-	return err
+	return s.updateWithRefsChanged(repo, model.Schema.Repository.Endpoints)
 }
 
 func (s *dbRepoStore) UpdateFailed(repo *model.Repository, status model.FetchStatus) error {
 	repo.Status = status
-	_, err := s.Update(repo,
+	return s.updateWithRefsChanged(repo,
 		model.Schema.Repository.UpdatedAt,
 		model.Schema.Repository.FetchErrorAt,
-		model.Schema.Repository.References,
 		model.Schema.Repository.Status,
 	)
-
-	return err
 }
 
 func (s *dbRepoStore) UpdateFetched(repo *model.Repository, fetchedAt time.Time) error {
@@ -84,15 +80,49 @@ func (s *dbRepoStore) UpdateFetched(repo *model.Repository, fetchedAt time.Time)
 	repo.FetchedAt = &fetchedAt
 	repo.LastCommitAt = lastCommitTime(repo.References)
 
-	_, err := s.Update(repo,
+	return s.updateWithRefsChanged(repo,
 		model.Schema.Repository.UpdatedAt,
 		model.Schema.Repository.FetchedAt,
 		model.Schema.Repository.LastCommitAt,
 		model.Schema.Repository.Status,
-		model.Schema.Repository.References,
 	)
+}
 
-	return err
+func (s *dbRepoStore) updateWithRefsChanged(repo *model.Repository, fields ...kallax.SchemaField) error {
+	return s.Transaction(func(store *model.RepositoryStore) error {
+		var refStore model.ReferenceStore
+		kallax.StoreFrom(&refStore, store)
+
+		refs, err := refStore.FindAll(model.NewReferenceQuery().FindByRepository(repo.ID))
+		if err != nil {
+			return err
+		}
+
+		for _, ref := range refs {
+			if err := refStore.Delete(ref); err != nil {
+				return err
+			}
+		}
+
+		for _, ref := range repo.References {
+			// Some references may come from the database, so they can't be inserted
+			// because they are marked as already persisted. Can't be updated either
+			// because we just deleted them all.
+			var emptyModel kallax.Model
+			ref.Model = emptyModel
+			// Can't use refStore.Insert(ref) because that would trigger an update on
+			// the repository, which causes an error because there are no affected rows
+			// so we have to resort to the generic store Insert, which does not perform
+			// updates/inserts of any relationships.
+			err := store.GenericStore().Insert(model.Schema.Reference.BaseSchema, ref)
+			if err != nil {
+				return err
+			}
+		}
+
+		_, err = store.Update(repo, fields...)
+		return err
+	})
 }
 
 func lastCommitTime(refs []*model.Reference) *time.Time {

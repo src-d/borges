@@ -14,7 +14,6 @@ import (
 	"github.com/inconshreveable/log15"
 	"github.com/satori/go.uuid"
 	"github.com/src-d/borges/storage"
-	"gopkg.in/src-d/go-git-fixtures.v3"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"gopkg.in/src-d/core-retrieval.v0/model"
@@ -23,6 +22,7 @@ import (
 	"gopkg.in/src-d/framework.v0/lock"
 	"gopkg.in/src-d/go-billy.v4"
 	"gopkg.in/src-d/go-billy.v4/osfs"
+	"gopkg.in/src-d/go-git-fixtures.v3"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/storage/memory"
 	"gopkg.in/src-d/go-kallax.v1"
@@ -120,7 +120,7 @@ func (s *ArchiverSuite) TestCheckTimeout() {
 func (s *ArchiverSuite) TestReferenceUpdate() {
 	for _, ct := range ChangesFixtures {
 		s.T().Run(ct.TestName, func(t *testing.T) {
-			var obtainedRefs []*model.Reference = ct.OldReferences
+			obtainedRefs := ct.OldReferences
 			for ic, cs := range ct.Changes { // emulate pushChangesToRootedRepositories() behaviour
 				obtainedRefs = updateRepositoryReferences(obtainedRefs, cs, ic)
 			}
@@ -190,7 +190,7 @@ func (s *ArchiverSuite) TestFixtures() {
 			checkReferences(t, nr, ct.NewReferences)
 
 			// check references in database
-			mr, err := s.rawStore.FindOne(model.NewRepositoryQuery().FindByID(rid))
+			mr, err := s.rawStore.FindOne(model.NewRepositoryQuery().FindByID(rid).WithReferences(nil))
 			require.NoError(err)
 			checkReferencesInDB(t, mr, ct.NewReferences)
 
