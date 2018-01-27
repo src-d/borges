@@ -1,0 +1,31 @@
+language: go
+
+go:
+  - 1.9
+  - tip
+
+go_import_path: gopkg.in/src-d/framework.v0
+
+matrix:
+  fast_finish: true
+  allow_failures:
+    - go: tip
+
+sudo: required
+
+services:
+  - docker
+  - rabbitmq
+  - postgresql
+
+before_install:
+  - export ETCD_VERSION=v3.2.0
+  - wget https://github.com/coreos/etcd/releases/download/${ETCD_VERSION}/etcd-${ETCD_VERSION}-linux-amd64.tar.gz
+  - tar xvzf etcd-${ETCD_VERSION}-linux-amd64.tar.gz
+  - sudo mv etcd-${ETCD_VERSION}-linux-amd64/etcd /usr/local/bin/
+
+install:
+  - make dependencies
+
+script:
+  - make test-coverage

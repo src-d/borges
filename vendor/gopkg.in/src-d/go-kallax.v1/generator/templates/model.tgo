@@ -1,0 +1,610 @@
+{{range .Models}}
+
+// New{{.Name}} returns a new instance of {{.Name}}.
+func New{{.Name}}({{.CtorArgs}}) {{.CtorReturns}} {
+        return {{if .CtorFunc}}{{.CtorFunc.Name}}({{.CtorArgVars}}){{else}}new({{.Name}}){{end}}
+}
+
+// GetID returns the primary key of the model.
+func (r *{{.Name}}) GetID() kallax.Identifier {
+        {{- if .ID.IsPtr}}
+        return (*{{$.IdentifierType .ID}})(r.{{.ID.Name}})
+        {{- else }}
+        return (*{{$.IdentifierType .ID}})(&r.{{.ID.Name}})
+        {{- end }}
+}
+
+// ColumnAddress returns the pointer to the value of the given column.
+func (r *{{.Name}}) ColumnAddress(col string) (interface{}, error) {
+        switch col {
+                {{$.GenColumnAddresses .}}
+        default:
+                return nil, fmt.Errorf("kallax: invalid column in {{.Name}}: %s", col)
+        }
+}
+
+// Value returns the value of the given column.
+func (r *{{.Name}}) Value(col string) (interface{}, error) {
+        switch col {
+                {{$.GenColumnValues .}}
+        default:
+                return nil, fmt.Errorf("kallax: invalid column in {{.Name}}: %s", col)
+        }
+}
+
+// NewRelationshipRecord returns a new record for the relatiobship in the given
+// field.
+func (r *{{.Name}}) NewRelationshipRecord(field string) (kallax.Record, error) {
+        {{if .Relationships -}}
+        switch field {
+        {{range .Relationships}}case "{{.Name}}":
+                return new({{$.GenTypeName .}}), nil
+        {{end}}
+        }
+        return nil, fmt.Errorf("kallax: model {{.Name}} has no relationship %s", field)
+        {{- else -}}
+        return nil, fmt.Errorf("kallax: model {{.Name}} has no relationships")
+        {{- end}}
+}
+
+// SetRelationship sets the given relationship in the given field.
+func (r *{{.Name}}) SetRelationship(field string, rel interface{}) error {
+        {{if .Relationships -}}
+        switch field {
+        {{range .Relationships}}{{if not .IsOneToManyRelationship}}case "{{.Name}}":
+                val, ok := rel.(*{{$.GenTypeName .}})
+                if !ok {
+                        return fmt.Errorf("kallax: record of type %t can't be assigned to relationship {{.Name}}", rel)
+                }
+                {{if .IsPtr}}if !val.GetID().IsEmpty() {
+                        r.{{.Name}} = val
+                }
+                {{else}}r.{{.Name}} = *val{{end}}
+                return nil
+        {{else}}case "{{.Name}}":
+                records, ok := rel.([]kallax.Record)
+                if !ok {
+                        return fmt.Errorf("kallax: relationship field %s needs a collection of records, not %T", field, rel)
+                }
+
+                r.{{.Name}} = make([]{{if $.IsPtrSlice .}}*{{end}}{{$.GenTypeName .}}, len(records))
+                for i, record := range records {
+                        rel, ok := record.(*{{$.GenTypeName . }})
+                        if !ok {
+                                return fmt.Errorf("kallax: element of type %T cannot be added to relationship %s", record, field)
+                        }
+                        r.{{.Name}}[i] = {{if not ($.IsPtrSlice .)}}*{{end}}rel
+                }
+                return nil
+        {{end}}{{end}}
+        }
+        return fmt.Errorf("kallax: model {{.Name}} has no relationship %s", field)
+        {{- else -}}
+        return fmt.Errorf("kallax: model {{.Name}} has no relationships")
+        {{- end}}
+}
+
+// {{.StoreName}} is the entity to access the records of the type {{.Name}}
+// in the database.
+type {{.StoreName}} struct {
+	*kallax.Store
+}
+
+// New{{.StoreName}} creates a new instance of {{.StoreName}}
+// using a SQL database.
+func New{{.StoreName}}(db *sql.DB) *{{.StoreName}} {
+	return &{{.StoreName}}{kallax.NewStore(db)}
+}
+
+// GenericStore returns the generic store of this store.
+func (s *{{.StoreName}}) GenericStore() *kallax.Store {
+        return s.Store
+}
+
+// SetGenericStore changes the generic store of this store.
+func (s *{{.StoreName}}) SetGenericStore(store *kallax.Store) {
+        s.Store = store
+}
+
+// Debug returns a new store that will print all SQL statements to stdout using
+// the log.Printf function.
+func (s *{{.StoreName}}) Debug() *{{.StoreName}} {
+        return &{{.StoreName}}{s.Store.Debug()}
+}
+
+// DebugWith returns a new store that will print all SQL statements using the
+// given logger function.
+func (s *{{.StoreName}}) DebugWith(logger kallax.LoggerFunc) *{{.StoreName}} {
+        return &{{.StoreName}}{s.Store.DebugWith(logger)}
+}
+
+{{if .HasNonInverses}}
+func (s *{{.StoreName}}) relationshipRecords(record *{{.Name}}) []modelSaveFunc {
+        var result []modelSaveFunc
+        {{range .NonInverses}}
+        {{if .IsOneToManyRelationship}}
+        for i := range record.{{.Name}} {
+                r := {{if not ($.IsPtrSlice .)}}&{{end}}record.{{.Name}}[i]
+                if !r.IsSaving() {
+                        r.AddVirtualColumn("{{.ForeignKey}}", record.GetID())
+                        result = append(result, func(store *kallax.Store) error {
+                                _, err := (&{{.TypeSchemaName}}Store{store}).Save(r)
+                                return err
+                        })
+                }
+        }
+        {{else}}
+        if {{if .IsPtr}}record.{{.Name}} != nil{{else}}!record.{{.Name}}.GetID().IsEmpty(){{end}} && !record.{{.Name}}.IsSaving() {
+                r := {{if not .IsPtr}}&{{end}}record.{{.Name}}
+                r.AddVirtualColumn("{{.ForeignKey}}", record.GetID())
+                result = append(result, func(store *kallax.Store) error {
+                        _, err := (&{{.TypeSchemaName}}Store{store}).Save(r)
+                        return err
+                })
+        }
+        {{end}}
+        {{end}}
+        return result
+}
+{{end}}
+
+{{if .HasInverses}}
+func (s *{{.StoreName}}) inverseRecords(record *{{.Name}}) []modelSaveFunc {
+        var result []modelSaveFunc
+        {{range .Inverses}}
+        if {{if .IsPtr}}record.{{.Name}} != nil{{else}}!record.{{.Name}}.GetID().IsEmpty(){{end}} && !record.{{.Name}}.IsSaving() {
+                record.AddVirtualColumn("{{.ForeignKey}}", record.{{.Name}}.GetID())
+                result = append(result, func(store *kallax.Store) error {
+                        _, err := (&{{.TypeSchemaName}}Store{store}).Save({{if not .IsPtr}}&{{end}}record.{{.Name}})
+                        return err
+                })
+        }
+        {{end}}
+        return result
+}
+{{end}}
+
+// Insert inserts a {{.Name}} in the database. A non-persisted object is
+// required for this operation.
+func (s *{{.StoreName}}) Insert(record *{{.Name}}) error {
+        record.SetSaving(true)
+        defer record.SetSaving(false)
+
+        {{$.GenTimeTruncations .}}
+        {{if .Events.Has "BeforeSave"}}
+        if err := record.BeforeSave(); err != nil {
+                return err
+        }
+        {{end}}{{if .Events.Has "BeforeInsert"}}
+        if err := record.BeforeInsert(); err != nil {
+                return err
+        }
+        {{end}}
+        {{if .HasRelationships}}
+        {{if .HasNonInverses}}
+        records := s.relationshipRecords(record)
+        {{end}}
+        {{if .HasInverses}}
+        inverseRecords := s.inverseRecords(record)
+        {{end}}
+        if {{if .HasNonInverses}}len(records) > 0{{end}} {{if and (.HasNonInverses) (.HasInverses)}}||{{end}} {{if .HasInverses}}len(inverseRecords) > 0{{end}} {
+                return s.Store.Transaction(func(s *kallax.Store) error {
+                        {{if .HasInverses}}
+                        for _, r := range inverseRecords {
+                                if err := r(s); err != nil {
+                                        return err
+                                }
+                        }
+                        {{end}}
+                        if err := s.Insert(Schema.{{.Name}}.BaseSchema, record); err != nil {
+                                return err
+                        }
+                        {{if .HasNonInverses}}
+                        for _, r := range records {
+                                if err := r(s); err != nil {
+                                        return err
+                                }
+                        }
+                        {{end}}
+
+                        {{if .Events.Has "AfterInsert"}}
+                        if err := record.AfterInsert(); err != nil {
+                                return err
+                        }
+                        {{end}}
+                        {{if .Events.Has "AfterSave"}}
+                        if err := record.AfterSave(); err != nil {
+                                return err
+                        }
+                        {{end}}
+                        return nil
+                })
+        }
+        {{end}}
+
+        {{if or (.Events.Has "AfterInsert") (.Events.Has "AfterSave")}}
+        return s.Store.Transaction(func(s *kallax.Store) error {
+                if err := s.Insert(Schema.{{.Name}}.BaseSchema, record); err != nil {
+                        return err
+                }
+
+                {{if .Events.Has "AfterInsert"}}
+                if err := record.AfterInsert(); err != nil {
+                        return err
+                }
+                {{end}}
+                {{if .Events.Has "AfterSave"}}
+                if err := record.AfterSave(); err != nil {
+                        return err
+                }
+                {{end}}
+                return nil
+        })
+        {{else}}
+        return s.Store.Insert(Schema.{{.Name}}.BaseSchema, record)
+        {{end}}
+}
+
+// Update updates the given record on the database. If the columns are given,
+// only these columns will be updated. Otherwise all of them will be.
+// Be very careful with this, as you will have a potentially different object
+// in memory but not on the database.
+// Only writable records can be updated. Writable objects are those that have
+// been just inserted or retrieved using a query with no custom select fields.
+func (s *{{.StoreName}}) Update(record *{{.Name}}, cols ...kallax.SchemaField) (updated int64, err error) {
+        {{$.GenTimeTruncations .}}
+
+        record.SetSaving(true)
+        defer record.SetSaving(false)
+        {{if .Events.Has "BeforeSave"}}
+        if err := record.BeforeSave(); err != nil {
+                return 0, err
+        }
+        {{end}}
+        {{if .Events.Has "BeforeUpdate"}}
+        if err := record.BeforeUpdate(); err != nil {
+                return 0, err
+        }
+        {{end}}
+        {{if .HasRelationships}}
+        {{if .HasNonInverses}}
+        records := s.relationshipRecords(record)
+        {{end}}
+        {{if .HasInverses}}
+        inverseRecords := s.inverseRecords(record)
+        {{end}}
+        if {{if .HasNonInverses}}len(records) > 0{{end}} {{if and (.HasNonInverses) (.HasInverses)}}||{{end}} {{if .HasInverses}}len(inverseRecords) > 0{{end}} {
+                err = s.Store.Transaction(func(s *kallax.Store) error {
+                        {{if .HasInverses}}
+                        for _, r := range inverseRecords {
+                                if err := r(s); err != nil {
+                                        return err
+                                }
+                        }
+                        {{end}}
+
+                        updated, err = s.Update(Schema.{{.Name}}.BaseSchema, record, cols...)
+                        if err != nil {
+                                return err
+                        }
+
+                        {{if .HasNonInverses}}
+                        for _, r := range records {
+                                if err := r(s); err != nil {
+                                        return err
+                                }
+                        }
+                        {{end}}
+
+                        {{if .Events.Has "AfterUpdate"}}
+                        if err := record.AfterUpdate(); err != nil {
+                                return err
+                        }
+                        {{end}}
+                        {{if .Events.Has "AfterSave"}}
+                        if err := record.AfterSave(); err != nil {
+                                return err
+                        }
+                        {{end}}
+                        return nil
+                })
+                if err != nil {
+                        return 0, err
+                }
+
+                return updated, nil
+        }
+        {{end}}
+        {{if or (.Events.Has "AfterUpdate") (.Events.Has "AfterSave")}}
+        err = s.Store.Transaction(func(s *kallax.Store) error {
+                updated, err = s.Update(Schema.{{.Name}}.BaseSchema, record, cols...)
+                if err != nil {
+                        return err
+                }
+
+                {{if .Events.Has "AfterUpdate"}}
+                if err := record.AfterUpdate(); err != nil {
+                        return err
+                }
+                {{end}}
+                {{if .Events.Has "AfterSave"}}
+                if err := record.AfterSave(); err != nil {
+                        return err
+                }
+                {{end}}
+                return nil
+        })
+
+        if err != nil {
+                return 0, err
+        }
+        return updated, nil
+        {{else}}
+        return s.Store.Update(Schema.{{.Name}}.BaseSchema, record, cols...)
+        {{end}}
+}
+
+// Save inserts the object if the record is not persisted, otherwise it updates
+// it. Same rules of Update and Insert apply depending on the case.
+func (s *{{.StoreName}}) Save(record *{{.Name}}) (updated bool,  err error) {
+	if !record.IsPersisted() {
+		return false, s.Insert(record)
+	}
+
+	rowsUpdated, err := s.Update(record)
+	if err != nil {
+		return false, err
+	}
+
+	return rowsUpdated > 0, nil
+}
+
+// Delete removes the given record from the database.
+func (s *{{.StoreName}}) Delete(record *{{.Name}}) error {
+        {{if .Events.Has "BeforeDelete"}}
+        if err := record.BeforeDelete(); err != nil {
+                return err
+        }
+        {{end}}
+        {{if .Events.Has "AfterDelete"}}
+        return s.Store.Transaction(func (s *kallax.Store) error {
+                err := s.Delete(Schema.{{.Name}}.BaseSchema, record)
+                if err != nil {
+                        return err
+                }
+
+                return record.AfterDelete()
+        })
+        {{else}}
+	return s.Store.Delete(Schema.{{.Name}}.BaseSchema, record)
+        {{end}}
+}
+
+// Find returns the set of results for the given query.
+func (s *{{.StoreName}}) Find(q *{{.QueryName}}) (*{{.ResultSetName}}, error) {
+	rs, err := s.Store.Find(q)
+	if err != nil {
+		return nil, err
+	}
+
+	return New{{.ResultSetName}}(rs), nil
+}
+
+// MustFind returns the set of results for the given query, but panics if there
+// is any error.
+func (s *{{.StoreName}}) MustFind(q *{{.QueryName}}) *{{.ResultSetName}} {
+	return New{{.ResultSetName}}(s.Store.MustFind(q))
+}
+
+// Count returns the number of rows that would be retrieved with the given
+// query.
+func (s *{{.StoreName}}) Count(q *{{.QueryName}}) (int64, error) {
+	return s.Store.Count(q)
+}
+
+// MustCount returns the number of rows that would be retrieved with the given
+// query, but panics if there is an error.
+func (s *{{.StoreName}}) MustCount(q *{{.QueryName}}) int64 {
+	return s.Store.MustCount(q)
+}
+
+// FindOne returns the first row returned by the given query.
+// `ErrNotFound` is returned if there are no results.
+func (s *{{.StoreName}}) FindOne(q *{{.QueryName}}) (*{{.Name}}, error) {
+	q.Limit(1)
+        q.Offset(0)
+        rs, err := s.Find(q)
+        if err != nil {
+                return nil, err
+        }
+
+        if !rs.Next() {
+                return nil, kallax.ErrNotFound
+        }
+
+        record, err := rs.Get()
+        if err != nil {
+                return nil, err
+        }
+
+        if err := rs.Close(); err != nil {
+                return nil, err
+        }
+
+        return record, nil
+}
+
+// FindAll returns a list of all the rows returned by the given query.
+func (s *{{.StoreName}}) FindAll(q *{{.QueryName}}) ([]*{{.Name}}, error) {
+        rs, err := s.Find(q)
+        if err != nil {
+                return nil, err
+        }
+
+        return rs.All()
+}
+
+// MustFindOne returns the first row retrieved by the given query. It panics
+// if there is an error or if there are no rows.
+func (s *{{.StoreName}}) MustFindOne(q *{{.QueryName}}) *{{.Name}} {
+        record, err := s.FindOne(q)
+        if err != nil {
+                panic(err)
+        }
+        return record
+}
+
+// Reload refreshes the {{.Name}} with the data in the database and
+// makes it writable.
+func (s *{{.StoreName}}) Reload(record *{{.Name}}) error {
+        return s.Store.Reload(Schema.{{.Name}}.BaseSchema, record)
+}
+
+// Transaction executes the given callback in a transaction and rollbacks if
+// an error is returned.
+// The transaction is only open in the store passed as a parameter to the
+// callback.
+func (s *{{.StoreName}}) Transaction(callback func(*{{.StoreName}}) error) error {
+        if callback == nil {
+                return kallax.ErrInvalidTxCallback
+        }
+
+        return s.Store.Transaction(func(store *kallax.Store) error {
+                return callback(&{{.StoreName}}{store})
+        })
+}
+
+{{range .Relationships}}
+{{if .IsOneToManyRelationship}}
+// Remove{{.Name}} removes the given items of the {{.Name}} field of the
+// model. If no items are given, it removes all of them.
+// The items will also be removed from the passed record inside this method.
+// Note that is required that `{{.Name}}` is not empty. This method clears the
+// the elements of {{.Name}} in a model, it does not retrieve them to know
+// what relationships the model has.
+func (s *{{.Model.StoreName}}) Remove{{.Name}}(record *{{.Model.Name}}, deleted ...{{if $.IsPtrSlice .}}*{{end}}{{$.GenTypeName .}}) error {
+        var updated []{{if $.IsPtrSlice .}}*{{end}}{{$.GenTypeName .}}
+        var clear bool
+        if len(deleted) == 0 {
+                clear = true
+                deleted = record.{{.Name}}
+                if len(deleted) == 0 {
+                        return nil
+                }
+        }
+
+        if len(deleted) > 1 {
+                err := s.Store.Transaction(func(s *kallax.Store) error {
+                        for _, d := range deleted {
+                                var r kallax.Record = {{if not ($.IsPtrSlice .)}}&{{end}}d
+
+                                if beforeDeleter, ok := r.(kallax.BeforeDeleter); ok {
+                                        if err := beforeDeleter.BeforeDelete(); err != nil {
+                                                return err
+                                        }
+                                }
+
+                                if err := s.Delete(Schema.{{.TypeSchemaName}}.BaseSchema, {{if not ($.IsPtrSlice .)}}&{{end}}d); err != nil {
+                                        return err
+                                }
+
+                                if afterDeleter, ok := r.(kallax.AfterDeleter); ok {
+                                        if err := afterDeleter.AfterDelete(); err != nil {
+                                                return err
+                                        }
+                                }
+                        }
+                        return nil
+                })
+
+                if err != nil {
+                        return err
+                }
+
+                if clear {
+                        record.{{.Name}} = nil
+                        return nil
+                }
+        } else {
+                var r kallax.Record = {{if not ($.IsPtrSlice .)}}&{{end}}deleted[0]
+                if beforeDeleter, ok := r.(kallax.BeforeDeleter); ok {
+                        if err := beforeDeleter.BeforeDelete(); err != nil {
+                                return err
+                        }
+                }
+
+                var err error
+                if afterDeleter, ok := r.(kallax.AfterDeleter); ok {
+                        err = s.Store.Transaction(func (s *kallax.Store) error {
+                                err := s.Delete(Schema.{{.TypeSchemaName}}.BaseSchema, r)
+                                if err != nil {
+                                        return err
+                                }
+
+                                return afterDeleter.AfterDelete()
+                        })
+                } else {
+                        err = s.Store.Delete(Schema.{{.TypeSchemaName}}.BaseSchema, {{if not ($.IsPtrSlice .)}}&{{end}}deleted[0])
+                }
+
+                if err != nil {
+                        return err
+                }
+        }
+
+        for _, r := range record.{{.Name}} {
+                var found bool
+                for _, d := range deleted {
+                        if d.GetID().Equals(r.GetID()) {
+                                found = true
+                                break
+                        }
+                }
+                if !found {
+                        updated = append(updated, r)
+                }
+        }
+        record.{{.Name}} = updated
+        return nil
+}
+{{- else if not .IsInverse -}}
+// Remove{{.Name}} removes from the database the given relationship of the
+// model. It also resets the field {{.Name}} of the model.
+func (s *{{.Model.StoreName}}) Remove{{.Name}}(record *{{.Model.Name}}) error {
+        var r kallax.Record = {{if not .IsPtr}}&{{end}}record.{{.Name}}
+        if beforeDeleter, ok := r.(kallax.BeforeDeleter); ok {
+                if err := beforeDeleter.BeforeDelete(); err != nil {
+                        return err
+                }
+        }
+
+        var err error
+        if afterDeleter, ok := r.(kallax.AfterDeleter); ok {
+                err = s.Store.Transaction(func (s *kallax.Store) error {
+                        err := s.Delete(Schema.{{.TypeSchemaName}}.BaseSchema, r)
+                        if err != nil {
+                                return err
+                        }
+
+                        return afterDeleter.AfterDelete()
+                })
+        } else {
+                err = s.Store.Delete(Schema.{{.TypeSchemaName}}.BaseSchema, r)
+        }
+        if err != nil {
+                return err
+        }
+
+        record.{{.Name}} = {{if .IsPtr}}nil{{else}}{{$.GenTypeName .}}{}{{end}}
+        return nil
+}
+{{- end -}}
+{{- end -}}
+
+{{template "query" .}}
+
+{{$.GenFindBy .}}
+
+{{template "resultset" .}}
+
+{{end}}

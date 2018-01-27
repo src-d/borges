@@ -1,0 +1,270 @@
+package kallax
+
+import (
+	"database/sql"
+	"fmt"
+	"os"
+	"testing"
+
+	"github.com/stretchr/testify/require"
+)
+
+func envOrDefault(key string, def string) string {
+	v := os.Getenv(key)
+	if v == "" {
+		v = def
+	}
+	return v
+}
+
+func openTestDB() (*sql.DB, error) {
+	return sql.Open("postgres", fmt.Sprintf(
+		"postgres://%s:%s@0.0.0.0:5432/%s?sslmode=disable",
+		envOrDefault("DBUSER", "testing"),
+		envOrDefault("DBPASS", "testing"),
+		envOrDefault("DBNAME", "testing"),
+	))
+}
+
+func setupTables(t *testing.T, db *sql.DB) {
+	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS model (
+		id serial PRIMARY KEY,
+		name varchar(255) not null,
+		email varchar(255) not null,
+		age int not null
+	)`)
+	require.NoError(t, err)
+
+	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS rel (
+		id serial PRIMARY KEY,
+		model_id integer,
+		foo text
+	)`)
+	require.NoError(t, err)
+}
+
+func teardownTables(t *testing.T, db *sql.DB) {
+	_, err := db.Exec("DROP TABLE model")
+	require.NoError(t, err)
+	_, err = db.Exec("DROP TABLE rel")
+	require.NoError(t, err)
+}
+
+type model struct {
+	Model
+	ID    int64 `pk:"autoincr"`
+	Name  string
+	Email string
+	Age   int
+	Rel   *rel
+	Rels  []*rel
+}
+
+func newModel(name, email string, age int) *model {
+	m := &model{Model: NewModel(), Name: name, Email: email, Age: age}
+	return m
+}
+
+func (m *model) Value(col string) (interface{}, error) {
+	switch col {
+	case "id":
+		return m.ID, nil
+	case "name":
+		return m.Name, nil
+	case "email":
+		return m.Email, nil
+	case "age":
+		return m.Age, nil
+	}
+	return nil, fmt.Errorf("kallax: column does not exist: %s", col)
+}
+
+func (m *model) ColumnAddress(col string) (interface{}, error) {
+	switch col {
+	case "id":
+		return &m.ID, nil
+	case "name":
+		return &m.Name, nil
+	case "email":
+		return &m.Email, nil
+	case "age":
+		return &m.Age, nil
+	}
+	return nil, fmt.Errorf("kallax: column does not exist: %s", col)
+}
+
+func (m *model) NewRelationshipRecord(field string) (Record, error) {
+	switch field {
+	case "rel":
+		return new(rel), nil
+	case "rels":
+		return new(rel), nil
+	}
+	return nil, fmt.Errorf("kallax: no relationship found for field %s", field)
+}
+
+func (m *model) SetRelationship(field string, record interface{}) error {
+	switch field {
+	case "rel":
+		rel, ok := record.(*rel)
+		if !ok {
+			return fmt.Errorf("kallax: can't set relationship %s with a record of type %t", field, record)
+		}
+		m.Rel = rel
+		return nil
+	case "rels":
+		rels, ok := record.([]Record)
+		if !ok {
+			return fmt.Errorf("kallax: can't set relationship %s with value of type %T", field, record)
+		}
+		m.Rels = make([]*rel, len(rels))
+		for i, r := range rels {
+			rel, ok := r.(*rel)
+			if !ok {
+				return fmt.Errorf("kallax: can't set element of relationship %s with element of type %T", field, r)
+			}
+			m.Rels[i] = rel
+		}
+		return nil
+	}
+	return fmt.Errorf("kallax: no relationship found for field %s", field)
+}
+
+func (m *model) GetID() Identifier {
+	return (*NumericID)(&m.ID)
+}
+
+type rel struct {
+	Model
+	ID  int64 `pk:"autoincr"`
+	Foo string
+}
+
+func newRel(id Identifier, foo string) *rel {
+	rel := &rel{NewModel(), 0, foo}
+	rel.AddVirtualColumn("model_id", id)
+	return rel
+}
+
+func (r *rel) GetID() Identifier {
+	return (*NumericID)(&r.ID)
+}
+
+func (m *rel) Value(col string) (interface{}, error) {
+	switch col {
+	case "id":
+		return m.ID, nil
+	case "model_id":
+		return m.VirtualColumn(col), nil
+	case "foo":
+		return m.Foo, nil
+	}
+	return nil, fmt.Errorf("kallax: column does not exist: %s", col)
+}
+
+func (m *rel) ColumnAddress(col string) (interface{}, error) {
+	switch col {
+	case "id":
+		return &m.ID, nil
+	case "model_id":
+		return VirtualColumn(col, m, new(NumericID)), nil
+	case "foo":
+		return &m.Foo, nil
+	}
+	return nil, fmt.Errorf("kallax: column does not exist: %s", col)
+}
+
+func (m *rel) NewRelationshipRecord(field string) (Record, error) {
+	return nil, fmt.Errorf("kallax: no relationship found for field %s", field)
+}
+
+func (m *rel) SetRelationship(field string, record interface{}) error {
+	return fmt.Errorf("kallax: no relationship found for field %s", field)
+}
+
+type onlyPkModel struct {
+	Model
+	ID int64 `pk:"autoincr"`
+}
+
+func newOnlyPkModel() *onlyPkModel {
+	m := new(onlyPkModel)
+	return m
+}
+
+func (m *onlyPkModel) Value(col string) (interface{}, error) {
+	switch col {
+	case "id":
+		return m.ID, nil
+	}
+	return nil, fmt.Errorf("kallax: column does not exist: %s", col)
+}
+
+func (m *onlyPkModel) ColumnAddress(col string) (interface{}, error) {
+	switch col {
+	case "id":
+		return &m.ID, nil
+	}
+	return nil, fmt.Errorf("kallax: column does not exist: %s", col)
+}
+
+func (m *onlyPkModel) NewRelationshipRecord(field string) (Record, error) {
+	return nil, fmt.Errorf("kallax: no relationship found for field %s", field)
+}
+
+func (m *onlyPkModel) SetRelationship(field string, record interface{}) error {
+	return fmt.Errorf("kallax: no relationship found for field %s", field)
+}
+
+func (m *onlyPkModel) GetID() Identifier {
+	return (*NumericID)(&m.ID)
+}
+
+var ModelSchema = NewBaseSchema(
+	"model",
+	"__model",
+	f("id"),
+	ForeignKeys{
+		"rel":     NewForeignKey("model_id", false),
+		"rels":    NewForeignKey("model_id", false),
+		"rel_inv": NewForeignKey("model_id", true),
+	},
+	func() Record {
+		return new(model)
+	},
+	true,
+	f("id"),
+	f("name"),
+	f("email"),
+	f("age"),
+)
+
+var RelSchema = NewBaseSchema(
+	"rel",
+	"__rel",
+	f("id"),
+	ForeignKeys{},
+	func() Record {
+		return new(rel)
+	},
+	true,
+	f("id"),
+	f("model_id"),
+	f("foo"),
+)
+
+var onlyPkModelSchema = NewBaseSchema(
+	"model",
+	"__model",
+	f("id"),
+	nil,
+	func() Record {
+		return new(onlyPkModel)
+	},
+	true,
+	f("id"),
+)
+
+func f(name string) SchemaField {
+	return NewSchemaField(name)
+}
