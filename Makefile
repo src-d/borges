@@ -1,19 +1,18 @@
 # Package configuration
 PROJECT = borges
 COMMANDS = cli/borges
-GOFLAGS = -tags norwfs
+GO_TAGS = norwfs
 
 DOCKER_REGISTRY = quay.io
 DOCKER_ORG = srcd
 
 # Including ci Makefile
-MAKEFILE = Makefile.main
-CI_REPOSITORY = https://github.com/src-d/ci.git
-CI_FOLDER = .ci
+CI_REPOSITORY ?= https://github.com/src-d/ci.git
+CI_PATH ?= $(shell pwd)/.ci
+CI_VERSION ?= v1
 
+MAKEFILE := $(CI_PATH)/Makefile.main
 $(MAKEFILE):
-	@git clone --quiet $(CI_REPOSITORY) $(CI_FOLDER); \
-	cp $(CI_FOLDER)/$(MAKEFILE) .;
+	git clone --quiet --branch $(CI_VERSION) --depth 1 $(CI_REPOSITORY) $(CI_PATH);
 
 -include $(MAKEFILE)
-

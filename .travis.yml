@@ -12,10 +12,6 @@ matrix:
 env:
   - DBUSER=postgres DBPASS=
 
-cache:
-  directories:
-    - $HOME/.glide
-
 services:
   - docker
   - postgresql
@@ -23,9 +19,6 @@ services:
 
 addons:
   postgresql: "9.6"
-
-install:
-  - make dependencies
 
 before_script:
   - psql -c 'create database testing;' -U postgres
@@ -46,4 +39,4 @@ deploy:
     tags: true
 
 after_deploy:
-  - make docker-push-latest
+  - DOCKER_PUSH_LATEST=1 make docker-push
