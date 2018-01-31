@@ -400,9 +400,8 @@
     "utils/merkletrie/internal/frame",
     "utils/merkletrie/noder"
   ]
-  revision = "e9247ce9c5ce12126f646ca3ddf0066e4829bd14"
+  revision = "5d5b95168c9ed9f3210ddca5ce220fe3dbbebc0c"
   source = "https://github.com/src-d/go-git.git"
-  version = "v4.1.0"
 
 [[projects]]
   name = "gopkg.in/src-d/go-kallax.v1"
@@ -437,6 +436,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "b93af3d0ff319ae3e964bbb4ec023bf20686d37bfe88941fdb6ade8fa25db234"
+  inputs-digest = "32e8f8ddf342a66123c4d72775c5c20c20da84e14ad3bef670600a18ab22a207"
   solver-name = "gps-cdcl"
   solver-version = 1
