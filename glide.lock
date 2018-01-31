@@ -1,5 +1,5 @@
-hash: 6137884cabd96c092a707da8db04b46f41b1ceae26f382502e2226b0d9f819ee
-updated: 2018-01-17T18:03:02.792886171+01:00
+hash: a75029e8f5816aed7f0399cba817bb3b16affae73bb64c57a307c2f1bf920c16
+updated: 2018-01-31T11:26:54.860792236+01:00
 imports:
 - name: github.com/colinmarc/hdfs
   version: 69e5098fa51e208a466aef9a5283b0101e6e4f54
@@ -191,7 +191,7 @@ imports:
 - name: gopkg.in/src-d/go-errors.v0
   version: 6f07baca276330431b44ece8ee84ac98167bc4ea
 - name: gopkg.in/src-d/go-git.v4
-  version: e9247ce9c5ce12126f646ca3ddf0066e4829bd14
+  version: 5d5b95168c9ed9f3210ddca5ce220fe3dbbebc0c
   repo: https://github.com/src-d/go-git.git
   subpackages:
   - config
@@ -238,7 +238,7 @@ imports:
   subpackages:
   - types
 - name: gopkg.in/src-d/go-siva.v1
-  version: df707095626f384ce2dc1a83b30f9a21d69b9dfc
+  version: b4cd504f9d6e57728058609e4540e931fbd41220
 - name: gopkg.in/vmihailenco/msgpack.v2
   version: f4f8982de4ef0de18be76456617cc3f5d8d8141e
   subpackages:
