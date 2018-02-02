@@ -191,7 +191,7 @@ imports:
 - name: gopkg.in/src-d/go-errors.v0
   version: 6f07baca276330431b44ece8ee84ac98167bc4ea
 - name: gopkg.in/src-d/go-git.v4
-  version: 5d5b95168c9ed9f3210ddca5ce220fe3dbbebc0c
+  version: 98916b85c6fe08f2be5a235db43957d493ba37b9
   repo: https://github.com/src-d/go-git.git
   subpackages:
   - config
