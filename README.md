@@ -55,6 +55,7 @@ Other important settings are:
 * `CONFIG_CLEAN_TEMP_DIR`: Delete temporay directory before starting, by default: `false`
 * `CONFIG_BROKER`: by default: `amqp://localhost:5672`
 * `CONFIG_ROOT_REPOSITORIES_DIR`: .siva file storage. If no HDFS connection url is provided, this will be a path in local filesystem. Otherwise, it will be an HDFS directory, by default: `/tmp/root-repositories`
+* `CONFIG_ROOT_REPOSITORIES_TEMP_DIR`: where `siva.copy` files are temporary placed. If no HDFS connection url is provided, this will be a local path. If not, it will be an HDFS folder, by default: `/tmp/root-repositories-dot-copy`
 * `CONFIG_LOCKING`, by default: `local:`, other options: `etcd:`
 * `CONFIG_HDFS`: (host:port) If this property is not provided, all root repositories will be stored into the local filesystem, by default: `""`
 * `CONFIG_BUCKETSIZE`, by default: `0`, number of characters used from the siva file name to create bucket directories. The value `0` means that all files will be saved at the same level.
@@ -271,4 +272,3 @@ Use `make test-coverage` to run all tests and produce a coverage report.
 ## License
 
 GPLv3, see [LICENSE](LICENSE)
-
