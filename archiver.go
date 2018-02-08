@@ -113,6 +113,19 @@ func (a *Archiver) do(log log15.Logger, j *Job) (err error) {
 		"last-fetch", r.FetchedAt,
 		"references", len(r.References))
 
+	defer func() {
+		if rcv := recover(); rcv != nil {
+			log.Error("panic while processing repository", "error", rcv)
+
+			r.FetchErrorAt = &now
+			if sErr := a.Store.UpdateFailed(r, model.Pending); sErr != nil {
+				log15.Error("error setting repo as failed", "id", r.ID, "err", err)
+			}
+
+			err = fmt.Errorf(rcv.(string))
+		}
+	}()
+
 	if err := a.canProcessRepository(r); err != nil {
 		log.Warn("cannot process repository",
 			"id", r.ID.String(),
