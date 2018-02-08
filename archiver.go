@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/inconshreveable/log15"
+	"github.com/jpillora/backoff"
 	"github.com/src-d/borges/metrics"
 	"github.com/src-d/borges/storage"
 	"gopkg.in/src-d/core-retrieval.v0/model"
@@ -17,9 +19,6 @@ import (
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport"
 	"gopkg.in/src-d/go-kallax.v1"
-
-	"github.com/inconshreveable/log15"
-	"github.com/jpillora/backoff"
 )
 
 var (
