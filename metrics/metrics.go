@@ -19,6 +19,7 @@ var (
 	reposProcessingAvgTime = expvar.NewFloat("repos_processing_avgtime")
 
 	reposNotFound = expvar.NewInt("repos_not_found")
+	reposPrivate  = expvar.NewInt("repos_private")
 	reposFailed   = expvar.NewInt("repos_failed")
 	reposSkipped  = expvar.NewInt("repos_skipped")
 
@@ -41,6 +42,11 @@ func RepoProcessed(elapsed time.Duration) {
 // RepoNotFound increments the counter of repositories not found.
 func RepoNotFound() {
 	reposNotFound.Add(1)
+}
+
+// RepoPrivate increments the counter of private repositories.
+func RepoPrivate() {
+	reposPrivate.Add(1)
 }
 
 // RepoFailed increments the counter of repositories failed.

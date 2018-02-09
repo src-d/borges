@@ -225,6 +225,17 @@ func (s *ArchiverSuite) TestNotExistingRepository() {
 	s.Equal(model.NotFound, mr.Status)
 }
 
+func (s *ArchiverSuite) TestPrivateRepository() {
+	rid := s.newRepositoryModel("https://github.com/src-d/company")
+	err := s.a.Do(&Job{RepositoryID: uuid.UUID(rid)})
+	s.NoError(err)
+
+	mr, err := s.rawStore.FindOne(model.NewRepositoryQuery().FindByID(rid))
+	s.NoError(err)
+
+	s.Equal(model.Private, mr.Status)
+}
+
 func (s *ArchiverSuite) TestProcessingRepository() {
 	rid := s.newRepositoryModel("git://foo.bar.baz")
 	repo, err := s.rawStore.FindOne(model.NewRepositoryQuery().FindByID(rid))
