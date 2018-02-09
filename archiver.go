@@ -153,6 +153,11 @@ func (a *Archiver) do(log log15.Logger, j *Job) (err error) {
 		)
 
 		metrics.RepoSkipped()
+		r.FetchErrorAt = &now
+		if updateErr := a.Store.UpdateFailed(r, model.Pending); updateErr != nil {
+			return ErrSetStatus.Wrap(updateErr, model.Pending)
+		}
+
 		return err
 	}
 
