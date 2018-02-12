@@ -4,9 +4,11 @@ import (
 	"io"
 	"os"
 	"path"
+	"strings"
 
 	"github.com/colinmarc/hdfs"
 	"gopkg.in/src-d/go-billy.v4"
+	errors "gopkg.in/src-d/go-errors.v0"
 )
 
 // addBucketName prepends the bucket dir name to the file name. The number of
@@ -90,9 +92,34 @@ type HDFSCopier struct {
 	bucketSize int
 }
 
+var HDFSNamenodeError = errors.NewKind("HDFS namenode error")
+var errorsToCatchFromHDFS = []string{
+	"no available namenodes",
+	"org.apache.hadoop.hdfs.server.namenode.SafeModeException",
+}
+
+func (c *HDFSCopier) freeClient(err error) (wrapped error) {
+	wrapped = err
+	if err != nil {
+		for _, HDFSError := range errorsToCatchFromHDFS {
+			if strings.Contains(err.Error(), HDFSError) {
+				wrapped = HDFSNamenodeError.Wrap(err)
+				c.client = nil
+				break
+			}
+		}
+	}
+
+	return
+}
+
 // CopyFromRemote copies the file from HDFS to the provided billy Filesystem. If the file exists locally is overridden.
 // If a writer is actually overriding the file on HDFS, we will able to read it, but a previous version of it.
 func (c *HDFSCopier) CopyFromRemote(src, dst string, localFs billy.Filesystem) (err error) {
+	defer func() {
+		err = c.freeClient(err)
+	}()
+
 	if err := c.initializeClient(); err != nil {
 		return err
 	}
@@ -131,6 +158,10 @@ func (c *HDFSCopier) deleteIfExists(file string) error {
 // If other writer is actually copying the same file to HDFS this method will throw an error because the WORM principle
 // (Write Once Read Many).
 func (c *HDFSCopier) CopyToRemote(src, dst string, localFs billy.Filesystem) (err error) {
+	defer func() {
+		err = c.freeClient(err)
+	}()
+
 	bDst := addBucketName(dst, c.bucketSize)
 	p := path.Join(c.base, bDst)
 	if err := c.initializeClient(); err != nil {

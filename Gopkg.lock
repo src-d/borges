@@ -309,7 +309,7 @@
     "schema",
     "test"
   ]
-  revision = "bbe522c2a349a253ad0afaba8ca083c1b9e7da7c"
+  revision = "80f130f0acc3d791cb8b4c43cd42a0770dde3ee8"
   source = "https://github.com/src-d/core-retrieval.git"
 
 [[projects]]

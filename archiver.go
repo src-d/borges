@@ -84,22 +84,7 @@ func (a *Archiver) Do(j *Job) error {
 }
 
 func (a *Archiver) do(log log15.Logger, j *Job) (err error) {
-	var (
-		success  bool
-		notFound bool
-		now      = time.Now()
-	)
-
-	defer func() {
-		if success {
-			metrics.RepoProcessed(time.Since(now))
-		} else if notFound {
-			metrics.RepoNotFound()
-		} else {
-			metrics.RepoFailed()
-		}
-	}()
-
+	now := time.Now()
 	ctx, cancel := context.WithTimeout(context.Background(), a.Timeout)
 	defer cancel()
 
@@ -107,6 +92,19 @@ func (a *Archiver) do(log log15.Logger, j *Job) (err error) {
 	if err != nil {
 		return err
 	}
+
+	defer func() {
+		switch r.Status {
+		case model.Fetched:
+			metrics.RepoProcessed(time.Since(now))
+		case model.NotFound:
+			metrics.RepoNotFound()
+		case model.Private:
+			metrics.RepoPrivate()
+		default:
+			metrics.RepoFailed()
+		}
+	}()
 
 	log.Debug("repository model obtained",
 		"status", r.Status,
@@ -153,7 +151,9 @@ func (a *Archiver) do(log log15.Logger, j *Job) (err error) {
 		if err == transport.ErrRepositoryNotFound {
 			status = model.NotFound
 			finalErr = nil
-			notFound = true
+		} else if err == transport.ErrAuthenticationRequired {
+			status = model.Private
+			finalErr = nil
 		}
 
 		if err := a.Store.UpdateFailed(r, status); err != nil {
@@ -195,7 +195,6 @@ func (a *Archiver) do(log log15.Logger, j *Job) (err error) {
 		return err
 	}
 
-	success = true
 	log.Debug("repository processed")
 	return nil
 }
