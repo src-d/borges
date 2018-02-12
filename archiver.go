@@ -145,18 +145,12 @@ func (a *Archiver) do(log log15.Logger, j *Job) (err error) {
 		}
 	}()
 
-	if err := a.canProcessRepository(r); err != nil {
+	if err := a.canProcessRepository(r, &now); err != nil {
 		log.Warn("cannot process repository",
 			"id", r.ID.String(),
 			"last-fetch", r.FetchedAt,
 			"reason", err,
 		)
-
-		metrics.RepoSkipped()
-		r.FetchErrorAt = &now
-		if updateErr := a.Store.UpdateFailed(r, model.Pending); updateErr != nil {
-			return ErrSetStatus.Wrap(updateErr, model.Pending)
-		}
 
 		return err
 	}
@@ -238,12 +232,21 @@ func (a *Archiver) do(log log15.Logger, j *Job) (err error) {
 	return nil
 }
 
-func (a *Archiver) canProcessRepository(repo *model.Repository) error {
+func (a *Archiver) canProcessRepository(repo *model.Repository, now *time.Time) (err error) {
+	defer func() {
+		if err != nil {
+			repo.FetchErrorAt = now
+			if updateErr := a.Store.UpdateFailed(repo, model.Pending); updateErr != nil {
+				err = ErrSetStatus.Wrap(updateErr, model.Pending)
+			}
+		}
+	}()
+
 	if repo.Status == model.Fetching {
-		return ErrAlreadyFetching.New(repo.ID)
+		err = ErrAlreadyFetching.New(repo.ID)
 	}
 
-	return nil
+	return
 }
 
 func (a *Archiver) getRepositoryModel(j *Job) (*model.Repository, error) {
