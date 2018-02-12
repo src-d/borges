@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	goerrors "github.com/go-errors/errors"
 	"github.com/inconshreveable/log15"
 	"github.com/jpillora/backoff"
 	"github.com/src-d/borges/metrics"
@@ -141,7 +142,7 @@ func (a *Archiver) do(log log15.Logger, j *Job) (err error) {
 				log15.Error("error setting repo as failed", "id", r.ID, "err", err)
 			}
 
-			err = fmt.Errorf("%v", rcv)
+			err = fmt.Errorf("%v", goerrors.Wrap(rcv, 3).ErrorStack())
 		}
 	}()
 
