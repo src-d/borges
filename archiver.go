@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/inconshreveable/log15"
+	"github.com/jpillora/backoff"
 	"github.com/src-d/borges/metrics"
 	"github.com/src-d/borges/storage"
 	"gopkg.in/src-d/core-retrieval.v0/model"
@@ -39,6 +40,8 @@ var (
 type Archiver struct {
 	log log15.Logger
 
+	backoff *backoff.Backoff
+
 	// TemporaryCloner is used to clone repositories into temporary storage.
 	TemporaryCloner TemporaryCloner
 
@@ -62,11 +65,29 @@ func NewArchiver(log log15.Logger, r storage.RepoStore,
 	ls lock.Session, to time.Duration) *Archiver {
 	return &Archiver{
 		log:                 log,
+		backoff:             newBackoff(),
 		TemporaryCloner:     tc,
 		Timeout:             to,
 		Store:               r,
 		RootedTransactioner: tx,
 		LockSession:         ls,
+	}
+}
+
+const maxRetries = 5
+
+func newBackoff() *backoff.Backoff {
+	const (
+		minDuration = 100 * time.Millisecond
+		maxDuration = 30 * time.Second
+		factor      = 4
+	)
+
+	return &backoff.Backoff{
+		Min:    minDuration,
+		Max:    maxDuration,
+		Factor: factor,
+		Jitter: true,
 	}
 }
 
@@ -297,7 +318,7 @@ func (a *Archiver) pushChangesToRootedRepositories(ctx context.Context, ctxLog l
 
 func (a *Archiver) pushChangesToRootedRepository(ctx context.Context, log log15.Logger, r *model.Repository, tr TemporaryRepository, ic model.SHA1, changes []*Command) error {
 	var rootedRepoCpStart = time.Now()
-	tx, err := a.RootedTransactioner.Begin(plumbing.Hash(ic))
+	tx, err := a.beginTxWithRetries(log, plumbing.Hash(ic), maxRetries)
 	sivaCpFromDuration := time.Now().Sub(rootedRepoCpStart)
 	log.Debug("Copy siva file from HDFS", "RootedRepository", ic, "copyFromRemote", int64(sivaCpFromDuration/time.Second))
 	if err != nil {
@@ -328,11 +349,43 @@ func (a *Archiver) pushChangesToRootedRepository(ctx context.Context, log log15.
 		log.Debug("1 change pushed", "took", onlyPushDurationSec)
 
 		var rootedRepoCpStart = time.Now()
-		err = tx.Commit()
+		err = a.commitTxWithRetries(log, ic, tx, maxRetries)
 		sivaCpToDuration := time.Now().Sub(rootedRepoCpStart)
 		log.Debug("Copy siva file to HDFS", "RootedRepository", ic, "copyToRemote", int64(sivaCpToDuration/time.Second))
 		return err
 	})
+}
+
+func (a *Archiver) beginTxWithRetries(log log15.Logger, initCommit plumbing.Hash, numRetries float64) (tx repository.Tx, err error) {
+	for a.backoff.Attempt() < numRetries {
+		tx, err = a.RootedTransactioner.Begin(initCommit)
+		if err == nil || !repository.HDFSNamenodeError.Is(err) {
+			break
+		}
+
+		tts := a.backoff.Duration()
+		log.Error("Waiting for HDFS reconnection", "RootedRepository", initCommit, "tx", "begin", "wait", tts, "error", err)
+		time.Sleep(tts)
+	}
+
+	a.backoff.Reset()
+	return
+}
+
+func (a *Archiver) commitTxWithRetries(log log15.Logger, initCommit model.SHA1, tx repository.Tx, numRetries float64) (err error) {
+	for a.backoff.Attempt() < numRetries {
+		err = tx.Commit()
+		if err == nil || !repository.HDFSNamenodeError.Is(err) {
+			break
+		}
+
+		tts := a.backoff.Duration()
+		log.Error("Waiting for HDFS reconnection", "RootedRepository", initCommit, "tx", "commit", "wait", tts, "error", err)
+		time.Sleep(tts)
+	}
+
+	a.backoff.Reset()
+	return
 }
 
 func (a *Archiver) changesToPushRefSpec(id kallax.ULID, changes []*Command) []config.RefSpec {
