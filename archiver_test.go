@@ -313,3 +313,31 @@ func checkNoFiles(t *testing.T, fs billy.Filesystem) {
 		checkNoFiles(t, fsr)
 	}
 }
+
+func (s *ArchiverSuite) TestCanProcessRepository() {
+	const endpoint = "git@github.com:rick/morty.git"
+	var (
+		now       = time.Now()
+		endpoints = []string{endpoint}
+		isFork    = false
+	)
+
+	_, err := RepositoryID(endpoints, &isFork, s.store)
+	s.NoError(err)
+
+	modelRepos, err := s.store.GetByEndpoints(endpoint)
+	s.NoError(err)
+	s.Assertions.True(len(modelRepos) == 1)
+
+	modelRepo := modelRepos[0]
+	s.Assertions.True(modelRepo.Status == model.Pending)
+
+	// simulate a wrong status in the main queue
+	s.NoError(s.store.SetStatus(modelRepo, model.Fetching))
+
+	// the repo can't be processed
+	s.Error(s.a.canProcessRepository(modelRepo, &now))
+
+	// the status after the error must be 'pending'
+	s.Assertions.True(modelRepo.Status == model.Pending)
+}
