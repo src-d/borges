@@ -271,21 +271,6 @@ func (q *AMQPQueue) PublishDelayed(j *Job, delay time.Duration) error {
 // RepublishBuried will republish in the main queue all the jobs that timed out without Ack
 // or were Rejected with requeue = False.
 func (q *AMQPQueue) RepublishBuried() error {
-	var buriedJobs []*Job
-	err := q.getBuriedJobs(&buriedJobs)
-	if err != nil {
-		return err
-	}
-
-	for _, j := range buriedJobs {
-		if err = q.Publish(j); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (q *AMQPQueue) getBuriedJobs(jobs *[]*Job) error {
 	if q.buriedQueue == nil {
 		return fmt.Errorf("buriedQueue is nil, called RepublishBuried on the internal buried queue?")
 	}
@@ -324,7 +309,10 @@ func (q *AMQPQueue) getBuriedJobs(jobs *[]*Job) error {
 		}
 
 		retries = 0
-		*jobs = append(*jobs, j)
+
+		if err = q.Publish(j); err != nil {
+			return err
+		}
 	}
 }
 

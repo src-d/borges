@@ -327,7 +327,7 @@
     "lock",
     "queue"
   ]
-  revision = "26d213e795a853ca89527aeedfcb0874d50d87d8"
+  revision = "0a07356ba7e9b1b9a9f793cbf5303cb55488a4e5"
 
 [[projects]]
   name = "gopkg.in/src-d/go-billy-siva.v4"
