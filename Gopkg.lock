@@ -75,6 +75,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/jpillora/backoff"
+  packages = ["."]
+  revision = "8eab2debe79d12b7bd3d10653910df25fa9552ba"
+
+[[projects]]
+  branch = "master"
   name = "github.com/kelseyhightower/envconfig"
   packages = ["."]
   revision = "462fda1f11d8cad3660e52737b8beefd27acfb3f"
@@ -436,6 +442,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "32e8f8ddf342a66123c4d72775c5c20c20da84e14ad3bef670600a18ab22a207"
+  inputs-digest = "8d37213135d510cd026049b92c23b829ba86949875cb6084ba8177e5f887e574"
   solver-name = "gps-cdcl"
   solver-version = 1
