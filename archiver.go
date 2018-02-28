@@ -3,6 +3,7 @@ package borges
 import (
 	"context"
 	"fmt"
+	"runtime/debug"
 	"strings"
 	"time"
 
@@ -141,7 +142,7 @@ func (a *Archiver) do(log log15.Logger, j *Job) (err error) {
 				log15.Error("error setting repo as failed", "id", r.ID, "err", err)
 			}
 
-			err = fmt.Errorf("%v", rcv)
+			err = fmt.Errorf("%v: %s", rcv, debug.Stack())
 		}
 	}()
 
