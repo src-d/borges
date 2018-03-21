@@ -250,7 +250,7 @@ func (s *ArchiverSuite) TestProcessingRepository() {
 	mr, err := s.rawStore.FindOne(model.NewRepositoryQuery().FindByID(rid))
 	s.NoError(err)
 
-	s.Equal(model.Fetching, mr.Status)
+	s.Equal(model.Pending, mr.Status)
 }
 
 func (s *ArchiverSuite) newRepositoryModel(endpoint string) kallax.ULID {
