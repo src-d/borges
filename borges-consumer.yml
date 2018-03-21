@@ -13,7 +13,7 @@ spec:
         srcd.host/type: worker
       containers:
       - name: borges
-        image: quay.io/srcd/borges:v0.8.2
+        image: quay.io/srcd/borges:v0.12.0
         ports:
           - containerPort: 6061
         args: ['borges','consumer','--workers=12','--loglevel=debug', '--timeout=2h', '--metrics']
@@ -32,6 +32,8 @@ spec:
           value: /borges/tmp
         - name: CONFIG_ROOT_REPOSITORIES_DIR
           value: /borges/root-repositories
+        - name: CONFIG_ROOT_REPOSITORIES_TEMP_DIR
+          value: /borges/tmp
         - name: CONFIG_LOCKING
           value: 'etcd:http://etcd:2379'
         - name: HADOOP_USER_NAME
