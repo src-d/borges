@@ -42,6 +42,19 @@
   revision = "04cdfd42973bb9c8589fd6a731800cf222fde1a9"
 
 [[projects]]
+  name = "github.com/emirpasic/gods"
+  packages = [
+    "containers",
+    "lists",
+    "lists/arraylist",
+    "trees",
+    "trees/binaryheap",
+    "utils"
+  ]
+  revision = "f6c17b524822278a87e3b3bd809fec33b51f5b46"
+  version = "v1.9.0"
+
+[[projects]]
   name = "github.com/go-stack/stack"
   packages = ["."]
   revision = "259ab82a6cad3992b4e21ff5cac294ccb06474bc"
@@ -406,8 +419,9 @@
     "utils/merkletrie/internal/frame",
     "utils/merkletrie/noder"
   ]
-  revision = "5d5b95168c9ed9f3210ddca5ce220fe3dbbebc0c"
+  revision = "1d28459504251497e0ce6132a0fadd5eb44ffd22"
   source = "https://github.com/src-d/go-git.git"
+  version = "v4.2.0"
 
 [[projects]]
   name = "gopkg.in/src-d/go-kallax.v1"
@@ -442,6 +456,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "8d37213135d510cd026049b92c23b829ba86949875cb6084ba8177e5f887e574"
+  inputs-digest = "7933de107f4858acec7eb3f6a24a0efad2156c2c2418334900e7d629cf1f786c"
   solver-name = "gps-cdcl"
   solver-version = 1
