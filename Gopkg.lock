@@ -359,9 +359,9 @@
     "osfs",
     "util"
   ]
-  revision = "e940f8b62a8e61adc71f69802c1cc8305b64ec96"
+  revision = "027dceab1aa836eb310d92c2eb2266e4dc9f4b81"
   source = "https://github.com/src-d/go-billy.git"
-  version = "v4.0.2"
+  version = "v4.1.0"
 
 [[projects]]
   name = "gopkg.in/src-d/go-errors.v0"
