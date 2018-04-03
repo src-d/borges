@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -24,10 +25,24 @@ type producerCmd struct {
 	MentionsQueue   string `long:"mentionsqueue" default:"rovers" description:"queue name used to obtain mentions if the source type is 'mentions'"`
 	File            string `long:"file" description:"path to a file to read URLs from, used with --source=file"`
 	RepublishBuried bool   `long:"republish-buried" description:"republishes again all buried jobs before starting to listen for mentions, used with --source=mentions"`
+	Priority        uint8  `long:"priority" default:"4" description:"priority used to enqueue jobs, goes from 0 (lowest) to 8 (highest)"`
+}
+
+func checkPriority(prio uint8) error {
+	if prio > 8 {
+		return errors.New("Priority must be between 0 and 8")
+	}
+
+	return nil
 }
 
 func (c *producerCmd) Execute(args []string) error {
 	c.init()
+
+	err := checkPriority(c.Priority)
+	if err != nil {
+		return err
+	}
 
 	b := core.Broker()
 	defer b.Close()
@@ -42,7 +57,7 @@ func (c *producerCmd) Execute(args []string) error {
 	}
 	defer ioutil.CheckClose(ji, &err)
 
-	p := borges.NewProducer(log, ji, q)
+	p := borges.NewProducer(log, ji, q, queue.Priority(c.Priority))
 	p.Start()
 
 	return err
