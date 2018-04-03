@@ -359,9 +359,9 @@
     "osfs",
     "util"
   ]
-  revision = "027dceab1aa836eb310d92c2eb2266e4dc9f4b81"
+  revision = "df053870ae7070b0350624ba5a22161ba3796cc0"
   source = "https://github.com/src-d/go-billy.git"
-  version = "v4.1.0"
+  version = "v4.1.1"
 
 [[projects]]
   name = "gopkg.in/src-d/go-errors.v0"
@@ -419,9 +419,9 @@
     "utils/merkletrie/internal/frame",
     "utils/merkletrie/noder"
   ]
-  revision = "1d28459504251497e0ce6132a0fadd5eb44ffd22"
+  revision = "247cf690745dfd67ccd9f0c07878e6dd85e6c9ed"
   source = "https://github.com/src-d/go-git.git"
-  version = "v4.2.0"
+  version = "v4.2.1"
 
 [[projects]]
   name = "gopkg.in/src-d/go-kallax.v1"
@@ -456,6 +456,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "7933de107f4858acec7eb3f6a24a0efad2156c2c2418334900e7d629cf1f786c"
+  inputs-digest = "1b981a90541df45f095752ded5b4ea6143a3760797d90314a1b530d0577e7d8e"
   solver-name = "gps-cdcl"
   solver-version = 1
