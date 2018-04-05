@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"os"
 
@@ -29,8 +28,8 @@ type producerCmd struct {
 }
 
 func checkPriority(prio uint8) error {
-	if prio > 8 {
-		return errors.New("Priority must be between 0 and 8")
+	if prio > uint8(queue.PriorityUrgent) {
+		return fmt.Errorf("Priority must be between 0 and %d", queue.PriorityUrgent)
 	}
 
 	return nil
