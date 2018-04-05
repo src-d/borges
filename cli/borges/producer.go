@@ -3,7 +3,10 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 
+	flags "github.com/jessevdk/go-flags"
 	"github.com/src-d/borges"
 	"github.com/src-d/borges/storage"
 
@@ -24,7 +27,21 @@ type producerCmd struct {
 	MentionsQueue   string `long:"mentionsqueue" default:"rovers" description:"queue name used to obtain mentions if the source type is 'mentions'"`
 	File            string `long:"file" description:"path to a file to read URLs from, used with --source=file"`
 	RepublishBuried bool   `long:"republish-buried" description:"republishes again all buried jobs before starting to listen for mentions, used with --source=mentions"`
-	Priority        uint8  `long:"priority" default:"4" description:"priority used to enqueue jobs, goes from 0 (lowest) to 8 (highest)"`
+	Priority        uint8  `long:"priority" default:"4" description:"priority used to enqueue jobs, goes from 0 (lowest) to :MAX: (highest)"`
+}
+
+// Changes the priority description and default on runtime as it is not
+// possible to create a dynamic tag
+func setPrioritySettings(c *flags.Command) {
+	options := c.Options()
+
+	for _, o := range options {
+		if o.LongName == "priority" {
+			o.Default[0] = strconv.Itoa((int(queue.PriorityNormal)))
+			o.Description = strings.Replace(
+				o.Description, ":MAX:", strconv.Itoa(int(queue.PriorityUrgent)), 1)
+		}
+	}
 }
 
 func checkPriority(prio uint8) error {
