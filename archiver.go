@@ -32,6 +32,7 @@ var (
 	ErrChanges                = errors.NewKind("error computing changes")
 	ErrAlreadyFetching        = errors.NewKind("repository %s was already in a fetching status")
 	ErrSetStatus              = errors.NewKind("unable to set repository to status: %s")
+	ErrFatal                  = errors.NewKind("fatal, %v: stacktrace: %s")
 )
 
 // Archiver archives repositories. Archiver instances are thread-safe and can
@@ -142,7 +143,7 @@ func (a *Archiver) do(log log15.Logger, j *Job) (err error) {
 				log15.Error("error setting repo as failed", "id", r.ID, "err", err)
 			}
 
-			err = fmt.Errorf("%v: %s", rcv, debug.Stack())
+			err = ErrFatal.New(rcv, debug.Stack())
 		}
 	}()
 
