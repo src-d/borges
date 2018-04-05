@@ -33,4 +33,6 @@ coverage.txt
 # Built binaries
 bin/
 build/
+borges
+borges.exe
 
