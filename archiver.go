@@ -122,8 +122,8 @@ func (a *Archiver) do(log log15.Logger, j *Job) (err error) {
 			metrics.RepoProcessed(time.Since(now))
 		case model.NotFound:
 			metrics.RepoNotFound()
-		case model.Private:
-			metrics.RepoPrivate()
+		case model.AuthRequired:
+			metrics.RepoAuthRequired()
 		default:
 			metrics.RepoFailed()
 		}
@@ -187,7 +187,7 @@ func (a *Archiver) do(log log15.Logger, j *Job) (err error) {
 			status = model.NotFound
 			finalErr = nil
 		} else if err == transport.ErrAuthenticationRequired {
-			status = model.Private
+			status = model.AuthRequired
 			finalErr = nil
 		}
 

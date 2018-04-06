@@ -18,10 +18,10 @@ var (
 	reposProcessed         = expvar.NewInt("repos_processed")
 	reposProcessingAvgTime = expvar.NewFloat("repos_processing_avgtime")
 
-	reposNotFound = expvar.NewInt("repos_not_found")
-	reposPrivate  = expvar.NewInt("repos_private")
-	reposFailed   = expvar.NewInt("repos_failed")
-	reposSkipped  = expvar.NewInt("repos_skipped")
+	reposNotFound     = expvar.NewInt("repos_not_found")
+	reposAuthRequired = expvar.NewInt("repos_auth_req")
+	reposFailed       = expvar.NewInt("repos_failed")
+	reposSkipped      = expvar.NewInt("repos_skipped")
 
 	producedRepos       = expvar.NewInt("repos_produced")
 	producedReposFailed = expvar.NewInt("repos_produced_failed")
@@ -44,9 +44,9 @@ func RepoNotFound() {
 	reposNotFound.Add(1)
 }
 
-// RepoPrivate increments the counter of private repositories.
-func RepoPrivate() {
-	reposPrivate.Add(1)
+// RepoAuthRequired increments the counter of repositories that ask for authentication credentials.
+func RepoAuthRequired() {
+	reposAuthRequired.Add(1)
 }
 
 // RepoFailed increments the counter of repositories failed.
