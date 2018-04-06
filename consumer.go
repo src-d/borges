@@ -119,7 +119,7 @@ func (c *Consumer) consumeJob(j *queue.Job) error {
 		return err
 	}
 
-	c.WorkerPool.Do(&WorkerJob{job, j})
+	c.WorkerPool.Do(&WorkerJob{job, j, c.Queue})
 	return nil
 }
 

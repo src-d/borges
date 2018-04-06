@@ -11,7 +11,8 @@ import (
 // and an acknowledger that the worker uses to signal that it finished the job.
 type WorkerJob struct {
 	*Job
-	queue.Acknowledger
+	queueJob *queue.Job
+	source   queue.Queue
 }
 
 // WorkerPool is a pool of workers that can process jobs.

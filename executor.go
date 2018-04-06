@@ -129,7 +129,7 @@ func (p *Executor) consumeJobs() error {
 				p.logError(err)
 			}
 		} else {
-			p.wp.Do(&WorkerJob{&job, j})
+			p.wp.Do(&WorkerJob{&job, j, p.q})
 		}
 	}
 }

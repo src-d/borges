@@ -94,6 +94,7 @@ func (p *Producer) start() {
 
 func (p *Producer) add(j *Job) error {
 	qj, err := queue.NewJob()
+	qj.Retries = maxJobRetries
 	if err != nil {
 		return err
 	}

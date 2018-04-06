@@ -4,6 +4,8 @@ import (
 	"github.com/inconshreveable/log15"
 )
 
+const temporaryError = "temporary"
+
 // Worker is a worker that processes jobs from a channel.
 type Worker struct {
 	log        log15.Logger
@@ -42,19 +44,33 @@ func (w *Worker) Start() {
 				return
 			}
 
+			var requeue bool
 			if err := w.do(log, job.Job); err != nil {
-				if err := job.Reject(false); err != nil {
-					log.Error("error rejecting job", "error", err)
+				// when a previous job which failed with a temporary error
+				// panics, it's sent to the buried queue without the retries
+				// header or with this header set to a value greater than zero.
+				if ErrFatal.Is(err) || job.queueJob.Retries == 0 {
+					if err := job.queueJob.Reject(false); err != nil {
+						log.Error("error rejecting job", "error", err)
+					}
+
+					log.Error("error on job", "error", err)
+					continue
 				}
 
-				log.Error("error on job", "error", err)
-
-				continue
+				requeue = true
 			}
 
-			if err := job.Ack(); err != nil {
+			if requeue {
+				job.queueJob.Retries--
+				job.queueJob.ErrorType = temporaryError
+				job.source.Publish(job.queueJob)
+			}
+
+			if err := job.queueJob.Ack(); err != nil {
 				log.Error("error acking job", "error", err)
 			}
+
 		case <-w.quit:
 			return
 		}
