@@ -169,6 +169,7 @@ func (b *AMQPBroker) Queue(name string) (Queue, error) {
 		amqp.Table{
 			"x-dead-letter-exchange":    rex,
 			"x-dead-letter-routing-key": name,
+			"x-max-priority":            uint8(PriorityUrgent),
 		},
 	)
 
@@ -246,6 +247,7 @@ func (q *AMQPQueue) PublishDelayed(j *Job, delay time.Duration) error {
 			"x-dead-letter-routing-key": q.queue.Name,
 			"x-message-ttl":             int64(ttl),
 			"x-expires":                 int64(ttl) * 2,
+			"x-max-priority":            uint8(PriorityUrgent),
 		},
 	)
 	if err != nil {

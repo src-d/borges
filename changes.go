@@ -132,6 +132,7 @@ func addToChangesDfferenceBetweenOldAndNewRefs(
 			CreatedAt: createdAt,
 			UpdatedAt: now,
 		}
+		newReference.Time = newRef.Time
 		c.Add(newReference)
 
 		return nil
@@ -148,6 +149,7 @@ func addToChangesDfferenceBetweenOldAndNewRefs(
 			CreatedAt: oldRef.CreatedAt,
 			UpdatedAt: now,
 		}
+		updateReference.Time = newRef.Time
 		c.Update(oldRef, updateReference)
 	}
 
