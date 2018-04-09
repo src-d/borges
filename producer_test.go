@@ -38,7 +38,8 @@ func (s *ProducerSuite) SetupSuite() {
 
 func (s *ProducerSuite) newProducer() *Producer {
 	storer := storage.FromDatabase(s.DB)
-	return NewProducer(log15.New(), NewMentionJobIter(s.mentionsQueue, storer), s.queue)
+	return NewProducer(log15.New(), NewMentionJobIter(s.mentionsQueue, storer),
+		s.queue, queue.PriorityNormal)
 }
 
 func (s *ProducerSuite) newJob() *queue.Job {
@@ -112,7 +113,7 @@ func (s *ProducerSuite) TestStartStop_TwoEqualsJobs() {
 }
 
 func (s *ProducerSuite) TestStartStop_ErrorNoNotifier() {
-	p := NewProducer(log15.New(), &DummyJobIter{}, s.queue)
+	p := NewProducer(log15.New(), &DummyJobIter{}, s.queue, queue.PriorityNormal)
 
 	go p.Start()
 

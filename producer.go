@@ -18,19 +18,26 @@ type Producer struct {
 	running   bool
 	startOnce *sync.Once
 	stopOnce  *sync.Once
+	priority  queue.Priority
 
 	// used by Stop() to wait until Start() has finished
 	startIsRunning chan struct{}
 }
 
 // NewProducer creates a new producer.
-func NewProducer(log log15.Logger, jobIter JobIter, queue queue.Queue) *Producer {
+func NewProducer(
+	log log15.Logger,
+	jobIter JobIter,
+	queue queue.Queue,
+	prio queue.Priority,
+) *Producer {
 	return &Producer{
 		log:       log.New("mode", "producer"),
 		jobIter:   jobIter,
 		queue:     queue,
 		startOnce: &sync.Once{},
 		stopOnce:  &sync.Once{},
+		priority:  prio,
 	}
 }
 
@@ -94,6 +101,8 @@ func (p *Producer) add(j *Job) error {
 	if err := qj.Encode(j); err != nil {
 		return err
 	}
+
+	qj.SetPriority(p.priority)
 
 	return p.queue.Publish(qj)
 }

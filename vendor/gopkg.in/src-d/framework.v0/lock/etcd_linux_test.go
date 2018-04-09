@@ -1,11 +1,11 @@
+// +build linux
+
 package lock
 
 import (
 	"syscall"
 	"time"
 )
-
-// +build linux
 
 func (s *EtcdLockSuite) TestLockExpire() {
 	assert := s.Assert()

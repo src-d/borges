@@ -56,6 +56,11 @@ func NewJob() (*Job, error) {
 	}, nil
 }
 
+// SetPriority sets job priority
+func (j *Job) SetPriority(priority Priority) {
+	j.Priority = priority
+}
+
 // Encode encodes the payload to the wire format used.
 func (j *Job) Encode(payload interface{}) error {
 	var err error

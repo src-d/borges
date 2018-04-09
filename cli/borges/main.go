@@ -103,16 +103,21 @@ func main() {
 		panic(err)
 	}
 
-	if _, err := parser.AddCommand(producerCmdName, producerCmdShortDesc,
-		producerCmdLongDesc, &producerCmd{}); err != nil {
+	c, err := parser.AddCommand(producerCmdName, producerCmdShortDesc,
+		producerCmdLongDesc, &producerCmd{})
+	if err != nil {
 		panic(err)
 	}
 
-	if _, err := parser.AddCommand(initCmdName, initCmdShortDesc, initCmdLongDesc, new(initCmd)); err != nil {
+	setPrioritySettings(c)
+
+	if _, err := parser.AddCommand(initCmdName, initCmdShortDesc,
+		initCmdLongDesc, new(initCmd)); err != nil {
 		panic(err)
 	}
 
-	if _, err := parser.AddCommand(packerCmdName, packerCmdShortDesc, packerCmdLongDesc, new(packerCmd)); err != nil {
+	if _, err := parser.AddCommand(packerCmdName, packerCmdShortDesc,
+		packerCmdLongDesc, new(packerCmd)); err != nil {
 		panic(err)
 	}
 

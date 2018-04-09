@@ -82,6 +82,10 @@ http://github.com/c/repo3
 http://github.com/d/repo4.git
 ```
 
+You can change the priority of jobs produced with `--priority` option. It is a number from 0 to 8 where 0 is the lowest priority:
+
+    borges producer --source=file --file /path/to/file --priority 8
+
 When jobs fail they're sent to the buried queue. If you want to requeue them, you can pass the `--republish-buried` flag (this only works for the `mentions` source). For example:
 
 ```
