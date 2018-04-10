@@ -7,7 +7,7 @@ import (
 	"github.com/satori/go.uuid"
 	"github.com/src-d/borges/storage"
 	"gopkg.in/src-d/core-retrieval.v0/model"
-	"gopkg.in/src-d/go-errors.v0"
+	"gopkg.in/src-d/go-errors.v1"
 )
 
 var (
