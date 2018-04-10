@@ -233,7 +233,7 @@ func (s *ArchiverSuite) TestPrivateRepository() {
 	mr, err := s.rawStore.FindOne(model.NewRepositoryQuery().FindByID(rid))
 	s.NoError(err)
 
-	s.Equal(model.Private, mr.Status)
+	s.Equal(model.AuthRequired, mr.Status)
 }
 
 func (s *ArchiverSuite) TestProcessingRepository() {

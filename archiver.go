@@ -14,7 +14,7 @@ import (
 	"gopkg.in/src-d/core-retrieval.v0/model"
 	"gopkg.in/src-d/core-retrieval.v0/repository"
 	"gopkg.in/src-d/framework.v0/lock"
-	"gopkg.in/src-d/go-errors.v0"
+	"gopkg.in/src-d/go-errors.v1"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/config"
 	"gopkg.in/src-d/go-git.v4/plumbing"
@@ -32,6 +32,7 @@ var (
 	ErrChanges                = errors.NewKind("error computing changes")
 	ErrAlreadyFetching        = errors.NewKind("repository %s was already in a fetching status")
 	ErrSetStatus              = errors.NewKind("unable to set repository to status: %s")
+	ErrFatal                  = errors.NewKind("fatal, %v: stacktrace: %s")
 )
 
 // Archiver archives repositories. Archiver instances are thread-safe and can
@@ -121,8 +122,8 @@ func (a *Archiver) do(log log15.Logger, j *Job) (err error) {
 			metrics.RepoProcessed(time.Since(now))
 		case model.NotFound:
 			metrics.RepoNotFound()
-		case model.Private:
-			metrics.RepoPrivate()
+		case model.AuthRequired:
+			metrics.RepoAuthRequired()
 		default:
 			metrics.RepoFailed()
 		}
@@ -142,7 +143,7 @@ func (a *Archiver) do(log log15.Logger, j *Job) (err error) {
 				log15.Error("error setting repo as failed", "id", r.ID, "err", err)
 			}
 
-			err = fmt.Errorf("%v: %s", rcv, debug.Stack())
+			err = ErrFatal.New(rcv, debug.Stack())
 		}
 	}()
 
@@ -186,7 +187,7 @@ func (a *Archiver) do(log log15.Logger, j *Job) (err error) {
 			status = model.NotFound
 			finalErr = nil
 		} else if err == transport.ErrAuthenticationRequired {
-			status = model.Private
+			status = model.AuthRequired
 			finalErr = nil
 		}
 

@@ -1,9 +1,11 @@
 package queue
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -80,4 +82,65 @@ func TestAMQPPriorities(t *testing.T) {
 	assert.True(sumFirst > sumLast)
 	assert.Equal(uint(PriorityUrgent)*50, sumFirst)
 	assert.Equal(uint(PriorityLow)*50, sumLast)
+}
+
+func TestAMQPHeaders(t *testing.T) {
+	broker, err := NewBroker(testAMQPURI)
+	require.NoError(t, err)
+	defer func() { require.NoError(t, broker.Close()) }()
+
+	queue, err := broker.Queue(newName())
+	require.NoError(t, err)
+
+	tests := []struct {
+		name      string
+		retries   int32
+		errorType string
+	}{
+		{
+			name:      fmt.Sprintf("with %s and %s headers", retriesHeader, errorHeader),
+			retries:   int32(10),
+			errorType: "error-test",
+		},
+		{
+			name:      fmt.Sprintf("with %s header", retriesHeader),
+			retries:   int32(10),
+			errorType: "",
+		},
+		{
+			name:      fmt.Sprintf("with %s headers", errorHeader),
+			retries:   int32(0),
+			errorType: "error-test",
+		},
+		{
+			name:      "with no headers",
+			retries:   int32(0),
+			errorType: "",
+		},
+	}
+
+	for i, test := range tests {
+		job, err := NewJob()
+		require.NoError(t, err)
+
+		job.Retries = test.retries
+		job.ErrorType = test.errorType
+
+		require.NoError(t, job.Encode(i))
+		require.NoError(t, queue.Publish(job))
+	}
+
+	jobIter, err := queue.Consume(len(tests))
+	require.NoError(t, err)
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			job, err := jobIter.Next()
+			require.NoError(t, err)
+			require.NotNil(t, job)
+
+			require.Equal(t, test.retries, job.Retries)
+			require.Equal(t, test.errorType, job.ErrorType)
+		})
+	}
 }

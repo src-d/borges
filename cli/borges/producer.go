@@ -28,6 +28,7 @@ type producerCmd struct {
 	File            string `long:"file" description:"path to a file to read URLs from, used with --source=file"`
 	RepublishBuried bool   `long:"republish-buried" description:"republishes again all buried jobs before starting to listen for mentions, used with --source=mentions"`
 	Priority        uint8  `long:"priority" default:"4" description:"priority used to enqueue jobs, goes from 0 (lowest) to :MAX: (highest)"`
+	JobsRetries     int    `long:"job-retries" default:"5" description:"number of times a falied job should be processed again before reject it"`
 }
 
 // Changes the priority description and default on runtime as it is not
@@ -73,7 +74,9 @@ func (c *producerCmd) Execute(args []string) error {
 	}
 	defer ioutil.CheckClose(ji, &err)
 
-	p := borges.NewProducer(log, ji, q, queue.Priority(c.Priority))
+	p := borges.NewProducer(log, ji, q,
+		queue.Priority(c.Priority), c.JobsRetries)
+
 	p.Start()
 
 	return err

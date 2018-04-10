@@ -1,6 +1,6 @@
 #!/bin/sh
 # TODO allow to test with more than one hadoop version if needed
-HADOOP_VERSION=${HADOOP_VERSION-"2.7.4"}
+HADOOP_VERSION=${HADOOP_VERSION-"2.7.5"}
 
 HADOOP_HOME="/tmp/hadoop-$HADOOP_VERSION"
 NN_PORT="9000"
