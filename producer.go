@@ -12,13 +12,14 @@ import (
 
 // Producer is a service to generate jobs and put them to the queue.
 type Producer struct {
-	log       log15.Logger
-	jobIter   JobIter
-	queue     queue.Queue
-	running   bool
-	startOnce *sync.Once
-	stopOnce  *sync.Once
-	priority  queue.Priority
+	log           log15.Logger
+	jobIter       JobIter
+	queue         queue.Queue
+	running       bool
+	maxJobRetries int
+	priority      queue.Priority
+	startOnce     *sync.Once
+	stopOnce      *sync.Once
 
 	// used by Stop() to wait until Start() has finished
 	startIsRunning chan struct{}
@@ -29,15 +30,17 @@ func NewProducer(
 	log log15.Logger,
 	jobIter JobIter,
 	queue queue.Queue,
-	prio queue.Priority,
+	priority queue.Priority,
+	jobRetries int,
 ) *Producer {
 	return &Producer{
-		log:       log.New("mode", "producer"),
-		jobIter:   jobIter,
-		queue:     queue,
-		startOnce: &sync.Once{},
-		stopOnce:  &sync.Once{},
-		priority:  prio,
+		log:           log.New("mode", "producer"),
+		jobIter:       jobIter,
+		queue:         queue,
+		maxJobRetries: jobRetries,
+		priority:      priority,
+		startOnce:     &sync.Once{},
+		stopOnce:      &sync.Once{},
 	}
 }
 
@@ -94,11 +97,11 @@ func (p *Producer) start() {
 
 func (p *Producer) add(j *Job) error {
 	qj, err := queue.NewJob()
-	qj.Retries = maxJobRetries
 	if err != nil {
 		return err
 	}
 
+	qj.Retries = int32(p.maxJobRetries)
 	if err := qj.Encode(j); err != nil {
 		return err
 	}

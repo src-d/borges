@@ -20,8 +20,6 @@ var (
 	ErrReferencedObjectTypeNotSupported error = stderrors.New("referenced object type not supported")
 )
 
-const maxJobRetries = 5
-
 // Job represents a borges job to fetch and archive a repository.
 type Job struct {
 	RepositoryID uuid.UUID

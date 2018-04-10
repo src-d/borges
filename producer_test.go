@@ -15,7 +15,10 @@ import (
 	"gopkg.in/src-d/framework.v0/queue"
 )
 
-const testEndpoint = "https://some.endpoint.com"
+const (
+	testEndpoint   = "https://some.endpoint.com"
+	testJobRetries = 5
+)
 
 func TestProducerSuite(t *testing.T) {
 	suite.Run(t, new(ProducerSuite))
@@ -39,7 +42,7 @@ func (s *ProducerSuite) SetupSuite() {
 func (s *ProducerSuite) newProducer() *Producer {
 	storer := storage.FromDatabase(s.DB)
 	return NewProducer(log15.New(), NewMentionJobIter(s.mentionsQueue, storer),
-		s.queue, queue.PriorityNormal)
+		s.queue, queue.PriorityNormal, testJobRetries)
 }
 
 func (s *ProducerSuite) newJob() *queue.Job {
@@ -113,7 +116,8 @@ func (s *ProducerSuite) TestStartStop_TwoEqualsJobs() {
 }
 
 func (s *ProducerSuite) TestStartStop_ErrorNoNotifier() {
-	p := NewProducer(log15.New(), &DummyJobIter{}, s.queue, queue.PriorityNormal)
+	p := NewProducer(log15.New(), &DummyJobIter{}, s.queue,
+		queue.PriorityNormal, testJobRetries)
 
 	go p.Start()
 
