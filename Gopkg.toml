@@ -12,19 +12,21 @@
 
 [[constraint]]
   name = "gopkg.in/src-d/core-retrieval.v0"
+  revision = "ad64637aef9aac22f2b9a8568e2ed1f5908c9916"
   source = "https://github.com/src-d/core-retrieval.git"
 
 [[constraint]]
-  branch = "master"
   name = "gopkg.in/src-d/framework.v0"
+  revision = "0839a41303d85dd722c2bf23106f01e0f6758115"
+  source = "https://github.com/src-d/framework.git"
 
 [[constraint]]
   name = "gopkg.in/src-d/go-billy.v4"
   source = "https://github.com/src-d/go-billy.git"
 
 [[constraint]]
-  name = "gopkg.in/src-d/go-errors.v0"
-  version = "0.1.0"
+  name = "gopkg.in/src-d/go-errors.v1"
+  version = "1.0.0"
 
 [[constraint]]
   name = "gopkg.in/src-d/go-git-fixtures.v3"
