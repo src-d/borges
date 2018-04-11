@@ -23,12 +23,13 @@ const (
 
 type producerCmd struct {
 	cmd
-	Source          string `long:"source" default:"mentions" description:"source to produce jobs from (mentions, file)"`
-	MentionsQueue   string `long:"mentionsqueue" default:"rovers" description:"queue name used to obtain mentions if the source type is 'mentions'"`
-	File            string `long:"file" description:"path to a file to read URLs from, used with --source=file"`
-	RepublishBuried bool   `long:"republish-buried" description:"republishes again all buried jobs before starting to listen for mentions, used with --source=mentions"`
-	Priority        uint8  `long:"priority" default:"4" description:"priority used to enqueue jobs, goes from 0 (lowest) to :MAX: (highest)"`
-	JobsRetries     int    `long:"job-retries" default:"5" description:"number of times a falied job should be processed again before reject it"`
+	Source            string `long:"source" default:"mentions" description:"source to produce jobs from (mentions, file)"`
+	MentionsQueue     string `long:"mentionsqueue" default:"rovers" description:"queue name used to obtain mentions if the source type is 'mentions'"`
+	File              string `long:"file" description:"path to a file to read URLs from, used with --source=file"`
+	RepublishMentions bool   `long:"republish-mentions" description:"republishes again all buried mentions before starting to listen for new mentions, used with --source=mentions"`
+	RepublishJobs     bool   `long:"republish-jobs" description:"republish failed jobs on the main queue"`
+	Priority          uint8  `long:"priority" default:"4" description:"priority used to enqueue jobs, goes from 0 (lowest) to :MAX: (highest)"`
+	JobsRetries       int    `long:"job-retries" default:"5" description:"number of times a falied job should be processed again before reject it"`
 }
 
 // Changes the priority description and default on runtime as it is not
@@ -68,6 +69,10 @@ func (c *producerCmd) Execute(args []string) error {
 		return err
 	}
 
+	if c.RepublishJobs {
+		q.RepublishBuried(jobCondition)
+	}
+
 	ji, err := c.jobIter(b)
 	if err != nil {
 		return err
@@ -82,6 +87,15 @@ func (c *producerCmd) Execute(args []string) error {
 	return err
 }
 
+func jobCondition(job *queue.Job) bool {
+	// Althoug the job has the temporary error tag, it must be checked
+	// that the retries is equals to zero. The reason for this is that
+	// a job can panic during a retry process, so it can be tagged as
+	// temporary error and a number of retries greater than zero reveals
+	// that fact.
+	return job.ErrorType == borges.TemporaryError && job.Retries == 0
+}
+
 func (c *producerCmd) jobIter(b queue.Broker) (borges.JobIter, error) {
 	storer := storage.FromDatabase(core.Database())
 
@@ -92,8 +106,8 @@ func (c *producerCmd) jobIter(b queue.Broker) (borges.JobIter, error) {
 			return nil, err
 		}
 
-		if c.RepublishBuried {
-			if err := q.RepublishBuried(); err != nil {
+		if c.RepublishMentions {
+			if err := q.RepublishBuried(mentionCondition); err != nil {
 				return nil, err
 			}
 		}
@@ -108,3 +122,5 @@ func (c *producerCmd) jobIter(b queue.Broker) (borges.JobIter, error) {
 		return nil, fmt.Errorf("invalid source: %s", c.Source)
 	}
 }
+
+func mentionCondition(*queue.Job) bool { return true }
