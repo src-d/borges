@@ -2,15 +2,13 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 
 	flags "github.com/jessevdk/go-flags"
 	"github.com/src-d/borges"
-	"github.com/src-d/borges/storage"
 
-	"gopkg.in/src-d/core-retrieval.v0"
+	core "gopkg.in/src-d/core-retrieval.v0"
 	"gopkg.in/src-d/framework.v0/queue"
 	"gopkg.in/src-d/go-git.v4/utils/ioutil"
 )
@@ -21,14 +19,65 @@ const (
 	producerCmdLongDesc  = ""
 )
 
+var producerCommand = &producerCmd{simpleCommand: newSimpleCommand(
+	producerCmdName,
+	producerCmdShortDesc,
+	producerCmdLongDesc,
+)}
+
 type producerCmd struct {
-	cmd
-	Source          string `long:"source" default:"mentions" description:"source to produce jobs from (mentions, file)"`
-	MentionsQueue   string `long:"mentionsqueue" default:"rovers" description:"queue name used to obtain mentions if the source type is 'mentions'"`
-	File            string `long:"file" description:"path to a file to read URLs from, used with --source=file"`
-	RepublishBuried bool   `long:"republish-buried" description:"republishes again all buried jobs before starting to listen for mentions, used with --source=mentions"`
-	Priority        uint8  `long:"priority" default:"4" description:"priority used to enqueue jobs, goes from 0 (lowest) to :MAX: (highest)"`
-	JobsRetries     int    `long:"job-retries" default:"5" description:"number of times a falied job should be processed again before reject it"`
+	simpleCommand
+}
+
+type producerSubcmd struct {
+	command
+	broker queue.Broker
+	queue  queue.Queue
+
+	Priority    uint8 `long:"priority" default:"4" description:"priority used to enqueue jobs, goes from 0 (lowest) to :MAX: (highest)"`
+	JobsRetries int   `long:"job-retries" default:"5" description:"number of times a falied job should be processed again before reject it"`
+}
+
+func newProducerSubcmd(name, short, long string) producerSubcmd {
+	return producerSubcmd{command: newCommand(
+		name,
+		short,
+		long,
+	)}
+}
+
+func (c *producerSubcmd) init() error {
+	c.command.init()
+
+	err := checkPriority(c.Priority)
+	if err != nil {
+		return err
+	}
+
+	c.broker = core.Broker()
+	c.queue, err = c.broker.Queue(c.Queue)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+type getIterFunc func() (borges.JobIter, error)
+
+func (c *producerSubcmd) generateJobs(getIter getIterFunc) error {
+	ji, err := getIter()
+	if err != nil {
+		return err
+	}
+	defer ioutil.CheckClose(ji, &err)
+
+	p := borges.NewProducer(log, ji, c.queue,
+		queue.Priority(c.Priority), c.JobsRetries)
+
+	p.Start()
+
+	return err
 }
 
 // Changes the priority description and default on runtime as it is not
@@ -53,58 +102,34 @@ func checkPriority(prio uint8) error {
 	return nil
 }
 
-func (c *producerCmd) Execute(args []string) error {
-	c.init()
-
-	err := checkPriority(c.Priority)
-	if err != nil {
-		return err
-	}
-
-	b := core.Broker()
-	defer b.Close()
-	q, err := b.Queue(c.Queue)
-	if err != nil {
-		return err
-	}
-
-	ji, err := c.jobIter(b)
-	if err != nil {
-		return err
-	}
-	defer ioutil.CheckClose(ji, &err)
-
-	p := borges.NewProducer(log, ji, q,
-		queue.Priority(c.Priority), c.JobsRetries)
-
-	p.Start()
-
-	return err
+var producerSubcommands = []ExecutableCommander{
+	mentionsCommand,
+	fileCommand,
+	republishCommand,
+	updateCommand,
 }
 
-func (c *producerCmd) jobIter(b queue.Broker) (borges.JobIter, error) {
-	storer := storage.FromDatabase(core.Database())
+func init() {
+	c, err := parser.AddCommand(
+		producerCommand.name,
+		producerCommand.shortDescription,
+		producerCommand.longDescription,
+		producerCommand)
 
-	switch c.Source {
-	case "mentions":
-		q, err := b.Queue(c.MentionsQueue)
-		if err != nil {
-			return nil, err
-		}
+	if err != nil {
+		panic(err)
+	}
 
-		if c.RepublishBuried {
-			if err := q.RepublishBuried(); err != nil {
-				return nil, err
-			}
-		}
-		return borges.NewMentionJobIter(q, storer), nil
-	case "file":
-		f, err := os.Open(c.File)
+	for _, subcommand := range producerSubcommands {
+		_, err := c.AddCommand(
+			subcommand.Name(),
+			subcommand.ShortDescription(),
+			subcommand.LongDescription(),
+			subcommand,
+		)
+
 		if err != nil {
-			return nil, err
+			panic(err)
 		}
-		return borges.NewLineJobIter(f, storer), nil
-	default:
-		return nil, fmt.Errorf("invalid source: %s", c.Source)
 	}
 }

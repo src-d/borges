@@ -15,8 +15,14 @@ const (
 	consumerCmdLongDesc  = ""
 )
 
+var consumerCommand = &consumerCmd{command: newCommand(
+	consumerCmdName,
+	consumerCmdShortDesc,
+	consumerCmdLongDesc,
+)}
+
 type consumerCmd struct {
-	cmd
+	command
 	WorkersCount int    `long:"workers" default:"8" description:"number of workers"`
 	Timeout      string `long:"timeout" default:"10h" description:"deadline to process a job"`
 }
@@ -50,4 +56,16 @@ func (c *consumerCmd) Execute(args []string) error {
 	ac.Start()
 
 	return nil
+}
+
+func init() {
+	_, err := parser.AddCommand(
+		consumerCommand.Name(),
+		consumerCommand.ShortDescription(),
+		consumerCommand.LongDescription(),
+		consumerCommand)
+
+	if err != nil {
+		panic(err)
+	}
 }
