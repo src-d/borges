@@ -105,8 +105,6 @@ func checkPriority(prio uint8) error {
 var producerSubcommands = []ExecutableCommander{
 	mentionsCommand,
 	fileCommand,
-	republishCommand,
-	updateCommand,
 }
 
 func init() {
