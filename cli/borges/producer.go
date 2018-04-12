@@ -102,7 +102,7 @@ func checkPriority(prio uint8) error {
 	return nil
 }
 
-var producerSubcommands = []ExecutableCommander{
+var producerSubcommands = []ExecutableCommand{
 	mentionsCommand,
 	fileCommand,
 }

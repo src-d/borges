@@ -10,12 +10,12 @@ import (
 	"github.com/src-d/borges/metrics"
 )
 
-type ExecutableCommander interface {
-	Commander
+type ExecutableCommand interface {
+	Command
 	Execute(args []string) error
 }
 
-type Commander interface {
+type Command interface {
 	Name() string
 	ShortDescription() string
 	LongDescription() string
