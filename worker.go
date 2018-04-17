@@ -64,7 +64,14 @@ func (w *Worker) Start() {
 			if requeue {
 				job.queueJob.Retries--
 				job.queueJob.ErrorType = TemporaryError
-				job.source.Publish(job.queueJob)
+				if err := job.source.Publish(job.queueJob); err != nil {
+					log.Error("error publishing job back to the main queue", "error", err)
+					if err := job.queueJob.Reject(false); err != nil {
+						log.Error("error rejecting job", "error", err)
+					}
+
+					continue
+				}
 			}
 
 			if err := job.queueJob.Ack(); err != nil {
