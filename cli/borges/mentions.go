@@ -8,13 +8,13 @@ import (
 
 const (
 	mentionsCmdName      = "mentions"
-	mentionsCmdShortName = "produce jobs from mentions"
+	mentionsCmdShortDesc = "produce jobs from mentions"
 	mentionsCmdLongDesc  = ""
 )
 
 var mentionsCommand = &mentionsCmd{producerSubcmd: newProducerSubcmd(
 	mentionsCmdName,
-	mentionsCmdShortName,
+	mentionsCmdShortDesc,
 	mentionsCmdLongDesc,
 )}
 

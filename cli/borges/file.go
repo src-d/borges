@@ -10,14 +10,14 @@ import (
 
 const (
 	fileCmdName      = "file"
-	fileCmdShortName = "produce jobs from file"
+	fileCmdShortDesc = "produce jobs from file"
 	fileCmdLongDesc  = ""
 )
 
 // fileCommand is a producer subcommand.
 var fileCommand = &fileCmd{producerSubcmd: newProducerSubcmd(
 	fileCmdName,
-	fileCmdShortName,
+	fileCmdShortDesc,
 	fileCmdLongDesc,
 )}
 
