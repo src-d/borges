@@ -230,6 +230,10 @@ docker run --name borges_consumer_file --link rabbitmq --link postgres \
 
 Congratulations, now you have a fully working repository processing pipeline!
 
+# Running Borges in Kubernetes
+
+You can use the official [Helm](https://github.com/kubernetes/helm) [chart](https://github.com/src-d/charts/tree/master/borges) to deploy Borges in your kubernetes cluster.
+
 # Development
 
 ## Build
