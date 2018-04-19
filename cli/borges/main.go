@@ -23,8 +23,9 @@ var (
 )
 
 type loggerCmd struct {
-	LogLevel string `short:"" long:"loglevel" description:"max log level enabled" default:"info"`
-	LogFile  string `short:"" long:"logfile" description:"path to file where logs will be stored" default:""`
+	LogLevel  string `short:"" long:"loglevel" description:"max log level enabled" default:"info"`
+	LogFile   string `short:"" long:"logfile" description:"path to file where logs will be stored" default:""`
+	LogFormat string `short:"" long:"logformat" description:"format used to output the logs (json or text)" default:"text"`
 }
 
 type cmd struct {
@@ -37,20 +38,34 @@ type cmd struct {
 }
 
 func (c *loggerCmd) init() {
-	c.changeLogLevel()
-}
-
-func (c *loggerCmd) changeLogLevel() {
 	lvl, err := log15.LvlFromString(c.LogLevel)
 	if err != nil {
 		panic(fmt.Sprintf("unknown level name %q", c.LogLevel))
 	}
 
-	handlers := []log15.Handler{log15.CallerFileHandler(log15.StdoutHandler)}
-	if c.LogFile != "" {
-		handlers = append(handlers,
-			log15.CallerFileHandler(log15.Must.FileHandler(c.LogFile, log15.LogfmtFormat())))
+	var handlers []log15.Handler
+	var format log15.Format
+	if c.LogFormat == "json" {
+		format = log15.JsonFormat()
+		handlers = append(
+			handlers,
+			log15.CallerFileHandler(log15.Must.FileHandler(os.Stdout.Name(), format)),
+		)
+	} else {
+		format = log15.LogfmtFormat()
+		handlers = append(
+			handlers,
+			log15.CallerFileHandler(log15.StdoutHandler),
+		)
 	}
+
+	if c.LogFile != "" {
+		handlers = append(
+			handlers,
+			log15.CallerFileHandler(log15.Must.FileHandler(c.LogFile, format)),
+		)
+	}
+
 	log15.Root().SetHandler(log15.LvlFilterHandler(lvl, log15.MultiHandler(handlers...)))
 }
 
