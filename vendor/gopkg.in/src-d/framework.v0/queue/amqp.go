@@ -3,6 +3,7 @@ package queue
 import (
 	"fmt"
 	"os"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -18,6 +19,7 @@ var (
 	ErrConnectionFailed = errors.NewKind("failed to connect to RabbitMQ: %s")
 	ErrOpenChannel      = errors.NewKind("failed to open a channel: %s")
 	ErrRetrievingHeader = errors.NewKind("error retrieving '%s' header from message %s")
+	ErrRepublishingJobs = errors.NewKind("couldn't republish some jobs : %s")
 )
 
 const (
@@ -288,9 +290,14 @@ func (q *AMQPQueue) PublishDelayed(j *Job, delay time.Duration) error {
 	)
 }
 
-// RepublishBuried will republish in the main queue all the jobs that timed out without Ack
-// or were Rejected with requeue = False.
-func (q *AMQPQueue) RepublishBuried() error {
+type jobErr struct {
+	job *Job
+	err error
+}
+
+// RepublishBuried will republish in the main queue those jobs that timed out without Ack
+// or were Rejected with requeue = False and makes comply return true.
+func (q *AMQPQueue) RepublishBuried(conditions ...RepublishConditionFunc) error {
 	if q.buriedQueue == nil {
 		return fmt.Errorf("buriedQueue is nil, called RepublishBuried on the internal buried queue?")
 	}
@@ -304,6 +311,8 @@ func (q *AMQPQueue) RepublishBuried() error {
 	defer iter.Close()
 
 	retries := 0
+	var notComplying []*Job
+	var errorsPublishing []*jobErr
 	for {
 		j, err := iter.(*AMQPJobIter).nextNonBlocking()
 		if err != nil {
@@ -316,7 +325,7 @@ func (q *AMQPQueue) RepublishBuried() error {
 			// if there is nothing after all the retries (meaning: BuriedQueue is surely
 			// empty or any arriving jobs will have to wait to the next call).
 			if retries > buriedNonBlockingRetries {
-				return nil
+				break
 			}
 
 			time.Sleep(50 * time.Millisecond)
@@ -324,16 +333,45 @@ func (q *AMQPQueue) RepublishBuried() error {
 			continue
 		}
 
+		retries = 0
+
 		if err = j.Ack(); err != nil {
 			return err
 		}
 
-		retries = 0
+		if republishConditions(conditions).comply(j) {
+			if err = q.Publish(j); err != nil {
+				errorsPublishing = append(errorsPublishing, &jobErr{j, err})
+			}
+		} else {
+			notComplying = append(notComplying, j)
 
-		if err = q.Publish(j); err != nil {
+		}
+	}
+
+	for _, job := range notComplying {
+		if err = job.Reject(true); err != nil {
 			return err
 		}
 	}
+
+	return q.handleRepublishErrors(errorsPublishing)
+}
+
+func (q *AMQPQueue) handleRepublishErrors(list []*jobErr) error {
+	if len(list) > 0 {
+		stringErrors := []string{}
+		for _, je := range list {
+			stringErrors = append(stringErrors, je.err.Error())
+			if err := q.buriedQueue.Publish(je.job); err != nil {
+				return err
+			}
+		}
+
+		return ErrRepublishingJobs.New(strings.Join(stringErrors, ": "))
+	}
+
+	return nil
 }
 
 // Transaction executes the given callback inside a transaction.

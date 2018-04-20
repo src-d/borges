@@ -17,7 +17,7 @@
 
 [[constraint]]
   name = "gopkg.in/src-d/framework.v0"
-  revision = "0839a41303d85dd722c2bf23106f01e0f6758115"
+  revision = "88f5399ee0037158edaef606ec57b7037a80c02a"
   source = "https://github.com/src-d/framework.git"
 
 [[constraint]]

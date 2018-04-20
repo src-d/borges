@@ -338,7 +338,7 @@
     "lock",
     "queue"
   ]
-  revision = "0839a41303d85dd722c2bf23106f01e0f6758115"
+  revision = "88f5399ee0037158edaef606ec57b7037a80c02a"
   source = "https://github.com/src-d/framework.git"
 
 [[projects]]
@@ -461,6 +461,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "d5f3e33031a3bdc64909673b95d95bc20bce0f4a4bc695f9fd9a024b2e33a45e"
+  inputs-digest = "166dc6fbcc7d1e8cffdf77291f3176d8f7fa48ad75179fcb650cd7f63359cf15"
   solver-name = "gps-cdcl"
   solver-version = 1

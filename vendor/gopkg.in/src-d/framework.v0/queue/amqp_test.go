@@ -3,6 +3,7 @@ package queue
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -143,4 +144,55 @@ func TestAMQPHeaders(t *testing.T) {
 			require.Equal(t, test.errorType, job.ErrorType)
 		})
 	}
+}
+
+func TestAMQPRepublishBuried(t *testing.T) {
+	broker, err := NewBroker(testAMQPURI)
+	require.NoError(t, err)
+	defer func() { require.NoError(t, broker.Close()) }()
+
+	queueName := newName()
+	queue, err := broker.Queue(queueName)
+	require.NoError(t, err)
+
+	amqpQueue, ok := queue.(*AMQPQueue)
+	require.True(t, ok)
+
+	buried := amqpQueue.buriedQueue
+
+	tests := []struct {
+		name    string
+		payload string
+	}{
+		{name: "message 1", payload: "payload 1"},
+		{name: "message 2", payload: "republish"},
+		{name: "message 3", payload: "payload 3"},
+		{name: "message 3", payload: "payload 4"},
+	}
+
+	for _, test := range tests {
+		job, err := NewJob()
+		require.NoError(t, err)
+
+		job.raw = []byte(test.payload)
+
+		err = buried.Publish(job)
+		require.NoError(t, err)
+		time.Sleep(1 * time.Second)
+	}
+
+	var condition RepublishConditionFunc = func(j *Job) bool {
+		return string(j.raw) == "republish"
+	}
+
+	err = queue.RepublishBuried(condition)
+	require.NoError(t, err)
+
+	jobIter, err := queue.Consume(1)
+	require.NoError(t, err)
+	defer func() { require.NoError(t, jobIter.Close()) }()
+
+	job, err := jobIter.Next()
+	require.NoError(t, err)
+	require.Equal(t, string(job.raw), "republish")
 }
