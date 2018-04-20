@@ -4,7 +4,7 @@ import (
 	"github.com/inconshreveable/log15"
 )
 
-const temporaryError = "temporary"
+const TemporaryError = "temporary"
 
 // Worker is a worker that processes jobs from a channel.
 type Worker struct {
@@ -63,8 +63,15 @@ func (w *Worker) Start() {
 
 			if requeue {
 				job.queueJob.Retries--
-				job.queueJob.ErrorType = temporaryError
-				job.source.Publish(job.queueJob)
+				job.queueJob.ErrorType = TemporaryError
+				if err := job.source.Publish(job.queueJob); err != nil {
+					log.Error("error publishing job back to the main queue", "error", err)
+					if err := job.queueJob.Reject(false); err != nil {
+						log.Error("error rejecting job", "error", err)
+					}
+
+					continue
+				}
 			}
 
 			if err := job.queueJob.Ack(); err != nil {
