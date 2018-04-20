@@ -1,15 +1,14 @@
 package borges
 
 import (
-	"github.com/inconshreveable/log15"
+	log "github.com/sirupsen/logrus"
 )
 
 const temporaryError = "temporary"
 
 // Worker is a worker that processes jobs from a channel.
 type Worker struct {
-	log        log15.Logger
-	do         func(log15.Logger, *Job) error
+	do         func(*Job) error
 	jobChannel chan *WorkerJob
 	quit       chan struct{}
 	running    bool
@@ -19,9 +18,8 @@ type Worker struct {
 // will be passed to the processing function on every call. The second parameter
 // is the processing function itself that will be called for every job. The
 // third parameter is a channel that the worker will consume jobs from.
-func NewWorker(log log15.Logger, do func(log15.Logger, *Job) error, ch chan *WorkerJob) *Worker {
+func NewWorker(do func(*Job) error, ch chan *WorkerJob) *Worker {
 	return &Worker{
-		log:        log,
 		do:         do,
 		jobChannel: ch,
 		quit:       make(chan struct{}),
@@ -31,8 +29,6 @@ func NewWorker(log log15.Logger, do func(log15.Logger, *Job) error, ch chan *Wor
 // Start processes jobs from the input channel until it is stopped. Start blocks
 // until the worker is stopped or the channel is closed.
 func (w *Worker) Start() {
-	log := w.log
-
 	w.running = true
 	defer func() { w.running = false }()
 
@@ -45,16 +41,16 @@ func (w *Worker) Start() {
 			}
 
 			var requeue bool
-			if err := w.do(log, job.Job); err != nil {
+			if err := w.do(job.Job); err != nil {
 				// when a previous job which failed with a temporary error
 				// panics, it's sent to the buried queue without the retries
 				// header or with this header set to a value greater than zero.
 				if ErrFatal.Is(err) || job.queueJob.Retries == 0 {
 					if err := job.queueJob.Reject(false); err != nil {
-						log.Error("error rejecting job", "error", err)
+						log.WithField("error", err).Error("error rejecting job")
 					}
 
-					log.Error("error on job", "error", err)
+					log.WithField("error", err).Error("error on job")
 					continue
 				}
 
@@ -68,7 +64,7 @@ func (w *Worker) Start() {
 			}
 
 			if err := job.queueJob.Ack(); err != nil {
-				log.Error("error acking job", "error", err)
+				log.WithField("error", err).Error("error acking job")
 			}
 
 		case <-w.quit:

@@ -5,9 +5,11 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"strings"
+	"time"
 
-	"github.com/inconshreveable/log15"
 	"github.com/jessevdk/go-flags"
+	log "github.com/sirupsen/logrus"
 	"github.com/src-d/borges/metrics"
 )
 
@@ -19,13 +21,13 @@ const (
 var (
 	version string
 	build   string
-	log     log15.Logger
 )
 
 type loggerCmd struct {
-	LogLevel  string `short:"" long:"loglevel" description:"max log level enabled" default:"info"`
-	LogFile   string `short:"" long:"logfile" description:"path to file where logs will be stored" default:""`
-	LogFormat string `short:"" long:"logformat" description:"format used to output the logs (json or text)" default:"text"`
+	LogLevel      string `short:"" long:"loglevel" description:"max log level enabled (debug, info, warn, error, fatal, panic)" default:"info"`
+	LogFile       string `short:"" long:"logfile" description:"path to file where logs will be stored" default:""`
+	LogFormat     string `short:"" long:"logformat" description:"format used to output the logs (json or text)" default:"text"`
+	LogTimeFormat string `short:"" long:"logtimeformat" description:"format used for marshaling timestamps" default:"Jan _2 15:04:05.000000"`
 }
 
 type cmd struct {
@@ -38,35 +40,52 @@ type cmd struct {
 }
 
 func (c *loggerCmd) init() {
-	lvl, err := log15.LvlFromString(c.LogLevel)
-	if err != nil {
+	switch strings.ToLower(c.LogLevel) {
+	case "debug":
+		log.SetLevel(log.DebugLevel)
+		break
+	case "info":
+		log.SetLevel(log.InfoLevel)
+		break
+	case "warn":
+		log.SetLevel(log.WarnLevel)
+		break
+	case "error":
+		log.SetLevel(log.ErrorLevel)
+		break
+	case "fatal":
+		log.SetLevel(log.FatalLevel)
+		break
+	case "panic":
+		log.SetLevel(log.PanicLevel)
+		break
+	default:
 		panic(fmt.Sprintf("unknown level name %q", c.LogLevel))
 	}
 
-	var handlers []log15.Handler
-	var format log15.Format
-	if c.LogFormat == "json" {
-		format = log15.JsonFormat()
-		handlers = append(
-			handlers,
-			log15.CallerFileHandler(log15.Must.FileHandler(os.Stdout.Name(), format)),
-		)
-	} else {
-		format = log15.LogfmtFormat()
-		handlers = append(
-			handlers,
-			log15.CallerFileHandler(log15.StdoutHandler),
-		)
+	if c.LogTimeFormat == "" {
+		c.LogTimeFormat = time.StampMicro
 	}
 
+	switch strings.ToLower(c.LogFormat) {
+	case "json":
+		log.SetFormatter(&log.JSONFormatter{TimestampFormat: c.LogTimeFormat})
+		break
+	case "text", "txt":
+		log.SetFormatter(&log.TextFormatter{TimestampFormat: c.LogTimeFormat, FullTimestamp: true})
+		break
+	default:
+		panic(fmt.Sprintf("unknown log format %q", c.LogFormat))
+	}
+
+	log.SetOutput(os.Stdout)
 	if c.LogFile != "" {
-		handlers = append(
-			handlers,
-			log15.CallerFileHandler(log15.Must.FileHandler(c.LogFile, format)),
-		)
+		if f, err := os.OpenFile(c.LogFile, os.O_CREATE|os.O_WRONLY, 0666); err != nil {
+			log.Errorf("Failed to log to file (%s), using default stdout", c.LogFile)
+		} else {
+			log.SetOutput(f)
+		}
 	}
-
-	log15.Root().SetHandler(log15.LvlFilterHandler(lvl, log15.MultiHandler(handlers...)))
 }
 
 func (c *cmd) init() {
@@ -98,10 +117,6 @@ func (c *cmd) maybeStartMetrics() {
 			}
 		}()
 	}
-}
-
-func init() {
-	log = log15.New("module", name)
 }
 
 func main() {

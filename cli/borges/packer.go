@@ -6,6 +6,7 @@ import (
 	"runtime"
 	"time"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/src-d/borges"
 	"github.com/src-d/borges/storage"
 	core "gopkg.in/src-d/core-retrieval.v0"
@@ -51,7 +52,6 @@ func (c *packerCmd) Execute(args []string) error {
 	}
 
 	wp := borges.NewArchiverWorkerPool(
-		log,
 		store,
 		transactioner,
 		borges.NewTemporaryCloner(core.TemporaryFilesystem()),
@@ -70,7 +70,6 @@ func (c *packerCmd) Execute(args []string) error {
 	}
 
 	executor := borges.NewExecutor(
-		log,
 		q,
 		wp,
 		store,

@@ -175,6 +175,12 @@
   version = "v1.0.0"
 
 [[projects]]
+  name = "github.com/sirupsen/logrus"
+  packages = ["."]
+  revision = "c155da19408a8799da419ed3eeb0cb5db0ad5dbc"
+  version = "v1.0.5"
+
+[[projects]]
   name = "github.com/src-d/gcfg"
   packages = [
     ".",
@@ -220,7 +226,8 @@
     "openpgp/s2k",
     "ssh",
     "ssh/agent",
-    "ssh/knownhosts"
+    "ssh/knownhosts",
+    "ssh/terminal"
   ]
   revision = "dd85ac7e6a88fc6ca420478e934de5f1a42dd3c6"
 
@@ -461,6 +468,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "d5f3e33031a3bdc64909673b95d95bc20bce0f4a4bc695f9fd9a024b2e33a45e"
+  inputs-digest = "2bb58ec2917d7d1cc828b91986078aded6fb4ab7ab2995319b23f82c2f22bceb"
   solver-name = "gps-cdcl"
   solver-version = 1

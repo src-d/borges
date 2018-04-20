@@ -37,7 +37,6 @@ func (c *consumerCmd) Execute(args []string) error {
 	}
 
 	wp := borges.NewArchiverWorkerPool(
-		log,
 		storage.FromDatabase(core.Database()),
 		core.RootedTransactioner(),
 		borges.NewTemporaryCloner(core.TemporaryFilesystem()),

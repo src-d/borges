@@ -3,8 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/inconshreveable/log15"
-
+	log "github.com/sirupsen/logrus"
 	"gopkg.in/src-d/core-retrieval.v0/schema"
 	"gopkg.in/src-d/framework.v0/database"
 )
@@ -31,6 +30,6 @@ func (c *initCmd) Execute(args []string) error {
 		return fmt.Errorf("unable to create database schema: %s", err)
 	}
 
-	log15.Info("database was successfully initialized")
+	log.Info("database was successfully initialized")
 	return nil
 }

@@ -74,7 +74,7 @@ func (c *producerCmd) Execute(args []string) error {
 	}
 	defer ioutil.CheckClose(ji, &err)
 
-	p := borges.NewProducer(log, ji, q,
+	p := borges.NewProducer(ji, q,
 		queue.Priority(c.Priority), c.JobsRetries)
 
 	p.Start()
