@@ -20,8 +20,14 @@ const (
 	packerCmdLongDesc  = ""
 )
 
+var packerCommand = &packerCmd{command: newCommand(
+	packerCmdName,
+	packerCmdShortDesc,
+	packerCmdLongDesc,
+)}
+
 type packerCmd struct {
-	cmd
+	command
 	File      string `long:"file" short:"f" required:"true" description:"file with the repositories to pack (one per line)"`
 	OutputDir string `long:"to" default:"repositories" description:"path to store the packed siva files"`
 	Timeout   string `long:"timeout" default:"30m" description:"time to wait to consider a job failed"`
@@ -92,4 +98,16 @@ func (c *packerCmd) newRootedTransactioner() (repository.RootedTransactioner, er
 		copier,
 		tmpFs,
 	), nil
+}
+
+func init() {
+	_, err := parser.AddCommand(
+		packerCommand.Name(),
+		packerCommand.ShortDescription(),
+		packerCommand.LongDescription(),
+		packerCommand)
+
+	if err != nil {
+		panic(err)
+	}
 }

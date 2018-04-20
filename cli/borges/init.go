@@ -15,8 +15,15 @@ const (
 	initCmdLongDesc  = ""
 )
 
+var initCommand = &initCmd{simpleCommand: newSimpleCommand(
+	initCmdName,
+	initCmdShortDesc,
+	initCmdLongDesc,
+)}
+
 type initCmd struct {
-	loggerCmd
+	simpleCommand
+	loggerOpts
 }
 
 func (c *initCmd) Execute(args []string) error {
@@ -33,4 +40,16 @@ func (c *initCmd) Execute(args []string) error {
 
 	log15.Info("database was successfully initialized")
 	return nil
+}
+
+func init() {
+	_, err := parser.AddCommand(
+		initCommand.Name(),
+		initCommand.ShortDescription(),
+		initCommand.LongDescription(),
+		initCommand)
+
+	if err != nil {
+		panic(err)
+	}
 }
