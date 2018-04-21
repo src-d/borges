@@ -4,7 +4,7 @@ import (
 	"io"
 	"time"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/src-d/borges/storage"
 	"gopkg.in/src-d/framework.v0/queue"
 )
@@ -13,6 +13,7 @@ import (
 // pool to be executed.
 // Executor acts as a producer-consumer in a single component.
 type Executor struct {
+	log   *logrus.Entry
 	wp    *WorkerPool
 	q     queue.Queue
 	store storage.RepoStore
@@ -21,12 +22,14 @@ type Executor struct {
 
 // NewExecutor creates a new job executor.
 func NewExecutor(
+	log *logrus.Entry,
 	q queue.Queue,
 	pool *WorkerPool,
 	store storage.RepoStore,
 	iter JobIter,
 ) *Executor {
 	return &Executor{
+		log:   log,
 		wp:    pool,
 		q:     q,
 		store: store,
@@ -54,7 +57,7 @@ func (p *Executor) start() error {
 		if err := p.consumeJobs(); err == io.EOF {
 			return p.wp.Close()
 		} else if err != nil {
-			log.WithField("err", err).Error("error consuming jobs")
+			p.log.WithField("err", err).Error("error consuming jobs")
 		}
 
 		<-time.After(5 * time.Second)
@@ -62,12 +65,12 @@ func (p *Executor) start() error {
 }
 
 func (p *Executor) queueJobs() error {
-	log.Debug("queueing jobs")
+	p.log.Debug("queueing jobs")
 	var n int
 	for {
 		job, err := p.iter.Next()
 		if err == io.EOF {
-			log.WithField("jobs", n).Debug("jobs queued")
+			p.log.WithField("jobs", n).Debug("jobs queued")
 			return nil
 		}
 
@@ -132,5 +135,5 @@ func (p *Executor) consumeJobs() error {
 }
 
 func (p *Executor) logError(err error) {
-	log.WithField("err", err).Error("error occurred")
+	p.log.WithField("err", err).Error("error occurred")
 }

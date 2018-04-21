@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"gopkg.in/src-d/core-retrieval.v0/model"
 	"gopkg.in/src-d/go-billy.v4"
 	"gopkg.in/src-d/go-billy.v4/util"
@@ -228,7 +228,7 @@ func ResolveCommit(r *git.Repository, h plumbing.Hash) (*object.Commit, error) {
 	case *object.Tag:
 		return ResolveCommit(r, o.Target)
 	default:
-		log.WithFields(log.Fields{"hash": h.String(), "type": o.Type()}).Warn("referenced object not supported")
+		logrus.WithFields(logrus.Fields{"hash": h.String(), "type": o.Type()}).Warn("referenced object not supported")
 		return nil, ErrReferencedObjectTypeNotSupported
 	}
 }

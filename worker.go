@@ -1,14 +1,15 @@
 package borges
 
 import (
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 const temporaryError = "temporary"
 
 // Worker is a worker that processes jobs from a channel.
 type Worker struct {
-	do         func(*Job) error
+	logentry   *logrus.Entry
+	do         func(*logrus.Entry, *Job) error
 	jobChannel chan *WorkerJob
 	quit       chan struct{}
 	running    bool
@@ -18,8 +19,9 @@ type Worker struct {
 // will be passed to the processing function on every call. The second parameter
 // is the processing function itself that will be called for every job. The
 // third parameter is a channel that the worker will consume jobs from.
-func NewWorker(do func(*Job) error, ch chan *WorkerJob) *Worker {
+func NewWorker(logentry *logrus.Entry, do func(*logrus.Entry, *Job) error, ch chan *WorkerJob) *Worker {
 	return &Worker{
+		logentry:   logentry,
 		do:         do,
 		jobChannel: ch,
 		quit:       make(chan struct{}),
@@ -32,6 +34,7 @@ func (w *Worker) Start() {
 	w.running = true
 	defer func() { w.running = false }()
 
+	log := w.logentry
 	log.Info("starting")
 	for {
 		select {
@@ -41,7 +44,7 @@ func (w *Worker) Start() {
 			}
 
 			var requeue bool
-			if err := w.do(job.Job); err != nil {
+			if err := w.do(log, job.Job); err != nil {
 				// when a previous job which failed with a temporary error
 				// panics, it's sent to the buried queue without the retries
 				// header or with this header set to a value greater than zero.

@@ -69,12 +69,6 @@
   revision = "5a0f697c9ed9d68fef0116532c6e05cfeae00e55"
 
 [[projects]]
-  name = "github.com/inconshreveable/log15"
-  packages = ["."]
-  revision = "0decfc6c20d9ca0ad143b0e89dcaa20f810b4fb3"
-  version = "v2.13"
-
-[[projects]]
   branch = "master"
   name = "github.com/jbenet/go-context"
   packages = ["io"]
@@ -145,6 +139,12 @@
   name = "github.com/oklog/ulid"
   packages = ["."]
   revision = "eb55c82d96c77e196b269cb2ae3afda150454de7"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/onrik/logrus"
+  packages = ["filename"]
+  revision = "6a64e23a4923a8d0d4db2806dcf3e55af1e48f61"
 
 [[projects]]
   name = "github.com/pelletier/go-buffruneio"
@@ -468,6 +468,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "2bb58ec2917d7d1cc828b91986078aded6fb4ab7ab2995319b23f82c2f22bceb"
+  inputs-digest = "5cb8a097a3585fc07f71645a59d6a91218377f612a1d0beb978a9b4255d849a4"
   solver-name = "gps-cdcl"
   solver-version = 1

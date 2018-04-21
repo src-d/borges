@@ -1,4 +1,4 @@
-package filename //import "github.com/onrik/logrus/filename"
+package filename
 
 import (
 	"fmt"

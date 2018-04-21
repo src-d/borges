@@ -6,7 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/inconshreveable/log15"
+	"github.com/sirupsen/logrus"
+
 	"github.com/satori/go.uuid"
 	"github.com/src-d/borges/storage"
 	"github.com/stretchr/testify/require"
@@ -41,7 +42,7 @@ func (s *ProducerSuite) SetupSuite() {
 
 func (s *ProducerSuite) newProducer() *Producer {
 	storer := storage.FromDatabase(s.DB)
-	return NewProducer(log15.New(), NewMentionJobIter(s.mentionsQueue, storer),
+	return NewProducer(logrus.NewEntry(logrus.StandardLogger()), NewMentionJobIter(s.mentionsQueue, storer),
 		s.queue, queue.PriorityNormal, testJobRetries)
 }
 
@@ -116,7 +117,7 @@ func (s *ProducerSuite) TestStartStop_TwoEqualsJobs() {
 }
 
 func (s *ProducerSuite) TestStartStop_ErrorNoNotifier() {
-	p := NewProducer(log15.New(), &DummyJobIter{}, s.queue,
+	p := NewProducer(logrus.NewEntry(logrus.StandardLogger()), &DummyJobIter{}, s.queue,
 		queue.PriorityNormal, testJobRetries)
 
 	go p.Start()
