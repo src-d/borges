@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	flags "github.com/jessevdk/go-flags"
+	"github.com/sirupsen/logrus"
 	"github.com/src-d/borges"
 	"github.com/src-d/borges/storage"
 
@@ -74,7 +75,7 @@ func (c *producerCmd) Execute(args []string) error {
 	}
 	defer ioutil.CheckClose(ji, &err)
 
-	p := borges.NewProducer(ji, q,
+	p := borges.NewProducer(logrus.NewEntry(logrus.StandardLogger()), ji, q,
 		queue.Priority(c.Priority), c.JobsRetries)
 
 	p.Start()

@@ -3,6 +3,8 @@ package main
 import (
 	"time"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/src-d/borges"
 	"github.com/src-d/borges/storage"
 
@@ -37,6 +39,7 @@ func (c *consumerCmd) Execute(args []string) error {
 	}
 
 	wp := borges.NewArchiverWorkerPool(
+		logrus.NewEntry(logrus.StandardLogger()),
 		storage.FromDatabase(core.Database()),
 		core.RootedTransactioner(),
 		borges.NewTemporaryCloner(core.TemporaryFilesystem()),

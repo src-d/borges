@@ -6,7 +6,7 @@ import (
 	"runtime"
 	"time"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/src-d/borges"
 	"github.com/src-d/borges/storage"
 	core "gopkg.in/src-d/core-retrieval.v0"
@@ -32,7 +32,7 @@ type packerCmd struct {
 func (c *packerCmd) Execute(args []string) error {
 	c.init()
 
-	log.WithFields(log.Fields{
+	logrus.WithFields(logrus.Fields{
 		"file":   c.File,
 		"output": c.OutputDir,
 	}).Info("initializing pack process")
@@ -55,6 +55,7 @@ func (c *packerCmd) Execute(args []string) error {
 	}
 
 	wp := borges.NewArchiverWorkerPool(
+		logrus.NewEntry(logrus.StandardLogger()),
 		store,
 		transactioner,
 		borges.NewTemporaryCloner(core.TemporaryFilesystem()),
@@ -73,6 +74,7 @@ func (c *packerCmd) Execute(args []string) error {
 	}
 
 	executor := borges.NewExecutor(
+		logrus.NewEntry(logrus.StandardLogger()),
 		q,
 		wp,
 		store,
