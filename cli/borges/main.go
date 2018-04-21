@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/jessevdk/go-flags"
+	"github.com/onrik/logrus/filename"
 	log "github.com/sirupsen/logrus"
 	"github.com/src-d/borges/metrics"
 )
@@ -40,6 +41,15 @@ type cmd struct {
 }
 
 func (c *loggerCmd) init() {
+	log.AddHook(filename.NewHook(
+		log.DebugLevel,
+		log.InfoLevel,
+		log.WarnLevel,
+		log.ErrorLevel,
+		log.FatalLevel,
+		log.PanicLevel),
+	)
+
 	switch strings.ToLower(c.LogLevel) {
 	case "debug":
 		log.SetLevel(log.DebugLevel)

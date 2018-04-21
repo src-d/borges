@@ -32,7 +32,10 @@ type packerCmd struct {
 func (c *packerCmd) Execute(args []string) error {
 	c.init()
 
-	log.Info("initializing pack process", "file", c.File, "output", c.OutputDir)
+	log.WithFields(log.Fields{
+		"file":   c.File,
+		"output": c.OutputDir,
+	}).Info("initializing pack process")
 
 	broker := queue.NewMemoryBroker()
 	q, err := broker.Queue("jobs")
