@@ -6,6 +6,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"github.com/src-d/borges"
 	"github.com/src-d/borges/storage"
 	core "gopkg.in/src-d/core-retrieval.v0"
@@ -37,7 +38,11 @@ type packerCmd struct {
 func (c *packerCmd) Execute(args []string) error {
 	c.init()
 
-	log.Info("initializing pack process", "file", c.File, "output", c.OutputDir)
+	log = log.WithField("command", packerCmdName)
+	log.WithFields(logrus.Fields{
+		"file":   c.File,
+		"output": c.OutputDir,
+	}).Info("initializing pack process")
 
 	broker := queue.NewMemoryBroker()
 	q, err := broker.Queue("jobs")
@@ -56,8 +61,7 @@ func (c *packerCmd) Execute(args []string) error {
 		return fmt.Errorf("unable to initialize rooted transactioner: %s", err)
 	}
 
-	wp := borges.NewArchiverWorkerPool(
-		log,
+	wp := borges.NewArchiverWorkerPool(log,
 		store,
 		transactioner,
 		borges.NewTemporaryCloner(core.TemporaryFilesystem()),

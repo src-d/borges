@@ -18,6 +18,7 @@ type updateCmd struct {
 }
 
 func (c *updateCmd) Execute(args []string) error {
+	log = log.WithField("command", updateCmdName)
 	log.Warn("Update command is not implemented yet")
 	return nil
 }

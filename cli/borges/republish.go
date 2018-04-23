@@ -37,11 +37,12 @@ func (c *republishCmd) Execute(args []string) error {
 	}
 	defer c.broker.Close()
 
-	log.Info("starting republishing jobs...", "time", c.Time)
+	log = log.WithField("command", republishCmdName)
+	log.WithField("time", c.Time).Info("starting republishing jobs...")
 
 	log.Debug("republish task triggered ")
 	if err := c.queue.RepublishBuried(republishCondition); err != nil {
-		log.Error("error republishing buried jobs", "error", err)
+		log.WithField("error", err).Error("error republishing buried jobs")
 	}
 
 	if lapse != 0 {
@@ -66,7 +67,7 @@ func (c *republishCmd) runPeriodically(lapse time.Duration) {
 	for range ticker {
 		log.Debug("republish task triggered ")
 		if err := c.queue.RepublishBuried(republishCondition); err != nil {
-			log.Error("error republishing buried jobs", "error", err)
+			log.WithField("error", err).Error("error republishing buried jobs")
 		}
 	}
 }

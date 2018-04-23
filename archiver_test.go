@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/inconshreveable/log15"
 	"github.com/satori/go.uuid"
+	"github.com/sirupsen/logrus"
 	"github.com/src-d/borges/storage"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -77,7 +77,7 @@ func (s *ArchiverSuite) SetupTest() {
 	})
 	s.NoError(err)
 
-	s.a = NewArchiver(log15.New(), s.store, s.tx, NewTemporaryCloner(s.tmpFs), ls, defaultTimeout)
+	s.a = NewArchiver(logrus.NewEntry(logrus.StandardLogger()), s.store, s.tx, NewTemporaryCloner(s.tmpFs), ls, defaultTimeout)
 }
 
 func (s *ArchiverSuite) TearDownTest() {

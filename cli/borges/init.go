@@ -36,7 +36,7 @@ func (c *initCmd) Execute(args []string) error {
 		return fmt.Errorf("unable to create database schema: %s", err)
 	}
 
-	log.Info("database was successfully initialized")
+	log.WithField("command", initCmdName).Info("database was successfully initialized")
 	return nil
 }
 

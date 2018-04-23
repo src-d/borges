@@ -69,12 +69,6 @@
   revision = "5a0f697c9ed9d68fef0116532c6e05cfeae00e55"
 
 [[projects]]
-  name = "github.com/inconshreveable/log15"
-  packages = ["."]
-  revision = "0decfc6c20d9ca0ad143b0e89dcaa20f810b4fb3"
-  version = "v2.13"
-
-[[projects]]
   branch = "master"
   name = "github.com/jbenet/go-context"
   packages = ["io"]
@@ -147,6 +141,12 @@
   revision = "eb55c82d96c77e196b269cb2ae3afda150454de7"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/onrik/logrus"
+  packages = ["filename"]
+  revision = "6a64e23a4923a8d0d4db2806dcf3e55af1e48f61"
+
+[[projects]]
   name = "github.com/pelletier/go-buffruneio"
   packages = ["."]
   revision = "c37440a7cf42ac63b919c752ca73a85067e05992"
@@ -173,6 +173,12 @@
   packages = ["diffmatchpatch"]
   revision = "1744e2970ca51c86172c8190fadad617561ed6e7"
   version = "v1.0.0"
+
+[[projects]]
+  name = "github.com/sirupsen/logrus"
+  packages = ["."]
+  revision = "c155da19408a8799da419ed3eeb0cb5db0ad5dbc"
+  version = "v1.0.5"
 
 [[projects]]
   name = "github.com/src-d/gcfg"
@@ -220,7 +226,8 @@
     "openpgp/s2k",
     "ssh",
     "ssh/agent",
-    "ssh/knownhosts"
+    "ssh/knownhosts",
+    "ssh/terminal"
   ]
   revision = "dd85ac7e6a88fc6ca420478e934de5f1a42dd3c6"
 
@@ -461,6 +468,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "166dc6fbcc7d1e8cffdf77291f3176d8f7fa48ad75179fcb650cd7f63359cf15"
+  inputs-digest = "5cb8a097a3585fc07f71645a59d6a91218377f612a1d0beb978a9b4255d849a4"
   solver-name = "gps-cdcl"
   solver-version = 1

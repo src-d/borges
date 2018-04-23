@@ -9,7 +9,7 @@ import (
 	"gopkg.in/src-d/framework.v0/queue"
 	kallax "gopkg.in/src-d/go-kallax.v1"
 
-	"github.com/inconshreveable/log15"
+	"github.com/sirupsen/logrus"
 	"github.com/src-d/borges/storage"
 	"github.com/stretchr/testify/suite"
 )
@@ -59,9 +59,9 @@ func (s *ExecutorSuite) runExecutor(repos ...string) ([]*Job, error) {
 
 	var jobs []*Job
 
-	log := log15.New()
+	log := logrus.NewEntry(logrus.StandardLogger())
 
-	wp := NewWorkerPool(log, func(log log15.Logger, j *Job) error {
+	wp := NewWorkerPool(log, func(log *logrus.Entry, j *Job) error {
 		jobs = append(jobs, j)
 		return nil
 	})

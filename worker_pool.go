@@ -3,7 +3,7 @@ package borges
 import (
 	"sync"
 
-	"github.com/inconshreveable/log15"
+	"github.com/sirupsen/logrus"
 	"gopkg.in/src-d/framework.v0/queue"
 )
 
@@ -17,8 +17,8 @@ type WorkerJob struct {
 
 // WorkerPool is a pool of workers that can process jobs.
 type WorkerPool struct {
-	log        log15.Logger
-	do         func(log15.Logger, *Job) error
+	log        *logrus.Entry
+	do         func(*logrus.Entry, *Job) error
 	jobChannel chan *WorkerJob
 	workers    []*Worker
 	wg         *sync.WaitGroup
@@ -28,7 +28,7 @@ type WorkerPool struct {
 // NewWorkerPool creates a new empty worker pool. It takes a function to be used
 // by workers to process jobs. The pool is started with no workers.
 // SetWorkerCount must be called to start them.
-func NewWorkerPool(log log15.Logger, f func(log15.Logger, *Job) error) *WorkerPool {
+func NewWorkerPool(log *logrus.Entry, f func(*logrus.Entry, *Job) error) *WorkerPool {
 	return &WorkerPool{
 		log:        log,
 		do:         f,
@@ -71,7 +71,7 @@ func (wp *WorkerPool) Len() int {
 func (wp *WorkerPool) add(n int) {
 	wp.wg.Add(n)
 	for i := 0; i < n; i++ {
-		log := wp.log.New("worker", i)
+		log := wp.log.WithField("worker", i)
 		w := NewWorker(log, wp.do, wp.jobChannel)
 		go func() {
 			defer wp.wg.Done()

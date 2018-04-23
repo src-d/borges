@@ -5,14 +5,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/inconshreveable/log15"
+	"github.com/sirupsen/logrus"
 	"github.com/src-d/borges/metrics"
 	"gopkg.in/src-d/framework.v0/queue"
 )
 
 // Producer is a service to generate jobs and put them to the queue.
 type Producer struct {
-	log           log15.Logger
+	log           *logrus.Entry
 	jobIter       JobIter
 	queue         queue.Queue
 	running       bool
@@ -27,14 +27,14 @@ type Producer struct {
 
 // NewProducer creates a new producer.
 func NewProducer(
-	log log15.Logger,
+	log *logrus.Entry,
 	jobIter JobIter,
 	queue queue.Queue,
 	priority queue.Priority,
 	jobRetries int,
 ) *Producer {
 	return &Producer{
-		log:           log.New("mode", "producer"),
+		log:           log,
 		jobIter:       jobIter,
 		queue:         queue,
 		maxJobRetries: jobRetries,
@@ -79,16 +79,16 @@ func (p *Producer) start() {
 		}
 
 		if err != nil {
-			log.Error("error obtaining next job", "error", err)
+			log.WithField("error", err).Error("error obtaining next job")
 			continue
 		}
 
 		if err := p.add(j); err != nil {
 			metrics.RepoProduceFailed()
-			log.Error("error adding job to the queue", "job", j.RepositoryID, "error", err)
+			log.WithFields(logrus.Fields{"job": j.RepositoryID, "error": err}).Error("error adding job to the queue")
 		} else {
 			metrics.RepoProduced()
-			log.Info("job queued", "job", j.RepositoryID)
+			log.WithField("job", j.RepositoryID).Info("job queued")
 		}
 	}
 
@@ -123,7 +123,7 @@ func (p *Producer) closeIter() {
 	}
 
 	if err := p.jobIter.Close(); err != nil {
-		p.log.Error("error closing queue iterator", "error", err)
+		p.log.WithField("error", err).Error("error closing queue iterator")
 	}
 
 	p.jobIter = nil

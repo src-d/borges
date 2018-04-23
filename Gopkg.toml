@@ -1,8 +1,4 @@
 [[constraint]]
-  name = "github.com/inconshreveable/log15"
-  version = "2.11.0"
-
-[[constraint]]
   name = "github.com/jessevdk/go-flags"
   version = "1.2.0"
 

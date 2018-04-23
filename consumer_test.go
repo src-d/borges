@@ -6,7 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/inconshreveable/log15"
+	"github.com/onrik/logrus/filename"
+	"github.com/sirupsen/logrus"
+
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -15,6 +17,16 @@ import (
 )
 
 func TestConsumerSuite(t *testing.T) {
+	logrus.AddHook(filename.NewHook(
+		logrus.DebugLevel,
+		logrus.InfoLevel,
+		logrus.WarnLevel,
+		logrus.ErrorLevel,
+		logrus.FatalLevel,
+		logrus.PanicLevel),
+	)
+	logrus.SetFormatter(&logrus.TextFormatter{TimestampFormat: time.StampMicro, FullTimestamp: true})
+
 	suite.Run(t, new(ConsumerSuite))
 }
 
@@ -23,7 +35,7 @@ type ConsumerSuite struct {
 }
 
 func (s *ConsumerSuite) newConsumer() *Consumer {
-	wp := NewWorkerPool(log15.New(), func(log15.Logger, *Job) error { return nil })
+	wp := NewWorkerPool(logrus.NewEntry(logrus.StandardLogger()), func(*logrus.Entry, *Job) error { return nil })
 	return NewConsumer(s.queue, wp)
 }
 
@@ -36,15 +48,15 @@ func (s *ConsumerSuite) TestConsumer_StartStop_FailedJob() {
 	id, err := uuid.NewV4()
 	require.NoError(err)
 
-	var processedId uuid.UUID
+	var processedID uuid.UUID
 
 	processed := 0
 	done := make(chan struct{}, 1)
-	c.WorkerPool.do = func(log log15.Logger, j *Job) error {
+	c.WorkerPool.do = func(log *logrus.Entry, j *Job) error {
 		defer func() { done <- struct{}{} }()
 		processed++
 		if processed == 2 {
-			processedId = j.RepositoryID
+			processedID = j.RepositoryID
 			return nil
 		}
 
@@ -72,7 +84,7 @@ func (s *ConsumerSuite) TestConsumer_StartStop_FailedJob() {
 
 	require.NoError(timeoutChan(done, time.Second*10))
 	require.Equal(2, processed)
-	require.Equal(id, processedId)
+	require.Equal(id, processedID)
 
 	c.Stop()
 }
@@ -92,7 +104,7 @@ func (s *ConsumerSuite) TestConsumer_StartStop() {
 
 	processed := 0
 	done := make(chan struct{}, 1)
-	c.WorkerPool.do = func(log15.Logger, *Job) error {
+	c.WorkerPool.do = func(*logrus.Entry, *Job) error {
 		processed++
 		if processed > 1 {
 			assert.Fail("too many jobs processed")

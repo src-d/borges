@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/inconshreveable/log15"
 	"github.com/jpillora/backoff"
+	"github.com/sirupsen/logrus"
 	"github.com/src-d/borges/metrics"
 	"github.com/src-d/borges/storage"
 	"gopkg.in/src-d/core-retrieval.v0/model"
@@ -40,8 +40,7 @@ var (
 //
 // See borges documentation for more details about the archiving rules.
 type Archiver struct {
-	log log15.Logger
-
+	log     *logrus.Entry
 	backoff *backoff.Backoff
 
 	// TemporaryCloner is used to clone repositories into temporary storage.
@@ -62,7 +61,7 @@ type Archiver struct {
 	LockSession lock.Session
 }
 
-func NewArchiver(log log15.Logger, r storage.RepoStore,
+func NewArchiver(log *logrus.Entry, r storage.RepoStore,
 	tx repository.RootedTransactioner, tc TemporaryCloner,
 	ls lock.Session, to time.Duration) *Archiver {
 	return &Archiver{
@@ -95,10 +94,10 @@ func newBackoff() *backoff.Backoff {
 
 // Do archives a repository according to a job.
 func (a *Archiver) Do(j *Job) error {
-	log := a.log.New("job", j.RepositoryID)
+	log := a.log.WithField("job", j.RepositoryID)
 	log.Info("job started")
 	if err := a.do(log, j); err != nil {
-		log.Error("job finished with error", "error", err)
+		log.WithField("error", err).Error("job finished with error")
 		return err
 	}
 
@@ -106,7 +105,7 @@ func (a *Archiver) Do(j *Job) error {
 	return nil
 }
 
-func (a *Archiver) do(log log15.Logger, j *Job) (err error) {
+func (a *Archiver) do(log *logrus.Entry, j *Job) (err error) {
 	now := time.Now()
 	ctx, cancel := context.WithTimeout(context.Background(), a.Timeout)
 	defer cancel()
@@ -129,18 +128,22 @@ func (a *Archiver) do(log log15.Logger, j *Job) (err error) {
 		}
 	}()
 
-	log.Debug("repository model obtained",
-		"status", r.Status,
-		"last-fetch", r.FetchedAt,
-		"references", len(r.References))
+	log.WithFields(logrus.Fields{
+		"status":     r.Status,
+		"last-fetch": r.FetchedAt,
+		"references": len(r.References),
+	}).Debug("repository model obtained")
 
 	defer func() {
 		if rcv := recover(); rcv != nil {
-			log.Error("panic while processing repository", "error", rcv)
+			log.WithField("error", rcv).Error("panic while processing repository")
 
 			r.FetchErrorAt = &now
 			if sErr := a.Store.UpdateFailed(r, model.Pending); sErr != nil {
-				log15.Error("error setting repo as failed", "id", r.ID, "err", err)
+				log.WithFields(logrus.Fields{
+					"err": err,
+					"id":  r.ID,
+				}).Error("error setting repo as failed")
 			}
 
 			err = ErrFatal.New(rcv, debug.Stack())
@@ -148,11 +151,11 @@ func (a *Archiver) do(log log15.Logger, j *Job) (err error) {
 	}()
 
 	if err := a.canProcessRepository(r, &now); err != nil {
-		log.Warn("cannot process repository",
-			"id", r.ID.String(),
-			"last-fetch", r.FetchedAt,
-			"reason", err,
-		)
+		log.WithFields(logrus.Fields{
+			"id":         r.ID.String(),
+			"last-fetch": r.FetchedAt,
+			"reason":     err,
+		}).Warn("cannot process repository")
 
 		return err
 	}
@@ -164,12 +167,14 @@ func (a *Archiver) do(log log15.Logger, j *Job) (err error) {
 	endpoint, err := selectEndpoint(r.Endpoints)
 	if err != nil {
 		if err := a.Store.UpdateFailed(r, model.Pending); err != nil {
-			log15.Error("error setting repo as failed", "id", r.ID, "err", err)
+			log.WithFields(logrus.Fields{
+				"id": r.ID, "err": err,
+			}).Error("error setting repo as failed")
 		}
 		return err
 	}
 
-	log = log.New("endpoint", endpoint)
+	log = log.WithField("endpoint", endpoint)
 
 	gr, err := a.TemporaryCloner.Clone(
 		ctx,
@@ -195,7 +200,7 @@ func (a *Archiver) do(log log15.Logger, j *Job) (err error) {
 			return err
 		}
 
-		log.Error("error cloning repository", "error", err)
+		log.WithField("error", err).Error("error cloning repository")
 		return finalErr
 	}
 
@@ -210,17 +215,17 @@ func (a *Archiver) do(log log15.Logger, j *Job) (err error) {
 	newRefs := gr
 	changes, err := NewChanges(oldRefs, newRefs)
 	if err != nil {
-		log.Error("error computing changes", "error", err)
+		log.WithField("error", err).Error("error computing changes")
 		if err := a.Store.UpdateFailed(r, model.Pending); err != nil {
-			log15.Error("error setting repo as failed", "id", r.ID, "err", err)
+			log.WithFields(logrus.Fields{"err": err, "id": r.ID}).Error("error setting repo as failed")
 		}
 
 		return ErrChanges.Wrap(err)
 	}
 
-	log.Debug("changes obtained", "roots", len(changes))
+	log.WithField("roots", len(changes)).Debug("changes obtained")
 	if err := a.pushChangesToRootedRepositories(ctx, log, j, r, gr, changes, now); err != nil {
-		log.Error("repository processed with errors", "error", err)
+		log.WithField("error", err).Error("repository processed with errors")
 
 		r.FetchErrorAt = &now
 		if updateErr := a.Store.UpdateFailed(r, model.Pending); updateErr != nil {
@@ -278,28 +283,28 @@ func selectEndpoint(endpoints []string) (string, error) {
 	return endpoints[0], nil
 }
 
-func (a *Archiver) pushChangesToRootedRepositories(ctx context.Context, ctxLog log15.Logger,
+func (a *Archiver) pushChangesToRootedRepositories(ctx context.Context, ctxLog *logrus.Entry,
 	j *Job, r *model.Repository, tr TemporaryRepository, changes Changes,
 	now time.Time) error {
 
 	var failedInits []model.SHA1
 	for ic, cs := range changes {
-		log := ctxLog.New("root", ic.String())
+		log := ctxLog.WithField("root", ic.String())
 		lock := a.LockSession.NewLocker(fmt.Sprintf("borges/%s", ic.String()))
 		ch, err := lock.Lock()
 		if err != nil {
 			failedInits = append(failedInits, ic)
-			log.Warn("failed to acquire lock", "root", ic.String(), "error", err)
+			log.WithFields(logrus.Fields{"root": ic.String(), "error": err}).Warn("failed to acquire lock")
 			continue
 		}
 
 		log.Debug("push changes to rooted repository started")
-		if err := a.pushChangesToRootedRepository(ctx, log, r, tr, ic, cs); err != nil {
+		if err := a.pushChangesToRootedRepository(ctx, ctxLog, r, tr, ic, cs); err != nil {
 			err = ErrPushToRootedRepository.Wrap(err, ic.String())
-			log.Error("error pushing changes to rooted repository", "error", err)
+			log.WithField("error", err).Error("error pushing changes to rooted repository")
 			failedInits = append(failedInits, ic)
 			if err := lock.Unlock(); err != nil {
-				log.Warn("failed to release lock", "root", ic.String(), "error", err)
+				log.WithFields(logrus.Fields{"root": ic.String(), "error": err}).Warn("failed to release lock")
 			}
 
 			continue
@@ -314,36 +319,40 @@ func (a *Archiver) pushChangesToRootedRepositories(ctx context.Context, ctxLog l
 
 		if err := a.Store.UpdateFetched(r, now); err != nil {
 			err = ErrPushToRootedRepository.Wrap(err, ic.String())
-			log.Error("error updating repository in database", "error", err)
+			log.WithField("error", err).Error("error updating repository in database")
 			failedInits = append(failedInits, ic)
 		}
 		log.Debug("update repository references finished")
 
 		select {
 		case <-ch:
-			log.Error("lost the lock", "root", ic.String())
+			log.WithField("root", ic.String()).Error("lost the lock")
 		default:
 		}
 
 		if err := lock.Unlock(); err != nil {
-			log.Warn("failed to release lock", "root", ic.String(), "error", err)
+			log.WithFields(logrus.Fields{"root": ic.String(), "error": err}).Warn("failed to release lock")
 		}
 	}
 
 	if len(changes) == 0 {
 		if err := a.Store.UpdateFetched(r, now); err != nil {
-			ctxLog.Error("error updating repository in database", "error", err)
+			ctxLog.WithField("error", err).Error("error updating repository in database")
 		}
 	}
 
 	return checkFailedInits(changes, failedInits)
 }
 
-func (a *Archiver) pushChangesToRootedRepository(ctx context.Context, log log15.Logger, r *model.Repository, tr TemporaryRepository, ic model.SHA1, changes []*Command) error {
+func (a *Archiver) pushChangesToRootedRepository(ctx context.Context, log *logrus.Entry, r *model.Repository, tr TemporaryRepository, ic model.SHA1, changes []*Command) error {
 	var rootedRepoCpStart = time.Now()
 	tx, err := a.beginTxWithRetries(log, plumbing.Hash(ic), maxRetries)
 	sivaCpFromDuration := time.Now().Sub(rootedRepoCpStart)
-	log.Debug("Copy siva file from HDFS", "RootedRepository", ic, "copyFromRemote", int64(sivaCpFromDuration/time.Second))
+	log.WithFields(logrus.Fields{
+		"RootedRepository": ic,
+		"copyFromRemote":   int64(sivaCpFromDuration / time.Second),
+	}).Debug("Copy siva file from FS.")
+
 	if err != nil {
 		return err
 	}
@@ -364,22 +373,25 @@ func (a *Archiver) pushChangesToRootedRepository(ctx context.Context, log log15.
 		pushStart := time.Now()
 		if err := tr.Push(ctx, url, refspecs); err != nil {
 			onlyPushDurationSec := int64(time.Now().Sub(pushStart) / time.Second)
-			log.Error("error pushing 1 change for", "refs", refspecs, "error", err, "took", onlyPushDurationSec)
+			log.WithFields(logrus.Fields{"refs": refspecs, "error": err, "took": onlyPushDurationSec}).Error("error pushing 1 change for")
 			_ = tx.Rollback()
 			return err
 		}
 		onlyPushDurationSec := int64(time.Now().Sub(pushStart) / time.Second)
-		log.Debug("1 change pushed", "took", onlyPushDurationSec)
+		log.WithField("took", onlyPushDurationSec).Debug("1 change pushed")
 
 		var rootedRepoCpStart = time.Now()
 		err = a.commitTxWithRetries(log, ic, tx, maxRetries)
 		sivaCpToDuration := time.Now().Sub(rootedRepoCpStart)
-		log.Debug("Copy siva file to HDFS", "RootedRepository", ic, "copyToRemote", int64(sivaCpToDuration/time.Second))
+		log.WithFields(logrus.Fields{
+			"RootedRepository": ic,
+			"copyToRemote":     int64(sivaCpToDuration / time.Second),
+		}).Debug("Copy siva file to FS")
 		return err
 	})
 }
 
-func (a *Archiver) beginTxWithRetries(log log15.Logger, initCommit plumbing.Hash, numRetries float64) (tx repository.Tx, err error) {
+func (a *Archiver) beginTxWithRetries(log *logrus.Entry, initCommit plumbing.Hash, numRetries float64) (tx repository.Tx, err error) {
 	for a.backoff.Attempt() < numRetries {
 		tx, err = a.RootedTransactioner.Begin(initCommit)
 		if err == nil || !repository.HDFSNamenodeError.Is(err) {
@@ -387,7 +399,12 @@ func (a *Archiver) beginTxWithRetries(log log15.Logger, initCommit plumbing.Hash
 		}
 
 		tts := a.backoff.Duration()
-		log.Error("Waiting for HDFS reconnection", "RootedRepository", initCommit, "tx", "begin", "wait", tts, "error", err)
+		log.WithFields(logrus.Fields{
+			"RootedRepository": initCommit,
+			"tx":               "begin",
+			"wait":             tts,
+			"error":            err,
+		}).Error("Waiting for HDFS reconnection")
 		time.Sleep(tts)
 	}
 
@@ -395,7 +412,7 @@ func (a *Archiver) beginTxWithRetries(log log15.Logger, initCommit plumbing.Hash
 	return
 }
 
-func (a *Archiver) commitTxWithRetries(log log15.Logger, initCommit model.SHA1, tx repository.Tx, numRetries float64) (err error) {
+func (a *Archiver) commitTxWithRetries(log *logrus.Entry, initCommit model.SHA1, tx repository.Tx, numRetries float64) (err error) {
 	for a.backoff.Attempt() < numRetries {
 		err = tx.Commit()
 		if err == nil || !repository.HDFSNamenodeError.Is(err) {
@@ -403,7 +420,12 @@ func (a *Archiver) commitTxWithRetries(log log15.Logger, initCommit model.SHA1, 
 		}
 
 		tts := a.backoff.Duration()
-		log.Error("Waiting for HDFS reconnection", "RootedRepository", initCommit, "tx", "commit", "wait", tts, "error", err)
+		log.WithFields(logrus.Fields{
+			"RootedRepository": initCommit,
+			"tx":               "commit",
+			"wait":             tts,
+			"error":            err,
+		}).Error("Waiting for HDFS reconnection")
 		time.Sleep(tts)
 	}
 
@@ -489,14 +511,14 @@ func checkFailedInits(changes Changes, failed []model.SHA1) error {
 // process jobs. It takes optional start, stop and warn notifier functions that
 // are equal to the Archiver notifiers but with additional WorkerContext.
 func NewArchiverWorkerPool(
-	log log15.Logger,
+	log *logrus.Entry,
 	r storage.RepoStore,
 	tx repository.RootedTransactioner,
 	tc TemporaryCloner,
 	ls lock.Service,
 	to time.Duration) *WorkerPool {
 
-	do := func(log log15.Logger, j *Job) error {
+	do := func(logentry *logrus.Entry, j *Job) error {
 		lsess, err := ls.NewSession(&lock.SessionConfig{TTL: 10 * time.Second})
 		if err != nil {
 			return err
@@ -505,7 +527,7 @@ func NewArchiverWorkerPool(
 		defer func() {
 			err := lsess.Close()
 			if err != nil {
-				log.Error("error closing locking session", "error", err)
+				logrus.Error("error closing locking session", "error", err)
 			}
 		}()
 
