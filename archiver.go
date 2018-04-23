@@ -348,7 +348,11 @@ func (a *Archiver) pushChangesToRootedRepository(ctx context.Context, log *logru
 	var rootedRepoCpStart = time.Now()
 	tx, err := a.beginTxWithRetries(log, plumbing.Hash(ic), maxRetries)
 	sivaCpFromDuration := time.Now().Sub(rootedRepoCpStart)
-	log.WithFields(logrus.Fields{"RootedRepository": ic, "copyFromRemote": int64(sivaCpFromDuration / time.Second)}).Debug("Copy siva file from HDFS")
+	log.WithFields(logrus.Fields{
+		"RootedRepository": ic,
+		"copyFromRemote":   int64(sivaCpFromDuration / time.Second),
+	}).Debug("Copy siva file from FS.")
+
 	if err != nil {
 		return err
 	}
@@ -379,7 +383,10 @@ func (a *Archiver) pushChangesToRootedRepository(ctx context.Context, log *logru
 		var rootedRepoCpStart = time.Now()
 		err = a.commitTxWithRetries(log, ic, tx, maxRetries)
 		sivaCpToDuration := time.Now().Sub(rootedRepoCpStart)
-		log.WithFields(logrus.Fields{"RootedRepository": ic, "copyToRemote": int64(sivaCpToDuration / time.Second)}).Debug("Copy siva file to HDFS")
+		log.WithFields(logrus.Fields{
+			"RootedRepository": ic,
+			"copyToRemote":     int64(sivaCpToDuration / time.Second),
+		}).Debug("Copy siva file to FS")
 		return err
 	})
 }
@@ -392,7 +399,12 @@ func (a *Archiver) beginTxWithRetries(log *logrus.Entry, initCommit plumbing.Has
 		}
 
 		tts := a.backoff.Duration()
-		log.WithFields(logrus.Fields{"RootedRepository": initCommit, "tx": "begin", "wait": tts, "error": err}).Error("Waiting for HDFS reconnection")
+		log.WithFields(logrus.Fields{
+			"RootedRepository": initCommit,
+			"tx":               "begin",
+			"wait":             tts,
+			"error":            err,
+		}).Error("Waiting for HDFS reconnection")
 		time.Sleep(tts)
 	}
 
@@ -408,7 +420,12 @@ func (a *Archiver) commitTxWithRetries(log *logrus.Entry, initCommit model.SHA1,
 		}
 
 		tts := a.backoff.Duration()
-		log.WithFields(logrus.Fields{"RootedRepository": initCommit, "tx": "commit", "wait": tts, "error": err}).Error("Waiting for HDFS reconnection")
+		log.WithFields(logrus.Fields{
+			"RootedRepository": initCommit,
+			"tx":               "commit",
+			"wait":             tts,
+			"error":            err,
+		}).Error("Waiting for HDFS reconnection")
 		time.Sleep(tts)
 	}
 

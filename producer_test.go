@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/onrik/logrus/filename"
 	"github.com/sirupsen/logrus"
 
 	"github.com/satori/go.uuid"
@@ -22,6 +23,16 @@ const (
 )
 
 func TestProducerSuite(t *testing.T) {
+	logrus.AddHook(filename.NewHook(
+		logrus.DebugLevel,
+		logrus.InfoLevel,
+		logrus.WarnLevel,
+		logrus.ErrorLevel,
+		logrus.FatalLevel,
+		logrus.PanicLevel),
+	)
+	logrus.SetFormatter(&logrus.TextFormatter{TimestampFormat: time.StampMicro, FullTimestamp: true})
+
 	suite.Run(t, new(ProducerSuite))
 }
 

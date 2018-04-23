@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/onrik/logrus/filename"
 	"github.com/sirupsen/logrus"
 
 	"github.com/satori/go.uuid"
@@ -16,6 +17,16 @@ import (
 )
 
 func TestConsumerSuite(t *testing.T) {
+	logrus.AddHook(filename.NewHook(
+		logrus.DebugLevel,
+		logrus.InfoLevel,
+		logrus.WarnLevel,
+		logrus.ErrorLevel,
+		logrus.FatalLevel,
+		logrus.PanicLevel),
+	)
+	logrus.SetFormatter(&logrus.TextFormatter{TimestampFormat: time.StampMicro, FullTimestamp: true})
+
 	suite.Run(t, new(ConsumerSuite))
 }
 
@@ -73,7 +84,7 @@ func (s *ConsumerSuite) TestConsumer_StartStop_FailedJob() {
 
 	require.NoError(timeoutChan(done, time.Second*10))
 	require.Equal(2, processed)
-	require.Equal(id, processedId)
+	require.Equal(id, processedID)
 
 	c.Stop()
 }
