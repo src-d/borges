@@ -33,7 +33,7 @@ func NewConsumer(queue queue.Queue, pool *WorkerPool) *Consumer {
 }
 
 // Start initializes the consumer and starts it, blocking until it is stopped.
-func (c *Consumer) Start() {
+func (c *Consumer) Start() error {
 	c.m.Lock()
 	c.quit = make(chan struct{})
 	c.done = make(chan struct{})
@@ -44,7 +44,7 @@ func (c *Consumer) Start() {
 	for {
 		select {
 		case <-c.quit:
-			return
+			return c.WorkerPool.Stop()
 		default:
 			if err := c.consumeQueue(c.Queue); err != nil {
 				c.notifyQueueError(err)

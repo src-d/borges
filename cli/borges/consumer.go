@@ -1,6 +1,9 @@
 package main
 
 import (
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/src-d/borges"
@@ -53,9 +56,24 @@ func (c *consumerCmd) Execute(args []string) error {
 	wp.SetWorkerCount(c.WorkersCount)
 
 	ac := borges.NewConsumer(q, wp)
-	ac.Start()
 
-	return nil
+	var term = make(chan os.Signal)
+	var done = make(chan struct{})
+	go func() {
+		select {
+		case <-term:
+			log.Info("signal received, stopping...")
+			ac.Stop()
+		case <-done:
+		}
+	}()
+	signal.Notify(term, syscall.SIGTERM, os.Interrupt)
+
+	err = ac.Start()
+	close(done)
+	ac.Stop()
+
+	return err
 }
 
 func init() {

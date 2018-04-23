@@ -93,10 +93,10 @@ func newBackoff() *backoff.Backoff {
 }
 
 // Do archives a repository according to a job.
-func (a *Archiver) Do(j *Job) error {
+func (a *Archiver) Do(ctx context.Context, j *Job) error {
 	log := a.log.WithField("job", j.RepositoryID)
 	log.Info("job started")
-	if err := a.do(log, j); err != nil {
+	if err := a.do(ctx, log, j); err != nil {
 		log.WithField("error", err).Error("job finished with error")
 		return err
 	}
@@ -105,9 +105,9 @@ func (a *Archiver) Do(j *Job) error {
 	return nil
 }
 
-func (a *Archiver) do(log *logrus.Entry, j *Job) (err error) {
+func (a *Archiver) do(ctx context.Context, log *logrus.Entry, j *Job) (err error) {
 	now := time.Now()
-	ctx, cancel := context.WithTimeout(context.Background(), a.Timeout)
+	ctx, cancel := context.WithTimeout(ctx, a.Timeout)
 	defer cancel()
 
 	r, err := a.getRepositoryModel(j)
@@ -517,8 +517,7 @@ func NewArchiverWorkerPool(
 	tc TemporaryCloner,
 	ls lock.Service,
 	to time.Duration) *WorkerPool {
-
-	do := func(logentry *logrus.Entry, j *Job) error {
+	do := func(ctx context.Context, logentry *logrus.Entry, j *Job) error {
 		lsess, err := ls.NewSession(&lock.SessionConfig{TTL: 10 * time.Second})
 		if err != nil {
 			return err
@@ -532,7 +531,7 @@ func NewArchiverWorkerPool(
 		}()
 
 		a := NewArchiver(log, r, tx, tc, lsess, to)
-		return a.Do(j)
+		return a.Do(ctx, j)
 	}
 
 	return NewWorkerPool(log, do)
