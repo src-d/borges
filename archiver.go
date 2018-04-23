@@ -65,6 +65,7 @@ func NewArchiver(log *logrus.Entry, r storage.RepoStore,
 	tx repository.RootedTransactioner, tc TemporaryCloner,
 	ls lock.Session, to time.Duration) *Archiver {
 	return &Archiver{
+		log:                 log,
 		backoff:             newBackoff(),
 		TemporaryCloner:     tc,
 		Timeout:             to,
