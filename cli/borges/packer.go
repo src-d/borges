@@ -21,8 +21,14 @@ const (
 	packerCmdLongDesc  = ""
 )
 
+var packerCommand = &packerCmd{command: newCommand(
+	packerCmdName,
+	packerCmdShortDesc,
+	packerCmdLongDesc,
+)}
+
 type packerCmd struct {
-	cmd
+	command
 	File      string `long:"file" short:"f" required:"true" description:"file with the repositories to pack (one per line)"`
 	OutputDir string `long:"to" default:"repositories" description:"path to store the packed siva files"`
 	Timeout   string `long:"timeout" default:"30m" description:"time to wait to consider a job failed"`
@@ -32,7 +38,8 @@ type packerCmd struct {
 func (c *packerCmd) Execute(args []string) error {
 	c.init()
 
-	logrus.WithFields(logrus.Fields{
+	log = log.WithField("command", packerCmdName)
+	log.WithFields(logrus.Fields{
 		"file":   c.File,
 		"output": c.OutputDir,
 	}).Info("initializing pack process")
@@ -54,8 +61,7 @@ func (c *packerCmd) Execute(args []string) error {
 		return fmt.Errorf("unable to initialize rooted transactioner: %s", err)
 	}
 
-	wp := borges.NewArchiverWorkerPool(
-		logrus.NewEntry(logrus.StandardLogger()),
+	wp := borges.NewArchiverWorkerPool(log,
 		store,
 		transactioner,
 		borges.NewTemporaryCloner(core.TemporaryFilesystem()),
@@ -74,7 +80,7 @@ func (c *packerCmd) Execute(args []string) error {
 	}
 
 	executor := borges.NewExecutor(
-		logrus.NewEntry(logrus.StandardLogger()),
+		log,
 		q,
 		wp,
 		store,
@@ -96,4 +102,16 @@ func (c *packerCmd) newRootedTransactioner() (repository.RootedTransactioner, er
 		copier,
 		tmpFs,
 	), nil
+}
+
+func init() {
+	_, err := parser.AddCommand(
+		packerCommand.Name(),
+		packerCommand.ShortDescription(),
+		packerCommand.LongDescription(),
+		packerCommand)
+
+	if err != nil {
+		panic(err)
+	}
 }

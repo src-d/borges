@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 
-	"github.com/sirupsen/logrus"
 	"gopkg.in/src-d/core-retrieval.v0/schema"
 	"gopkg.in/src-d/framework.v0/database"
 )
@@ -14,8 +13,15 @@ const (
 	initCmdLongDesc  = ""
 )
 
+var initCommand = &initCmd{simpleCommand: newSimpleCommand(
+	initCmdName,
+	initCmdShortDesc,
+	initCmdLongDesc,
+)}
+
 type initCmd struct {
-	loggerCmd
+	simpleCommand
+	loggerOpts
 }
 
 func (c *initCmd) Execute(args []string) error {
@@ -30,6 +36,18 @@ func (c *initCmd) Execute(args []string) error {
 		return fmt.Errorf("unable to create database schema: %s", err)
 	}
 
-	logrus.Info("database was successfully initialized")
+	log.WithField("command", initCmdName).Info("database was successfully initialized")
 	return nil
+}
+
+func init() {
+	_, err := parser.AddCommand(
+		initCommand.Name(),
+		initCommand.ShortDescription(),
+		initCommand.LongDescription(),
+		initCommand)
+
+	if err != nil {
+		panic(err)
+	}
 }
