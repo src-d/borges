@@ -7,6 +7,7 @@ import (
 	"github.com/src-d/borges/storage"
 
 	"gopkg.in/src-d/core-retrieval.v0"
+	log "gopkg.in/src-d/go-log.v0"
 )
 
 const (
@@ -42,8 +43,14 @@ func (c *consumerCmd) Execute(args []string) error {
 		return err
 	}
 
+	l, err := loggerFactory.New()
+	if err != nil {
+		return err
+	}
+
+	l = l.New(log.Fields{"command": consumerCmdName})
 	wp := borges.NewArchiverWorkerPool(
-		log.WithField("command", consumerCmdName),
+		l,
 		storage.FromDatabase(core.Database()),
 		core.RootedTransactioner(),
 		borges.NewTemporaryCloner(core.TemporaryFilesystem()),

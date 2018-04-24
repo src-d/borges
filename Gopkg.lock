@@ -131,6 +131,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/mgutz/ansi"
+  packages = ["."]
+  revision = "9520e82c474b0a04dd04f8a40959027271bab992"
+
+[[projects]]
+  branch = "master"
   name = "github.com/mitchellh/go-homedir"
   packages = ["."]
   revision = "b8bc1bf767474819792c23f32d8286a45736f1c6"
@@ -139,12 +145,6 @@
   name = "github.com/oklog/ulid"
   packages = ["."]
   revision = "eb55c82d96c77e196b269cb2ae3afda150454de7"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/onrik/logrus"
-  packages = ["filename"]
-  revision = "6a64e23a4923a8d0d4db2806dcf3e55af1e48f61"
 
 [[projects]]
   name = "github.com/pelletier/go-buffruneio"
@@ -181,6 +181,12 @@
   version = "v1.0.5"
 
 [[projects]]
+  name = "github.com/src-d/envconfig"
+  packages = ["."]
+  revision = "0280e33525f5d88edb71638a80b31724153225ba"
+  version = "v1.0.0"
+
+[[projects]]
   name = "github.com/src-d/gcfg"
   packages = [
     ".",
@@ -204,6 +210,12 @@
     "suite"
   ]
   revision = "2aa2c176b9dab406a6970f6a55f513e8a8c8b18f"
+
+[[projects]]
+  name = "github.com/x-cray/logrus-prefixed-formatter"
+  packages = ["."]
+  revision = "bb2702d423886830dee131692131d35648c382e2"
+  version = "v0.5.2"
 
 [[projects]]
   branch = "master"
@@ -445,6 +457,12 @@
   version = "v1.3.3"
 
 [[projects]]
+  name = "gopkg.in/src-d/go-log.v0"
+  packages = ["."]
+  revision = "e555fa2c56661a3aafb566fc45446ac7cbf97085"
+  source = "https://github.com/src-d/go-log.git"
+
+[[projects]]
   name = "gopkg.in/src-d/go-siva.v1"
   packages = ["."]
   revision = "df707095626f384ce2dc1a83b30f9a21d69b9dfc"
@@ -468,6 +486,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "5cb8a097a3585fc07f71645a59d6a91218377f612a1d0beb978a9b4255d849a4"
+  inputs-digest = "eda4b86123232faf08d2ae683a587b73c2337e9816d6d82a622ed7358910ac88"
   solver-name = "gps-cdcl"
   solver-version = 1

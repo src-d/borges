@@ -3,9 +3,8 @@ package main
 import (
 	"os"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/jessevdk/go-flags"
+	log "gopkg.in/src-d/go-log.v0"
 )
 
 const (
@@ -14,15 +13,15 @@ const (
 )
 
 var (
-	version string
-	build   string
-	log     *logrus.Entry
+	version       string
+	build         string
+	loggerFactory *log.LoggerFactory
 )
 
 var parser = flags.NewParser(nil, flags.Default)
 
 func init() {
-	log = logrus.WithField("module", borgesName)
+	loggerFactory = &log.LoggerFactory{Fields: `{"module":"` + borgesName + `"}`}
 	parser.LongDescription = borgesDescription
 }
 

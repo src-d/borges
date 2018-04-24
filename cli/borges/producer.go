@@ -5,12 +5,13 @@ import (
 	"strconv"
 	"strings"
 
-	flags "github.com/jessevdk/go-flags"
 	"github.com/src-d/borges"
-
 	core "gopkg.in/src-d/core-retrieval.v0"
 	"gopkg.in/src-d/framework.v0/queue"
 	"gopkg.in/src-d/go-git.v4/utils/ioutil"
+	log "gopkg.in/src-d/go-log.v0"
+
+	flags "github.com/jessevdk/go-flags"
 )
 
 const (
@@ -72,7 +73,13 @@ func (c *producerSubcmd) generateJobs(getIter getIterFunc) error {
 	}
 	defer ioutil.CheckClose(ji, &err)
 
-	p := borges.NewProducer(log.WithField("command", producerCmdName),
+	l, err := loggerFactory.New()
+	if err != nil {
+		return err
+	}
+
+	l = l.New(log.Fields{"command": producerCmdName})
+	p := borges.NewProducer(l,
 		ji, c.queue, queue.Priority(c.Priority), c.JobsRetries)
 
 	p.Start()

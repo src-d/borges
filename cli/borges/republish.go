@@ -5,6 +5,7 @@ import (
 
 	"github.com/src-d/borges"
 	"gopkg.in/src-d/framework.v0/queue"
+	log "gopkg.in/src-d/go-log.v0"
 )
 
 const (
@@ -37,19 +38,25 @@ func (c *republishCmd) Execute(args []string) error {
 	}
 	defer c.broker.Close()
 
-	log = log.WithField("command", republishCmdName)
-	log.WithField("time", c.Time).Info("starting republishing jobs...")
+	l, err := loggerFactory.New()
+	if err != nil {
+		return err
+	}
 
-	log.Debug("republish task triggered ")
+	l = l.New(log.Fields{"command": republishCmdName})
+
+	l.New(log.Fields{"time": c.Time}).Infof("starting republishing jobs...")
+
+	l.Debugf("republish task triggered ")
 	if err := c.queue.RepublishBuried(republishCondition); err != nil {
-		log.WithField("error", err).Error("error republishing buried jobs")
+		l.Error(err, "error republishing buried jobs")
 	}
 
 	if lapse != 0 {
-		c.runPeriodically(lapse)
+		c.runPeriodically(l, lapse)
 	}
 
-	log.Info("stopping republishing jobs")
+	l.Infof("stopping republishing jobs")
 	return nil
 }
 
@@ -62,12 +69,12 @@ func republishCondition(job *queue.Job) bool {
 	return job.ErrorType == borges.TemporaryError && job.Retries == 0
 }
 
-func (c *republishCmd) runPeriodically(lapse time.Duration) {
+func (c *republishCmd) runPeriodically(l log.Logger, lapse time.Duration) {
 	ticker := time.Tick(lapse)
 	for range ticker {
-		log.Debug("republish task triggered ")
+		l.Debugf("republish task triggered ")
 		if err := c.queue.RepublishBuried(republishCondition); err != nil {
-			log.WithField("error", err).Error("error republishing buried jobs")
+			l.Error(err, "error republishing buried jobs")
 		}
 	}
 }

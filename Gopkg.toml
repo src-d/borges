@@ -25,6 +25,11 @@
   version = "1.0.0"
 
 [[constraint]]
+  name = "gopkg.in/src-d/go-log.v0"
+  revision = "e555fa2c56661a3aafb566fc45446ac7cbf97085"
+  source = "https://github.com/src-d/go-log.git"
+
+[[constraint]]
   name = "gopkg.in/src-d/go-git-fixtures.v3"
   version = "3.1.0"
 

@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/satori/go.uuid"
-	"github.com/sirupsen/logrus"
 	"github.com/src-d/borges/storage"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -26,6 +25,7 @@ import (
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/storage/memory"
 	"gopkg.in/src-d/go-kallax.v1"
+	log "gopkg.in/src-d/go-log.v0"
 )
 
 func TestArchiver(t *testing.T) {
@@ -77,7 +77,9 @@ func (s *ArchiverSuite) SetupTest() {
 	})
 	s.NoError(err)
 
-	s.a = NewArchiver(logrus.NewEntry(logrus.StandardLogger()), s.store, s.tx, NewTemporaryCloner(s.tmpFs), ls, defaultTimeout)
+	l, err := log.New()
+	s.NoError(err)
+	s.a = NewArchiver(l, s.store, s.tx, NewTemporaryCloner(s.tmpFs), ls, defaultTimeout)
 }
 
 func (s *ArchiverSuite) TearDownTest() {

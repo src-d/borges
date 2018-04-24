@@ -5,14 +5,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"github.com/src-d/borges/metrics"
 	"gopkg.in/src-d/framework.v0/queue"
+	"gopkg.in/src-d/go-log.v0"
 )
 
 // Producer is a service to generate jobs and put them to the queue.
 type Producer struct {
-	log           *logrus.Entry
+	log           log.Logger
 	jobIter       JobIter
 	queue         queue.Queue
 	running       bool
@@ -27,7 +27,7 @@ type Producer struct {
 
 // NewProducer creates a new producer.
 func NewProducer(
-	log *logrus.Entry,
+	log log.Logger,
 	jobIter JobIter,
 	queue queue.Queue,
 	priority queue.Priority,
@@ -55,8 +55,7 @@ func (p *Producer) Stop() {
 }
 
 func (p *Producer) start() {
-	log := p.log
-	log.Info("starting up")
+	p.log.Infof("starting up")
 
 	p.running = true
 	p.startIsRunning = make(chan struct{})
@@ -72,7 +71,7 @@ func (p *Producer) start() {
 
 		j, err := p.jobIter.Next()
 		if err == io.EOF {
-			log.Info("no more jobs in the queue")
+			p.log.Infof("no more jobs in the queue")
 			break
 		}
 
@@ -83,7 +82,7 @@ func (p *Producer) start() {
 
 		if err != nil {
 			if nextJobSameErr < nextJobErrMaxPrints {
-				log.WithField("error", err).Error("error obtaining next job")
+				p.log.Error(err, "error obtaining next job")
 				if lastNextJobErr == nil || err.Error() == lastNextJobErr.Error() {
 					nextJobSameErr++
 				} else {
@@ -97,16 +96,17 @@ func (p *Producer) start() {
 
 		nextJobSameErr = 0
 
+		log := p.log.New(log.Fields{"job": j.RepositoryID})
 		if err := p.add(j); err != nil {
 			metrics.RepoProduceFailed()
-			log.WithFields(logrus.Fields{"job": j.RepositoryID, "error": err}).Error("error adding job to the queue")
+			log.Error(err, "error adding job to the queue")
 		} else {
 			metrics.RepoProduced()
-			log.WithField("job", j.RepositoryID).Info("job queued")
+			log.Infof("job queued")
 		}
 	}
 
-	log.Info("stopping")
+	p.log.Infof("stopping")
 }
 
 func (p *Producer) add(j *Job) error {
@@ -137,7 +137,7 @@ func (p *Producer) closeIter() {
 	}
 
 	if err := p.jobIter.Close(); err != nil {
-		p.log.WithField("error", err).Error("error closing queue iterator")
+		p.log.Error(err, "error closing queue iterator")
 	}
 
 	p.jobIter = nil
