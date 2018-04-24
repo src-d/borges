@@ -62,6 +62,9 @@ func (p *Producer) start() {
 	p.startIsRunning = make(chan struct{})
 	defer func() { close(p.startIsRunning) }()
 
+	const nextJobErrMaxPrints = 5
+	var nextJobSameErr int
+	var lastNextJobErr error
 	for {
 		if !p.running {
 			break
@@ -79,9 +82,20 @@ func (p *Producer) start() {
 		}
 
 		if err != nil {
-			log.WithField("error", err).Error("error obtaining next job")
+			if nextJobSameErr < nextJobErrMaxPrints {
+				log.WithField("error", err).Error("error obtaining next job")
+				if lastNextJobErr == nil || err == lastNextJobErr {
+					nextJobSameErr++
+				} else {
+					nextJobSameErr = 0
+				}
+			}
+
+			lastNextJobErr = err
 			continue
 		}
+
+		nextJobSameErr = 0
 
 		if err := p.add(j); err != nil {
 			metrics.RepoProduceFailed()

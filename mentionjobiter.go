@@ -27,10 +27,11 @@ func (i *mentionJobIter) Next() (*Job, error) {
 	}
 
 	mention, j, err := i.getMention()
-
 	if err != nil {
 		if err == queue.ErrAlreadyClosed {
-			i.Close()
+			if err := i.Close(); err != nil {
+				return nil, err
+			}
 		}
 		return nil, err
 	}
