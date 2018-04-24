@@ -84,7 +84,7 @@ func (p *Producer) start() {
 		if err != nil {
 			if nextJobSameErr < nextJobErrMaxPrints {
 				log.WithField("error", err).Error("error obtaining next job")
-				if lastNextJobErr == nil || err == lastNextJobErr {
+				if lastNextJobErr == nil || err.Error() == lastNextJobErr.Error() {
 					nextJobSameErr++
 				} else {
 					nextJobSameErr = 0
