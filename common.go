@@ -1,23 +1,12 @@
 package borges
 
 import (
-	stderrors "errors"
 	"io"
 
-	"github.com/satori/go.uuid"
 	"github.com/src-d/borges/storage"
+
+	"github.com/satori/go.uuid"
 	"gopkg.in/src-d/core-retrieval.v0/model"
-	"gopkg.in/src-d/go-errors.v1"
-)
-
-var (
-	// ErrAlreadyStopped signals that an operation cannot be done because
-	// the entity is already sopped.
-	ErrAlreadyStopped = errors.NewKind("already stopped: %s")
-
-	ErrWaitForJobs = errors.NewKind("no more jobs at the moment")
-
-	ErrReferencedObjectTypeNotSupported error = stderrors.New("referenced object type not supported")
 )
 
 // Job represents a borges job to fetch and archive a repository.
@@ -28,15 +17,13 @@ type Job struct {
 // JobIter is an iterator of Job.
 type JobIter interface {
 	io.Closer
-	// Next returns the next job. It returns io.EOF if there are no more
-	// jobs. If there are no more jobs at the moment, but there can be
-	// in the future, it returns an error of kind ErrWaitForJobs.
+	// Next returns the next job. It returns io.EOF if there are no more jobs.
 	Next() (*Job, error)
 }
 
 // RepositoryID tries to find a repository by the endpoint into the database.
 // If no repository is found, it creates a new one and returns the ID.
-func RepositoryID(endpoints []string, isFork *bool, storer storage.RepoStore) (uuid.UUID, error) {
+func RepositoryID(endpoints []string, isFork *bool, storer storage.RepositoryStore) (uuid.UUID, error) {
 	repositories, err := storer.GetByEndpoints(endpoints...)
 	if err != nil {
 		return uuid.Nil, err

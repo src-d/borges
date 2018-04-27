@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"gopkg.in/src-d/core-retrieval.v0/model"
-	kallax "gopkg.in/src-d/go-kallax.v1"
+	"gopkg.in/src-d/go-kallax.v1"
 )
 
 type dbRepoStore struct {
@@ -14,7 +14,7 @@ type dbRepoStore struct {
 
 // FromDatabase returns a new repository store that interacts with a PostgreSQL
 // FromDatabase to store all the data.
-func FromDatabase(db *sql.DB) RepoStore {
+func FromDatabase(db *sql.DB) RepositoryStore {
 	return &dbRepoStore{model.NewRepositoryStore(db)}
 }
 

@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/onrik/logrus/filename"
-	"github.com/sirupsen/logrus"
-
-	"github.com/satori/go.uuid"
 	"github.com/src-d/borges/storage"
+
+	"github.com/onrik/logrus/filename"
+	"github.com/satori/go.uuid"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"gopkg.in/src-d/core-retrieval.v0/model"

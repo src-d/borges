@@ -5,8 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/satori/go.uuid"
 	"github.com/src-d/borges/storage"
+
+	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/suite"
 	"gopkg.in/src-d/core-retrieval.v0/model"
 	"gopkg.in/src-d/core-retrieval.v0/test"
@@ -56,7 +57,7 @@ func (s *BaseQueueSuite) connectQueue() {
 type RepositoryIDSuite struct {
 	test.Suite
 
-	storer storage.RepoStore
+	storer storage.RepositoryStore
 
 	isTrue  bool
 	isFalse bool

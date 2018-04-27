@@ -10,13 +10,13 @@ import (
 )
 
 // Executor retrieves jobs from an job iterator and passes them to a worker
-// pool to be executed.
-// Executor acts as a producer-consumer in a single component.
+// pool to be executed. Executor acts as a producer-consumer in a single
+// component.
 type Executor struct {
 	log   *logrus.Entry
 	wp    *WorkerPool
 	q     queue.Queue
-	store storage.RepoStore
+	store storage.RepositoryStore
 	iter  JobIter
 }
 
@@ -25,8 +25,7 @@ func NewExecutor(
 	log *logrus.Entry,
 	q queue.Queue,
 	pool *WorkerPool,
-	store storage.RepoStore,
-	iter JobIter,
+	store storage.RepositoryStore, iter JobIter,
 ) *Executor {
 	return &Executor{
 		log:   log,
@@ -37,8 +36,8 @@ func NewExecutor(
 	}
 }
 
-// Execute will queue all jobs and distribute them across the worker pool
-// for them to be executed.
+// Execute will queue all jobs and distribute them across the worker pool for
+// them to be executed.
 func (p *Executor) Execute() error {
 	if err := p.queueJobs(); err != nil {
 		return err

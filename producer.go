@@ -3,7 +3,6 @@ package borges
 import (
 	"io"
 	"sync"
-	"time"
 
 	"github.com/sirupsen/logrus"
 	"github.com/src-d/borges/metrics"
@@ -74,11 +73,6 @@ func (p *Producer) start() {
 		if err == io.EOF {
 			log.Info("no more jobs in the queue")
 			break
-		}
-
-		if ErrWaitForJobs.Is(err) {
-			time.Sleep(time.Millisecond * 500)
-			continue
 		}
 
 		if err != nil {

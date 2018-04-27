@@ -5,19 +5,19 @@ import (
 	"strings"
 	"testing"
 
-	"gopkg.in/src-d/core-retrieval.v0/test"
-	"gopkg.in/src-d/framework.v0/queue"
-	kallax "gopkg.in/src-d/go-kallax.v1"
+	"github.com/src-d/borges/storage"
 
 	"github.com/sirupsen/logrus"
-	"github.com/src-d/borges/storage"
 	"github.com/stretchr/testify/suite"
+	"gopkg.in/src-d/core-retrieval.v0/test"
+	"gopkg.in/src-d/framework.v0/queue"
+	"gopkg.in/src-d/go-kallax.v1"
 )
 
 type ExecutorSuite struct {
 	test.Suite
 	p     *Executor
-	store storage.RepoStore
+	store storage.RepositoryStore
 }
 
 func (s *ExecutorSuite) SetupTest() {

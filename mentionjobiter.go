@@ -2,19 +2,20 @@ package borges
 
 import (
 	"github.com/src-d/borges/storage"
-	rmodel "gopkg.in/src-d/core-retrieval.v0/model"
+
+	"gopkg.in/src-d/core-retrieval.v0/model"
 	"gopkg.in/src-d/framework.v0/queue"
 )
 
 type mentionJobIter struct {
-	storer storage.RepoStore
+	storer storage.RepositoryStore
 	q      queue.Queue
 	iter   queue.JobIter
 }
 
-// NewMentionJobIter returns a JobIter that returns jobs generated from
-// mentions received from a queue (e.g. from rovers).
-func NewMentionJobIter(q queue.Queue, storer storage.RepoStore) JobIter {
+// NewMentionJobIter returns a JobIter that returns jobs generated from mentions
+// received from a queue (e.g. from rovers).
+func NewMentionJobIter(q queue.Queue, storer storage.RepositoryStore) JobIter {
 	return &mentionJobIter{
 		storer: storer,
 		q:      q,
@@ -66,9 +67,9 @@ func (i *mentionJobIter) initIter() error {
 }
 
 // getMention obtains the next Job from the queue and decodes the mention on it.
-// If success, a Mention model is returned. Also the job itself is returned,
-// to be able to send back the ACK.
-func (i *mentionJobIter) getMention() (m *rmodel.Mention, j *queue.Job, err error) {
+// If success, a Mention model is returned. Also the job itself is returned, to
+// be able to send back the ACK.
+func (i *mentionJobIter) getMention() (m *model.Mention, j *queue.Job, err error) {
 	j, err = i.iter.Next()
 	if err != nil {
 		return

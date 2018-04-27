@@ -5,10 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"gopkg.in/src-d/core-retrieval.v0/model"
-	kallax "gopkg.in/src-d/go-kallax.v1"
-
 	"github.com/stretchr/testify/suite"
+	"gopkg.in/src-d/core-retrieval.v0/model"
+	"gopkg.in/src-d/go-kallax.v1"
 )
 
 type LocalSuite struct {

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"gopkg.in/src-d/core-retrieval.v0/model"
-	kallax "gopkg.in/src-d/go-kallax.v1"
+	"gopkg.in/src-d/go-kallax.v1"
 )
 
 type localRepo struct {
@@ -29,7 +29,7 @@ type localRepoStore struct {
 }
 
 // Local creates a new local repository store that needs no database connection.
-func Local() RepoStore {
+func Local() RepositoryStore {
 	return &localRepoStore{
 		repos: make(map[kallax.ULID]*localRepo),
 	}

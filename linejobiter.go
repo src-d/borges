@@ -13,14 +13,14 @@ import (
 )
 
 type lineJobIter struct {
-	storer storage.RepoStore
+	storer storage.RepositoryStore
 	*bufio.Scanner
 	r io.ReadCloser
 }
 
 // NewLineJobIter returns a JobIter that returns jobs generated from a reader
 // with a list of repository URLs, one per line.
-func NewLineJobIter(r io.ReadCloser, storer storage.RepoStore) JobIter {
+func NewLineJobIter(r io.ReadCloser, storer storage.RepositoryStore) JobIter {
 	return &lineJobIter{
 		storer:  storer,
 		Scanner: bufio.NewScanner(r),

@@ -11,13 +11,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/src-d/borges/storage"
+
 	"github.com/satori/go.uuid"
 	"github.com/sirupsen/logrus"
-	"github.com/src-d/borges/storage"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"gopkg.in/src-d/core-retrieval.v0/model"
-	rrepository "gopkg.in/src-d/core-retrieval.v0/repository"
+	"gopkg.in/src-d/core-retrieval.v0/repository"
 	"gopkg.in/src-d/core-retrieval.v0/test"
 	"gopkg.in/src-d/framework.v0/lock"
 	"gopkg.in/src-d/go-billy.v4"
@@ -37,9 +38,9 @@ type ArchiverSuite struct {
 	test.Suite
 
 	rawStore *model.RepositoryStore
-	store    storage.RepoStore
+	store    storage.RepositoryStore
 	tmpPath  string
-	tx       rrepository.RootedTransactioner
+	tx       repository.RootedTransactioner
 	txFs     billy.Filesystem
 	tmpFs    billy.Filesystem
 	rootedFs billy.Filesystem
@@ -70,7 +71,7 @@ func (s *ArchiverSuite) SetupTest() {
 	s.tmpFs, err = fs.Chroot("tmp")
 	s.NoError(err)
 
-	s.tx = rrepository.NewSivaRootedTransactioner(rrepository.NewLocalCopier(s.rootedFs, s.bucket), s.txFs)
+	s.tx = repository.NewSivaRootedTransactioner(repository.NewLocalCopier(s.rootedFs, s.bucket), s.txFs)
 
 	ls, err := lock.NewLocal().NewSession(&lock.SessionConfig{
 		Timeout: defaultTimeout,

@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"gopkg.in/src-d/core-retrieval.v0/model"
-	kallax "gopkg.in/src-d/go-kallax.v1"
+	"gopkg.in/src-d/go-kallax.v1"
 )
 
 func TestNewChanges(t *testing.T) {

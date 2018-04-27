@@ -3,9 +3,8 @@ package main
 import (
 	"os"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/jessevdk/go-flags"
+	"github.com/sirupsen/logrus"
 )
 
 const (

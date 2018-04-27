@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/suite"
 	"gopkg.in/src-d/core-retrieval.v0/model"
 	"gopkg.in/src-d/core-retrieval.v0/test"
-	kallax "gopkg.in/src-d/go-kallax.v1"
+	"gopkg.in/src-d/go-kallax.v1"
 )
 
 type DatabaseSuite struct {

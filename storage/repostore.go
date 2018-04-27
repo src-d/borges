@@ -4,11 +4,11 @@ import (
 	"time"
 
 	"gopkg.in/src-d/core-retrieval.v0/model"
-	kallax "gopkg.in/src-d/go-kallax.v1"
+	"gopkg.in/src-d/go-kallax.v1"
 )
 
-// RepoStore is the access layer to the storage of repositories.
-type RepoStore interface {
+// RepositoryStore is the access layer to the storage of repositories.
+type RepositoryStore interface {
 	// Create inserts a new Repository in the store.
 	Create(repo *model.Repository) error
 	// Get returns a Repository given its ID.

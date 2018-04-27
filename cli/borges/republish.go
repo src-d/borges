@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/src-d/borges"
+
 	"gopkg.in/src-d/framework.v0/queue"
 )
 

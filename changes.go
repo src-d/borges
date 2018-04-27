@@ -88,7 +88,7 @@ func newChanges(now time.Time, old, new Referencer) (Changes, error) {
 	changes := make(Changes)
 	for _, newRef := range newRefs {
 		err := addToChangesDfferenceBetweenOldAndNewRefs(now, changes, newRef, oldRefsByName)
-		if err == ErrReferencedObjectTypeNotSupported {
+		if ErrObjectTypeNotSupported.Is(err) {
 			continue
 		}
 
