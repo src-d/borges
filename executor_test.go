@@ -1,6 +1,7 @@
 package borges
 
 import (
+	"context"
 	"io/ioutil"
 	"strings"
 	"testing"
@@ -52,7 +53,7 @@ func (s *ExecutorSuite) assertRepo(endpoint string, job *Job) {
 
 func (s *ExecutorSuite) runExecutor(repos ...string) ([]*Job, error) {
 	require := s.Require()
-	q, err := queue.NewMemoryBroker().Queue("jobs")
+	q, err := queue.NewMemoryBroker().Queue(kallax.NewULID().String())
 	require.NoError(err)
 
 	r := ioutil.NopCloser(strings.NewReader(strings.Join(repos, "\n")))
@@ -60,8 +61,7 @@ func (s *ExecutorSuite) runExecutor(repos ...string) ([]*Job, error) {
 	var jobs []*Job
 
 	log := logrus.NewEntry(logrus.StandardLogger())
-
-	wp := NewWorkerPool(log, func(log *logrus.Entry, j *Job) error {
+	wp := NewWorkerPool(log, func(ctx context.Context, log *logrus.Entry, j *Job) error {
 		jobs = append(jobs, j)
 		return nil
 	})

@@ -1,6 +1,7 @@
 package borges
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -35,7 +36,10 @@ type ConsumerSuite struct {
 }
 
 func (s *ConsumerSuite) newConsumer() *Consumer {
-	wp := NewWorkerPool(logrus.NewEntry(logrus.StandardLogger()), func(*logrus.Entry, *Job) error { return nil })
+	wp := NewWorkerPool(
+		logrus.NewEntry(logrus.StandardLogger()),
+		func(context.Context, *logrus.Entry, *Job) error { return nil },
+	)
 	return NewConsumer(s.queue, wp)
 }
 
@@ -52,7 +56,7 @@ func (s *ConsumerSuite) TestConsumer_StartStop_FailedJob() {
 
 	processed := 0
 	done := make(chan struct{}, 1)
-	c.WorkerPool.do = func(log *logrus.Entry, j *Job) error {
+	c.WorkerPool.do = func(ctx context.Context, log *logrus.Entry, j *Job) error {
 		defer func() { done <- struct{}{} }()
 		processed++
 		if processed == 2 {
@@ -104,7 +108,7 @@ func (s *ConsumerSuite) TestConsumer_StartStop() {
 
 	processed := 0
 	done := make(chan struct{}, 1)
-	c.WorkerPool.do = func(*logrus.Entry, *Job) error {
+	c.WorkerPool.do = func(context.Context, *logrus.Entry, *Job) error {
 		processed++
 		if processed > 1 {
 			assert.Fail("too many jobs processed")

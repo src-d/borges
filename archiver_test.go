@@ -105,7 +105,7 @@ func (s *ArchiverSuite) TestCheckTimeout() {
 			var hash model.SHA1
 			err = withInProcRepository(hash, r, func(url string) error {
 				rid = s.newRepositoryModel(url)
-				return s.a.Do(&Job{RepositoryID: uuid.UUID(rid)})
+				return s.a.Do(context.TODO(), &Job{RepositoryID: uuid.UUID(rid)})
 			})
 
 			require.Error(err)
@@ -165,7 +165,7 @@ func (s *ArchiverSuite) TestFixtures() {
 			// emulate initial status of a repository
 			err = withInProcRepository(hash, or, func(url string) error {
 				rid = s.newRepositoryModel(url)
-				return s.a.Do(&Job{RepositoryID: uuid.UUID(rid)})
+				return s.a.Do(context.TODO(), &Job{RepositoryID: uuid.UUID(rid)})
 			})
 			require.NoError(err)
 
@@ -180,7 +180,7 @@ func (s *ArchiverSuite) TestFixtures() {
 				updated, err := s.rawStore.Save(mr)
 				require.NoError(err)
 				require.True(updated, err)
-				return s.a.Do(&Job{RepositoryID: uuid.UUID(mr.ID)})
+				return s.a.Do(context.TODO(), &Job{RepositoryID: uuid.UUID(mr.ID)})
 			})
 			require.NoError(err)
 
@@ -216,7 +216,7 @@ func (s *ArchiverSuite) TestFixtures() {
 
 func (s *ArchiverSuite) TestNotExistingRepository() {
 	rid := s.newRepositoryModel("file:///this/repository/does/not/exists")
-	err := s.a.Do(&Job{RepositoryID: uuid.UUID(rid)})
+	err := s.a.Do(context.TODO(), &Job{RepositoryID: uuid.UUID(rid)})
 	s.NoError(err)
 
 	mr, err := s.rawStore.FindOne(model.NewRepositoryQuery().FindByID(rid))
@@ -227,7 +227,7 @@ func (s *ArchiverSuite) TestNotExistingRepository() {
 
 func (s *ArchiverSuite) TestPrivateRepository() {
 	rid := s.newRepositoryModel("https://github.com/src-d/company")
-	err := s.a.Do(&Job{RepositoryID: uuid.UUID(rid)})
+	err := s.a.Do(context.TODO(), &Job{RepositoryID: uuid.UUID(rid)})
 	s.NoError(err)
 
 	mr, err := s.rawStore.FindOne(model.NewRepositoryQuery().FindByID(rid))
@@ -244,7 +244,7 @@ func (s *ArchiverSuite) TestProcessingRepository() {
 	_, err = s.rawStore.Save(repo)
 	s.NoError(err)
 
-	err = s.a.Do(&Job{RepositoryID: uuid.UUID(rid)})
+	err = s.a.Do(context.TODO(), &Job{RepositoryID: uuid.UUID(rid)})
 	s.True(ErrAlreadyFetching.Is(err))
 
 	mr, err := s.rawStore.FindOne(model.NewRepositoryQuery().FindByID(rid))

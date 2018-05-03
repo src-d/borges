@@ -1,6 +1,7 @@
 package borges
 
 import (
+	"context"
 	"sync"
 
 	"github.com/sirupsen/logrus"
@@ -15,10 +16,13 @@ type WorkerJob struct {
 	source   queue.Queue
 }
 
+// WorkerFunc is the function the workers will execute.
+type WorkerFunc func(context.Context, *logrus.Entry, *Job) error
+
 // WorkerPool is a pool of workers that can process jobs.
 type WorkerPool struct {
 	log        *logrus.Entry
-	do         func(*logrus.Entry, *Job) error
+	do         WorkerFunc
 	jobChannel chan *WorkerJob
 	workers    []*Worker
 	wg         *sync.WaitGroup
@@ -28,7 +32,7 @@ type WorkerPool struct {
 // NewWorkerPool creates a new empty worker pool. It takes a function to be used
 // by workers to process jobs. The pool is started with no workers.
 // SetWorkerCount must be called to start them.
-func NewWorkerPool(log *logrus.Entry, f func(*logrus.Entry, *Job) error) *WorkerPool {
+func NewWorkerPool(log *logrus.Entry, f WorkerFunc) *WorkerPool {
 	return &WorkerPool{
 		log:        log,
 		do:         f,
@@ -83,25 +87,36 @@ func (wp *WorkerPool) add(n int) {
 
 func (wp *WorkerPool) del(n int) {
 	prevWorkers := len(wp.workers)
-	wg := &sync.WaitGroup{}
+	var wg sync.WaitGroup
 	for i := prevWorkers - 1; i >= prevWorkers-n; i-- {
 		wg.Add(1)
 		w := wp.workers[i]
 		wp.workers = wp.workers[:len(wp.workers)-1]
 		go func() {
-			w.Stop()
+			w.Stop(false)
 			wg.Done()
 		}()
 	}
 	wg.Wait()
 }
 
-// Close stops all the workers in the pool and frees resources used by it.
-// Workers are
-// It blocks until it finishes.
+// Close stops all the workers in the pool and frees resources used by it
+// waiting until all the current jobs finish.
 func (wp *WorkerPool) Close() error {
 	wp.SetWorkerCount(0)
 	wp.wg.Wait()
+	close(wp.jobChannel)
+	return nil
+}
+
+// Stop stops all the workers in the pool and frees the resources used
+// by it as well as stopping the workers and their current jobs.
+func (wp *WorkerPool) Stop() error {
+	for _, w := range wp.workers {
+		w.Stop(true)
+	}
+	wp.wg.Wait()
+	wp.workers = nil
 	close(wp.jobChannel)
 	return nil
 }
