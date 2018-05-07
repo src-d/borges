@@ -102,12 +102,12 @@ func (p *Executor) consumeJobs() error {
 
 	for {
 		j, err := iter.Next()
-		if err == queue.ErrEmptyJob {
+		if queue.ErrEmptyJob.Is(err) {
 			p.logError(err)
 			continue
 		}
 
-		if err == queue.ErrAlreadyClosed {
+		if queue.ErrAlreadyClosed.Is(err) {
 			return io.EOF
 		}
 
