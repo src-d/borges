@@ -17,7 +17,7 @@ import (
 type ExecutorSuite struct {
 	test.Suite
 	p     *Executor
-	store storage.RepositoryStore
+	store RepositoryStore
 }
 
 func (s *ExecutorSuite) SetupTest() {

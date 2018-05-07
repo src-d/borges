@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/src-d/borges/metrics"
-	"github.com/src-d/borges/storage"
 
 	"github.com/jpillora/backoff"
 	"github.com/sirupsen/logrus"
@@ -49,7 +48,7 @@ type Archiver struct {
 	// Timeout is the deadline to cancel a job.
 	Timeout time.Duration
 	// Store is the component where repository models are stored.
-	Store storage.RepositoryStore
+	Store RepositoryStore
 	// RootedTransactioner is used to push new references to our repository
 	// storage.
 	RootedTransactioner repository.RootedTransactioner
@@ -58,7 +57,7 @@ type Archiver struct {
 	LockSession lock.Session
 }
 
-func NewArchiver(log *logrus.Entry, r storage.RepositoryStore, tx repository.RootedTransactioner, tc TemporaryCloner,
+func NewArchiver(log *logrus.Entry, r RepositoryStore, tx repository.RootedTransactioner, tc TemporaryCloner,
 	ls lock.Session, to time.Duration) *Archiver {
 	return &Archiver{
 		log:                 log,
@@ -508,7 +507,7 @@ func checkFailedInits(changes Changes, failed []model.SHA1) error {
 // are equal to the Archiver notifiers but with additional WorkerContext.
 func NewArchiverWorkerPool(
 	log *logrus.Entry,
-	r storage.RepositoryStore, tx repository.RootedTransactioner,
+	r RepositoryStore, tx repository.RootedTransactioner,
 	tc TemporaryCloner,
 	ls lock.Service,
 	to time.Duration) *WorkerPool {

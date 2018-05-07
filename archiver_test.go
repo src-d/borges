@@ -38,7 +38,7 @@ type ArchiverSuite struct {
 	test.Suite
 
 	rawStore *model.RepositoryStore
-	store    storage.RepositoryStore
+	store    RepositoryStore
 	tmpPath  string
 	tx       repository.RootedTransactioner
 	txFs     billy.Filesystem

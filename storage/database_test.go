@@ -13,14 +13,14 @@ import (
 
 type DatabaseSuite struct {
 	test.Suite
-	store    *dbRepoStore
+	store    *DatabaseStore
 	rawStore *model.RepositoryStore
 }
 
 func (s *DatabaseSuite) SetupTest() {
 	s.Setup()
 	s.rawStore = model.NewRepositoryStore(s.DB)
-	s.store = FromDatabase(s.DB).(*dbRepoStore)
+	s.store = FromDatabase(s.DB)
 }
 
 func (s *DatabaseSuite) TearDownTest() {

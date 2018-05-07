@@ -57,8 +57,7 @@ func (s *BaseQueueSuite) connectQueue() {
 type RepositoryIDSuite struct {
 	test.Suite
 
-	storer storage.RepositoryStore
-
+	storer  RepositoryStore
 	isTrue  bool
 	isFalse bool
 }

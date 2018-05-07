@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
-	"github.com/src-d/borges/storage"
 	"gopkg.in/src-d/framework.v0/queue"
 )
 
@@ -16,7 +15,7 @@ type Executor struct {
 	log   *logrus.Entry
 	wp    *WorkerPool
 	q     queue.Queue
-	store storage.RepositoryStore
+	store RepositoryStore
 	iter  JobIter
 }
 
@@ -25,7 +24,7 @@ func NewExecutor(
 	log *logrus.Entry,
 	q queue.Queue,
 	pool *WorkerPool,
-	store storage.RepositoryStore, iter JobIter,
+	store RepositoryStore, iter JobIter,
 ) *Executor {
 	return &Executor{
 		log:   log,

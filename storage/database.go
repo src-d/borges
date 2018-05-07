@@ -8,27 +8,31 @@ import (
 	"gopkg.in/src-d/go-kallax.v1"
 )
 
-type dbRepoStore struct {
+// DatabaseStore implements a borges.RepositoryStorage based on a database.
+type DatabaseStore struct {
 	*model.RepositoryStore
 }
 
 // FromDatabase returns a new repository store that interacts with a PostgreSQL
 // FromDatabase to store all the data.
-func FromDatabase(db *sql.DB) RepositoryStore {
-	return &dbRepoStore{model.NewRepositoryStore(db)}
+func FromDatabase(db *sql.DB) *DatabaseStore {
+	return &DatabaseStore{model.NewRepositoryStore(db)}
 }
 
-func (s *dbRepoStore) Create(repo *model.Repository) error {
+// Create honors the borges.RepositoryStore interface.
+func (s *DatabaseStore) Create(repo *model.Repository) error {
 	_, err := s.Save(repo)
 	return err
 }
 
-func (s *dbRepoStore) Get(id kallax.ULID) (*model.Repository, error) {
+// Get honors the borges.RepositoryStore interface.
+func (s *DatabaseStore) Get(id kallax.ULID) (*model.Repository, error) {
 	q := model.NewRepositoryQuery().WithReferences(nil).FindByID(id)
 	return s.FindOne(q)
 }
 
-func (s *dbRepoStore) GetByEndpoints(endpoints ...string) ([]*model.Repository, error) {
+// GetByEndpoints honors the borges.RepositoryStore interface.
+func (s *DatabaseStore) GetByEndpoints(endpoints ...string) ([]*model.Repository, error) {
 	q := make([]interface{}, len(endpoints))
 	for _, ep := range endpoints {
 		q = append(q, ep)
@@ -53,7 +57,8 @@ func (s *dbRepoStore) GetByEndpoints(endpoints ...string) ([]*model.Repository, 
 	return repositories, nil
 }
 
-func (s *dbRepoStore) SetStatus(repo *model.Repository, status model.FetchStatus) error {
+// SetStatus honors the borges.RepositoryStore interface.
+func (s *DatabaseStore) SetStatus(repo *model.Repository, status model.FetchStatus) error {
 	repo.Status = status
 	return s.updateWithRefsChanged(
 		repo,
@@ -61,12 +66,14 @@ func (s *dbRepoStore) SetStatus(repo *model.Repository, status model.FetchStatus
 	)
 }
 
-func (s *dbRepoStore) SetEndpoints(repo *model.Repository, endpoints ...string) error {
+// SetEndpoints honors the borges.RepositoryStore interface.
+func (s *DatabaseStore) SetEndpoints(repo *model.Repository, endpoints ...string) error {
 	repo.Endpoints = endpoints
 	return s.updateWithRefsChanged(repo, model.Schema.Repository.Endpoints)
 }
 
-func (s *dbRepoStore) UpdateFailed(repo *model.Repository, status model.FetchStatus) error {
+// UpdateFailed honors the borges.RepositoryStore interface.
+func (s *DatabaseStore) UpdateFailed(repo *model.Repository, status model.FetchStatus) error {
 	repo.Status = status
 	return s.updateWithRefsChanged(repo,
 		model.Schema.Repository.UpdatedAt,
@@ -75,7 +82,8 @@ func (s *dbRepoStore) UpdateFailed(repo *model.Repository, status model.FetchSta
 	)
 }
 
-func (s *dbRepoStore) UpdateFetched(repo *model.Repository, fetchedAt time.Time) error {
+// UpdateFetched honors the borges.RepositoryStore interface.
+func (s *DatabaseStore) UpdateFetched(repo *model.Repository, fetchedAt time.Time) error {
 	repo.Status = model.Fetched
 	repo.FetchedAt = &fetchedAt
 	repo.LastCommitAt = lastCommitTime(repo.References)
@@ -88,7 +96,7 @@ func (s *dbRepoStore) UpdateFetched(repo *model.Repository, fetchedAt time.Time)
 	)
 }
 
-func (s *dbRepoStore) updateWithRefsChanged(repo *model.Repository, fields ...kallax.SchemaField) error {
+func (s *DatabaseStore) updateWithRefsChanged(repo *model.Repository, fields ...kallax.SchemaField) error {
 	return s.Transaction(func(store *model.RepositoryStore) error {
 		var refStore model.ReferenceStore
 		kallax.StoreFrom(&refStore, store)

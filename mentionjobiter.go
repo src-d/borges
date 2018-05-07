@@ -1,21 +1,19 @@
 package borges
 
 import (
-	"github.com/src-d/borges/storage"
-
 	"gopkg.in/src-d/core-retrieval.v0/model"
 	"gopkg.in/src-d/framework.v0/queue"
 )
 
 type mentionJobIter struct {
-	storer storage.RepositoryStore
+	storer RepositoryStore
 	q      queue.Queue
 	iter   queue.JobIter
 }
 
 // NewMentionJobIter returns a JobIter that returns jobs generated from mentions
 // received from a queue (e.g. from rovers).
-func NewMentionJobIter(q queue.Queue, storer storage.RepositoryStore) JobIter {
+func NewMentionJobIter(q queue.Queue, storer RepositoryStore) JobIter {
 	return &mentionJobIter{
 		storer: storer,
 		q:      q,
