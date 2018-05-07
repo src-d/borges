@@ -49,7 +49,7 @@ func TestNewBroker(t *testing.T) {
 	assert.NoError(b.Close())
 
 	b, err = NewBroker("badproto://badurl")
-	assert.Equal(ErrUnsupportedProtocol, err)
+	assert.True(ErrUnsupportedProtocol.Is(err))
 
 	b, err = NewBroker("foo://host%10")
 	assert.Error(err)
@@ -146,7 +146,7 @@ func (s *QueueSuite) TestJob_Reject_no_requeue() {
 		assert.NoError(iter.Close())
 	} else {
 		done := s.checkNextClosed(iter)
-		<-time.After(50 * time.Millisecond)
+		time.Sleep(50 * time.Millisecond)
 		assert.NoError(iter.Close())
 		<-done
 	}
@@ -197,7 +197,7 @@ func (s *QueueSuite) TestPublish_nil() {
 	assert.NotNil(q)
 
 	err = q.Publish(nil)
-	assert.Equal(ErrEmptyJob, err)
+	assert.True(ErrEmptyJob.Is(err))
 }
 
 func (s *QueueSuite) TestPublish_empty() {
@@ -209,7 +209,7 @@ func (s *QueueSuite) TestPublish_empty() {
 	assert.NotNil(q)
 
 	err = q.Publish(&Job{})
-	assert.Equal(ErrEmptyJob, err)
+	assert.True(ErrEmptyJob.Is(err))
 }
 
 func (s *QueueSuite) TestPublishDelayed_nil() {
@@ -221,7 +221,7 @@ func (s *QueueSuite) TestPublishDelayed_nil() {
 	assert.NotNil(q)
 
 	err = q.PublishDelayed(nil, time.Second)
-	assert.Equal(ErrEmptyJob, err)
+	assert.True(ErrEmptyJob.Is(err))
 }
 
 func (s *QueueSuite) TestPublishDelayed_empty() {
@@ -233,7 +233,7 @@ func (s *QueueSuite) TestPublishDelayed_empty() {
 	assert.NotNil(q)
 
 	err = q.PublishDelayed(&Job{}, time.Second)
-	assert.Equal(ErrEmptyJob, err)
+	assert.True(ErrEmptyJob.Is(err))
 }
 
 func (s *QueueSuite) TestPublishAndConsume_immediate_ack() {
@@ -372,7 +372,7 @@ func (s *QueueSuite) TestDelayed() {
 		j, err := iter.Next()
 		assert.NoError(err)
 		if j == nil {
-			<-time.After(300 * time.Millisecond)
+			time.Sleep(300 * time.Millisecond)
 			continue
 		}
 
@@ -418,7 +418,7 @@ func (s *QueueSuite) TestTransaction_Error() {
 		assert.NoError(i.Close())
 	} else {
 		done := s.checkNextClosed(i)
-		<-time.After(50 * time.Millisecond)
+		time.Sleep(50 * time.Millisecond)
 		assert.NoError(i.Close())
 		<-done
 	}
@@ -470,7 +470,7 @@ func (s *QueueSuite) TestTransaction_not_supported() {
 	assert.NotNil(q)
 
 	err = q.Transaction(nil)
-	assert.Equal(ErrTxNotSupported, err)
+	assert.True(ErrTxNotSupported.Is(err))
 }
 
 func (s *QueueSuite) TestRetryQueue() {
@@ -544,7 +544,7 @@ func (s *QueueSuite) checkNextClosed(iter JobIter) chan struct{} {
 	done := make(chan struct{})
 	go func() {
 		j, err := iter.Next()
-		assert.Equal(ErrAlreadyClosed, err)
+		assert.True(ErrAlreadyClosed.Is(err))
 		assert.Nil(j)
 		done <- struct{}{}
 	}()

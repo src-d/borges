@@ -334,7 +334,7 @@
     "schema",
     "test"
   ]
-  revision = "ad64637aef9aac22f2b9a8568e2ed1f5908c9916"
+  revision = "16e13cdd66a6398c15c09e6b9ae1ba3f1748298c"
   source = "https://github.com/src-d/core-retrieval.git"
 
 [[projects]]
@@ -345,7 +345,7 @@
     "lock",
     "queue"
   ]
-  revision = "88f5399ee0037158edaef606ec57b7037a80c02a"
+  revision = "bed6b25004fcbc1b034608f01d478aca4135b865"
   source = "https://github.com/src-d/framework.git"
 
 [[projects]]
@@ -441,8 +441,8 @@
     ".",
     "types"
   ]
-  revision = "c2ebbd83ebfbcfc4f5974ecdb225183a521797e1"
-  version = "v1.3.3"
+  revision = "b1269648051c4fa3feaceba211cc40837e1cdd01"
+  version = "1.3.4"
 
 [[projects]]
   name = "gopkg.in/src-d/go-siva.v1"
@@ -468,6 +468,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "5cb8a097a3585fc07f71645a59d6a91218377f612a1d0beb978a9b4255d849a4"
+  inputs-digest = "0fad98e6b008fa23ab1a5da0133088c520072deaf1894c0f4a6fc82e98637c43"
   solver-name = "gps-cdcl"
   solver-version = 1

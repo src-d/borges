@@ -8,9 +8,11 @@ import (
 	"sync/atomic"
 	"time"
 
+	"gopkg.in/src-d/go-errors.v1"
+
+	"github.com/jpillora/backoff"
 	"github.com/streadway/amqp"
 	log15 "gopkg.in/inconshreveable/log15.v2"
-	errors "gopkg.in/src-d/go-errors.v1"
 )
 
 var consumerSeq uint64
@@ -29,6 +31,10 @@ const (
 
 	retriesHeader string = "x-retries"
 	errorHeader   string = "x-error-type"
+
+	backoffMin    = 200 * time.Millisecond
+	backoffMax    = 30 * time.Second
+	backoffFactor = 2
 )
 
 // AMQPBroker implements the Broker interface for AMQP.
@@ -69,31 +75,41 @@ func NewAMQPBroker(url string) (Broker, error) {
 }
 
 func connect(url string) (*amqp.Connection, *amqp.Channel) {
+
+	var (
+		conn *amqp.Connection
+		ch   *amqp.Channel
+		err  error
+		b    = &backoff.Backoff{
+			Min:    backoffMin,
+			Max:    backoffMax,
+			Factor: backoffFactor,
+			Jitter: false,
+		}
+	)
+
 	// first try to connect again
-	var conn *amqp.Connection
-	var err error
 	for {
-		conn, err = amqp.Dial(url)
-		if err != nil {
-			log15.Error("error connecting to amqp", "err", err)
-			<-time.After(1 * time.Second)
-			continue
+		if conn, err = amqp.Dial(url); err == nil {
+			b.Reset()
+			break
 		}
 
-		break
+		d := b.Duration()
+		log15.Error("error connecting to amqp", "err", err, "reconnecting in", d)
+		time.Sleep(d)
 	}
 
 	// try to get the channel again
-	var ch *amqp.Channel
 	for {
-		ch, err = conn.Channel()
-		if err != nil {
-			log15.Error("error creatting channel", "err", err)
-			<-time.After(1 * time.Second)
-			continue
+		if ch, err = conn.Channel(); err == nil {
+			b.Reset()
+			break
 		}
 
-		break
+		d := b.Duration()
+		log15.Error("error creatting channel", "err", err, "retry in", d)
+		time.Sleep(d)
 	}
 
 	return conn, ch
@@ -219,7 +235,7 @@ type AMQPQueue struct {
 // Publish publishes the given Job to the Queue.
 func (q *AMQPQueue) Publish(j *Job) error {
 	if j == nil || len(j.raw) == 0 {
-		return ErrEmptyJob
+		return ErrEmptyJob.New()
 	}
 
 	headers := amqp.Table{}
@@ -252,7 +268,7 @@ func (q *AMQPQueue) Publish(j *Job) error {
 // wont go into the buried queue if they fail.
 func (q *AMQPQueue) PublishDelayed(j *Job, delay time.Duration) error {
 	if j == nil || len(j.raw) == 0 {
-		return ErrEmptyJob
+		return ErrEmptyJob.New()
 	}
 
 	ttl := delay / time.Millisecond
@@ -457,7 +473,7 @@ type AMQPJobIter struct {
 func (i *AMQPJobIter) Next() (*Job, error) {
 	d, ok := <-i.c
 	if !ok {
-		return nil, ErrAlreadyClosed
+		return nil, ErrAlreadyClosed.New()
 	}
 
 	return fromDelivery(&d)
@@ -467,7 +483,7 @@ func (i *AMQPJobIter) nextNonBlocking() (*Job, error) {
 	select {
 	case d, ok := <-i.c:
 		if !ok {
-			return nil, ErrAlreadyClosed
+			return nil, ErrAlreadyClosed.New()
 		}
 
 		return fromDelivery(&d)

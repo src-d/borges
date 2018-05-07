@@ -341,7 +341,7 @@ func (a *Archiver) pushChangesToRootedRepositories(ctx context.Context, ctxLog *
 
 func (a *Archiver) pushChangesToRootedRepository(ctx context.Context, log *logrus.Entry, r *model.Repository, tr TemporaryRepository, ic model.SHA1, changes []*Command) error {
 	var rootedRepoCpStart = time.Now()
-	tx, err := a.beginTxWithRetries(log, plumbing.Hash(ic), maxRetries)
+	tx, err := a.beginTxWithRetries(ctx, log, plumbing.Hash(ic), maxRetries)
 	sivaCpFromDuration := time.Now().Sub(rootedRepoCpStart)
 	log.WithFields(logrus.Fields{
 		"RootedRepository": ic,
@@ -376,7 +376,7 @@ func (a *Archiver) pushChangesToRootedRepository(ctx context.Context, log *logru
 		log.WithField("took", onlyPushDurationSec).Debug("1 change pushed")
 
 		var rootedRepoCpStart = time.Now()
-		err = a.commitTxWithRetries(log, ic, tx, maxRetries)
+		err = a.commitTxWithRetries(ctx, log, ic, tx, maxRetries)
 		sivaCpToDuration := time.Now().Sub(rootedRepoCpStart)
 		log.WithFields(logrus.Fields{
 			"RootedRepository": ic,
@@ -386,9 +386,14 @@ func (a *Archiver) pushChangesToRootedRepository(ctx context.Context, log *logru
 	})
 }
 
-func (a *Archiver) beginTxWithRetries(log *logrus.Entry, initCommit plumbing.Hash, numRetries float64) (tx repository.Tx, err error) {
+func (a *Archiver) beginTxWithRetries(
+	ctx context.Context,
+	log *logrus.Entry,
+	initCommit plumbing.Hash,
+	numRetries float64,
+) (tx repository.Tx, err error) {
 	for a.backoff.Attempt() < numRetries {
-		tx, err = a.RootedTransactioner.Begin(initCommit)
+		tx, err = a.RootedTransactioner.Begin(ctx, initCommit)
 		if err == nil || !repository.HDFSNamenodeError.Is(err) {
 			break
 		}
@@ -407,9 +412,15 @@ func (a *Archiver) beginTxWithRetries(log *logrus.Entry, initCommit plumbing.Has
 	return
 }
 
-func (a *Archiver) commitTxWithRetries(log *logrus.Entry, initCommit model.SHA1, tx repository.Tx, numRetries float64) (err error) {
+func (a *Archiver) commitTxWithRetries(
+	ctx context.Context,
+	log *logrus.Entry,
+	initCommit model.SHA1,
+	tx repository.Tx,
+	numRetries float64,
+) (err error) {
 	for a.backoff.Attempt() < numRetries {
-		err = tx.Commit()
+		err = tx.Commit(ctx)
 		if err == nil || !repository.HDFSNamenodeError.Is(err) {
 			break
 		}

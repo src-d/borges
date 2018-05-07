@@ -93,12 +93,12 @@ func (c *Consumer) consumeQueue(q queue.Queue) error {
 func (c *Consumer) consumeJobIter(iter queue.JobIter) error {
 	for {
 		j, err := iter.Next()
-		if err == queue.ErrEmptyJob {
+		if queue.ErrEmptyJob.Is(err) {
 			c.notifyQueueError(err)
 			continue
 		}
 
-		if err == queue.ErrAlreadyClosed {
+		if queue.ErrAlreadyClosed.Is(err) {
 			return nil
 		}
 
