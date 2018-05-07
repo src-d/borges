@@ -14,6 +14,7 @@ import (
 	"gopkg.in/src-d/core-retrieval.v0/model"
 	"gopkg.in/src-d/go-billy.v4"
 	"gopkg.in/src-d/go-billy.v4/util"
+	"gopkg.in/src-d/go-errors.v0"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/config"
 	"gopkg.in/src-d/go-git.v4/plumbing"
@@ -29,6 +30,12 @@ import (
 const (
 	FetchRefSpec = config.RefSpec("refs/*:refs/*")
 	FetchHEAD    = config.RefSpec("HEAD:refs/heads/HEAD")
+)
+
+var (
+	// ErrObjectTypeNotSupported returned by ResolveCommit when the referenced
+	// object isn't a Commit nor a Tag.
+	ErrObjectTypeNotSupported = errors.NewKind("object type %q not supported")
 )
 
 type TemporaryRepository interface {
@@ -67,8 +74,9 @@ func (r gitReferencer) References() ([]*model.Reference, error) {
 			return nil
 		}
 
-		c, err := ResolveCommit(r.Repository, plumbing.NewHash(ref.Hash().String()))
-		if err == ErrReferencedObjectTypeNotSupported {
+		c, err := ResolveCommit(r.Repository, ref.Hash())
+		if ErrObjectTypeNotSupported.Is(err) {
+			logrus.WithFields(logrus.Fields{"hash": ref.Hash(), "ref": ref.Name()}).Warn(err.Error())
 			return nil
 		}
 
@@ -102,30 +110,29 @@ func newCommitFrame(hashes ...plumbing.Hash) *commitFrame {
 }
 
 // lastHash returns the last visited hash, assuming one has at least been
-// visited before. That is, this should not be called before incrementing
-// the cursor for the first time.
+// visited before. That is, this should not be called before incrementing the
+// cursor for the first time.
 func (f *commitFrame) lastHash() plumbing.Hash {
 	return f.hashes[f.cursor-1]
 }
 
-// rootCommits returns the commits with no parents reachable from `start`.
-// To do so, all the commits are iterated using a stack where frames are
-// the parent commits of the last visited hash of the previous frame.
+// rootCommits returns the commits with no parents reachable from `start`. To do
+// so, all the commits are iterated using a stack where frames are the parent
+// commits of the last visited hash of the previous frame.
 //
-// As we go down, if a commit has parents, we add a new frame to the stack
-// with these parents as hashes.
-// If the commit does not have parents its a root, so we add it to the list
-// found roots and keep going.
+// As we go down, if a commit has parents, we add a new frame to the stack with
+// these parents as hashes. If the commit does not have parents its a root, so
+// we add it to the list found roots and keep going.
 //
 // If we have not visited all the hashes in the current frame it means we have
 // to switch branches. That means caching the roots found so far for the last
-// visited commit in the frame and reset the roots so we can find the ones
-// for the new root. If these branches converge nothing happens, that
-// point will be cached and we'll load them from the cache and continue.
-// If we have visited all the hashes in the current frame we cache the found
-// roots and move all the roots found in all the hashes in the frame to the
-// last visited hash of the previous frame. The found roots now will be the
-// same roots we pushed to the previous frame.
+// visited commit in the frame and reset the roots so we can find the ones for
+// the new root. If these branches converge nothing happens, that point will be
+// cached and we'll load them from the cache and continue. If we have visited
+// all the hashes in the current frame we cache the found roots and move all the
+// roots found in all the hashes in the frame to the last visited hash of the
+// previous frame. The found roots now will be the same roots we pushed to the
+// previous frame.
 //
 // After repeating this process, when we get to the root frame, we just have to
 // return the roots cached for it, which will be the roots of all reachable
@@ -212,10 +219,10 @@ func rootCommits(
 	}
 }
 
-// ResolveCommit gets the hash of a commit that is referenced by a tag, per example.
-// The only resolvable objects are Tags and Commits. If the object is not one of them,
-// This method will return an ErrReferencedObjectTypeNotSupported. The output hash
-// always will be a Commit hash.
+// ResolveCommit gets the hash of a commit that is referenced by a tag, per
+// example. The only resolvable objects are Tags and Commits, if the object is
+// not one of them, this method will return an ErrObjectTypeNotSupported. The
+// output hash always will be a Commit hash.
 func ResolveCommit(r *git.Repository, h plumbing.Hash) (*object.Commit, error) {
 	obj, err := r.Object(plumbing.AnyObject, h)
 	if err != nil {
@@ -228,8 +235,7 @@ func ResolveCommit(r *git.Repository, h plumbing.Hash) (*object.Commit, error) {
 	case *object.Tag:
 		return ResolveCommit(r, o.Target)
 	default:
-		logrus.WithFields(logrus.Fields{"hash": h.String(), "type": o.Type()}).Warn("referenced object not supported")
-		return nil, ErrReferencedObjectTypeNotSupported
+		return nil, ErrObjectTypeNotSupported.New(o.Type())
 	}
 }
 
@@ -331,8 +337,8 @@ func (r *temporaryRepository) Close() error {
 	return util.RemoveAll(r.TempFilesystem, r.TempPath)
 }
 
-// sivaLoader loads a go-git storer.Storer for the given endpoint,
-// which is expected to be using the siva protocol siva://<hash>
+// sivaLoader loads a go-git storer.Storer for the given endpoint, which is
+// expected to be using the siva protocol siva://<hash>
 type sivaLoader struct {
 	mut   *sync.RWMutex
 	repos map[model.SHA1]storer.Storer
@@ -370,8 +376,8 @@ func (l *sivaLoader) Load(ep *transport.Endpoint) (storer.Storer, error) {
 	return s, nil
 }
 
-// defaultLoader is a rootedRepoLoader that will be used in the siva
-// protocol installation.
+// defaultLoader is a rootedRepoLoader that will be used in the siva protocol
+// installation.
 var defaultLoader = &sivaLoader{
 	new(sync.RWMutex),
 	make(map[model.SHA1]storer.Storer),

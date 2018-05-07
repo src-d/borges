@@ -8,9 +8,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/src-d/borges/metrics"
+
 	"github.com/onrik/logrus/filename"
 	"github.com/sirupsen/logrus"
-	"github.com/src-d/borges/metrics"
 )
 
 type ExecutableCommand interface {

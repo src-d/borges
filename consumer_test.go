@@ -8,9 +8,8 @@ import (
 	"time"
 
 	"github.com/onrik/logrus/filename"
-	"github.com/sirupsen/logrus"
-
 	"github.com/satori/go.uuid"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"

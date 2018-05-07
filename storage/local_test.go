@@ -5,26 +5,25 @@ import (
 	"testing"
 	"time"
 
-	"gopkg.in/src-d/core-retrieval.v0/model"
-	kallax "gopkg.in/src-d/go-kallax.v1"
-
 	"github.com/stretchr/testify/suite"
+	"gopkg.in/src-d/core-retrieval.v0/model"
+	"gopkg.in/src-d/go-kallax.v1"
 )
 
 type LocalSuite struct {
 	suite.Suite
-	store *localRepoStore
+	store *LocalStore
 }
 
 func (s *LocalSuite) SetupTest() {
-	s.store = Local().(*localRepoStore)
+	s.store = Local()
 }
 
 func (s *LocalSuite) TestGet() {
 	require := s.Require()
 
 	id := kallax.NewULID()
-	expected := &localRepo{
+	expected := &localRepository{
 		ID:       id,
 		Endpoint: "foo",
 		Status:   model.Pending,
@@ -45,7 +44,7 @@ func (s *LocalSuite) TestGetByEndpoints() {
 	for i := 0; i < 3; i++ {
 		ids = append(ids, kallax.NewULID())
 	}
-	repos := []*localRepo{
+	repos := []*localRepository{
 		{ids[0], "foo", model.Pending},
 		{ids[1], "bar", model.Pending},
 		{ids[2], "baz", model.Pending},
@@ -72,7 +71,7 @@ func (s *LocalSuite) TestGetByEndpoints() {
 
 func (s *LocalSuite) TestSetStatus() {
 	require := s.Require()
-	repo := &localRepo{
+	repo := &localRepository{
 		ID:       kallax.NewULID(),
 		Endpoint: "foo",
 		Status:   model.Pending,
@@ -88,7 +87,7 @@ func (s *LocalSuite) TestSetStatus() {
 
 func (s *LocalSuite) TestSetEndpoints() {
 	require := s.Require()
-	repo := &localRepo{
+	repo := &localRepository{
 		ID:       kallax.NewULID(),
 		Endpoint: "foo",
 		Status:   model.Pending,
@@ -108,7 +107,7 @@ func (s *LocalSuite) TestSetEndpoints() {
 
 func (s *LocalSuite) TestUpdateFailed() {
 	require := s.Require()
-	repo := &localRepo{
+	repo := &localRepository{
 		ID:       kallax.NewULID(),
 		Endpoint: "foo",
 		Status:   model.Fetched,
@@ -124,7 +123,7 @@ func (s *LocalSuite) TestUpdateFailed() {
 
 func (s *LocalSuite) TestUpdateFetched() {
 	require := s.Require()
-	repo := &localRepo{
+	repo := &localRepository{
 		ID:       kallax.NewULID(),
 		Endpoint: "foo",
 		Status:   model.Pending,

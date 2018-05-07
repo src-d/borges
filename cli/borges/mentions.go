@@ -3,7 +3,8 @@ package main
 import (
 	"github.com/src-d/borges"
 	"github.com/src-d/borges/storage"
-	core "gopkg.in/src-d/core-retrieval.v0"
+
+	"gopkg.in/src-d/core-retrieval.v0"
 )
 
 const (

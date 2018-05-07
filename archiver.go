@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/src-d/borges/metrics"
+
 	"github.com/jpillora/backoff"
 	"github.com/sirupsen/logrus"
-	"github.com/src-d/borges/metrics"
-	"github.com/src-d/borges/storage"
 	"gopkg.in/src-d/core-retrieval.v0/model"
 	"gopkg.in/src-d/core-retrieval.v0/repository"
 	"gopkg.in/src-d/framework.v0/lock"
@@ -45,24 +45,19 @@ type Archiver struct {
 
 	// TemporaryCloner is used to clone repositories into temporary storage.
 	TemporaryCloner TemporaryCloner
-
 	// Timeout is the deadline to cancel a job.
 	Timeout time.Duration
-
 	// Store is the component where repository models are stored.
-	Store storage.RepoStore
-
+	Store RepositoryStore
 	// RootedTransactioner is used to push new references to our repository
 	// storage.
 	RootedTransactioner repository.RootedTransactioner
-
 	// LockSession is a locker service to prevent concurrent access to the same
 	// rooted reporitories.
 	LockSession lock.Session
 }
 
-func NewArchiver(log *logrus.Entry, r storage.RepoStore,
-	tx repository.RootedTransactioner, tc TemporaryCloner,
+func NewArchiver(log *logrus.Entry, r RepositoryStore, tx repository.RootedTransactioner, tc TemporaryCloner,
 	ls lock.Session, to time.Duration) *Archiver {
 	return &Archiver{
 		log:                 log,
@@ -512,8 +507,7 @@ func checkFailedInits(changes Changes, failed []model.SHA1) error {
 // are equal to the Archiver notifiers but with additional WorkerContext.
 func NewArchiverWorkerPool(
 	log *logrus.Entry,
-	r storage.RepoStore,
-	tx repository.RootedTransactioner,
+	r RepositoryStore, tx repository.RootedTransactioner,
 	tc TemporaryCloner,
 	ls lock.Service,
 	to time.Duration) *WorkerPool {

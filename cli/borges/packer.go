@@ -6,10 +6,11 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"github.com/src-d/borges"
 	"github.com/src-d/borges/storage"
-	core "gopkg.in/src-d/core-retrieval.v0"
+
+	"github.com/sirupsen/logrus"
+	"gopkg.in/src-d/core-retrieval.v0"
 	"gopkg.in/src-d/core-retrieval.v0/repository"
 	"gopkg.in/src-d/framework.v0/queue"
 	"gopkg.in/src-d/go-billy.v4/osfs"

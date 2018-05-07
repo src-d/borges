@@ -8,19 +8,19 @@ import (
 	"github.com/stretchr/testify/suite"
 	"gopkg.in/src-d/core-retrieval.v0/model"
 	"gopkg.in/src-d/core-retrieval.v0/test"
-	kallax "gopkg.in/src-d/go-kallax.v1"
+	"gopkg.in/src-d/go-kallax.v1"
 )
 
 type DatabaseSuite struct {
 	test.Suite
-	store    *dbRepoStore
+	store    *DatabaseStore
 	rawStore *model.RepositoryStore
 }
 
 func (s *DatabaseSuite) SetupTest() {
 	s.Setup()
 	s.rawStore = model.NewRepositoryStore(s.DB)
-	s.store = FromDatabase(s.DB).(*dbRepoStore)
+	s.store = FromDatabase(s.DB)
 }
 
 func (s *DatabaseSuite) TearDownTest() {
