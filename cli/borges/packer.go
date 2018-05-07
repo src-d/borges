@@ -97,12 +97,12 @@ func (c *packerCmd) newRootedTransactioner() (repository.RootedTransactioner, er
 		return nil, err
 	}
 
-	copier := repository.NewLocalCopier(osfs.New(c.OutputDir), 0)
-
-	return repository.NewSivaRootedTransactioner(
-		copier,
+	copier := repository.NewCopier(
 		tmpFs,
-	), nil
+		repository.NewLocalFs(osfs.New(c.OutputDir)),
+		0)
+
+	return repository.NewSivaRootedTransactioner(copier), nil
 }
 
 func init() {
