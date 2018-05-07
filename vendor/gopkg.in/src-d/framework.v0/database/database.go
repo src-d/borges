@@ -2,12 +2,13 @@ package database
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 	"time"
 
-	_ "github.com/lib/pq"
 	"gopkg.in/src-d/framework.v0/configurable"
+	"gopkg.in/src-d/go-errors.v1"
+
+	_ "github.com/lib/pq"
 )
 
 // DatabaseConfig describes the configuration of the database parameters used
@@ -112,14 +113,14 @@ var DefaultConfig = new(DatabaseConfig)
 
 // ErrNoConfig is returned when there is an attempt of getting a databsse
 // connection with no configuration.
-var ErrNoConfig = errors.New("database: can't get database with no configuration")
+var ErrNoConfig = errors.NewKind("database: can't get database with no configuration")
 
 // Get returns a database connection with the configuration resultant of
 // applying the given configfuncs to the config.
 // Passing a nil configuration will result in an error.
 func Get(config *DatabaseConfig, configurators ...ConfigFunc) (*sql.DB, error) {
 	if config == nil {
-		return nil, ErrNoConfig
+		return nil, ErrNoConfig.New()
 	}
 
 	for _, c := range configurators {

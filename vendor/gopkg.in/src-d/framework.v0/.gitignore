@@ -6,6 +6,10 @@
 # Folders
 _obj
 _test
+vendor
+
+Gopkg.toml
+Gopkg.lock
 
 # Architecture specific extensions/prefixes
 *.[568vq]

@@ -140,22 +140,24 @@ func RootedTransactioner() repository.RootedTransactioner {
 			panic(err)
 		}
 
-		var copier repository.Copier
+		var remote repository.Fs
 		if config.HDFS == "" {
-			copier = repository.NewLocalCopier(
-				osfs.New(config.RootRepositoriesDir), config.BucketSize)
+			remote = repository.NewLocalFs(osfs.New(config.RootRepositoriesDir))
 		} else {
-			copier = repository.NewHDFSCopier(
+			remote = repository.NewHDFSFs(
 				config.HDFS,
 				config.RootRepositoriesDir,
 				config.RootRepositoriesTempDir,
-				config.BucketSize)
+			)
 		}
 
 		container.RootedTransactioner =
 			repository.NewSivaRootedTransactioner(
-				copier,
-				tmpFs,
+				repository.NewCopier(
+					tmpFs,
+					remote,
+					config.BucketSize,
+				),
 			)
 	}
 

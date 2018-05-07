@@ -334,7 +334,7 @@
     "schema",
     "test"
   ]
-  revision = "ad64637aef9aac22f2b9a8568e2ed1f5908c9916"
+  revision = "16e13cdd66a6398c15c09e6b9ae1ba3f1748298c"
   source = "https://github.com/src-d/core-retrieval.git"
 
 [[projects]]
@@ -345,7 +345,7 @@
     "lock",
     "queue"
   ]
-  revision = "88f5399ee0037158edaef606ec57b7037a80c02a"
+  revision = "bed6b25004fcbc1b034608f01d478aca4135b865"
   source = "https://github.com/src-d/framework.git"
 
 [[projects]]
@@ -468,6 +468,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "5cb8a097a3585fc07f71645a59d6a91218377f612a1d0beb978a9b4255d849a4"
+  inputs-digest = "bd535f195fe99a79534764246aafc76b5919eacb01835892063708d63e0f0d84"
   solver-name = "gps-cdcl"
   solver-version = 1

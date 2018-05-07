@@ -1,9 +1,10 @@
 package queue
 
 import (
-	"errors"
 	"fmt"
 	"time"
+
+	"gopkg.in/src-d/go-errors.v1"
 
 	"github.com/satori/go.uuid"
 	"gopkg.in/vmihailenco/msgpack.v2"
@@ -81,12 +82,12 @@ func (j *Job) Decode(payload interface{}) error {
 	return decode(msgpackContentType, j.raw, &payload)
 }
 
-var errCantAck = errors.New("can't acknowledge this message, it does not come from a queue")
+var ErrCantAck = errors.NewKind("can't acknowledge this message, it does not come from a queue")
 
 // Ack is called when the job is finished.
 func (j *Job) Ack() error {
 	if j.acknowledger == nil {
-		return errCantAck
+		return ErrCantAck.New()
 	}
 	return j.acknowledger.Ack()
 }
@@ -95,7 +96,7 @@ func (j *Job) Ack() error {
 // job should be put back in the queue.
 func (j *Job) Reject(requeue bool) error {
 	if j.acknowledger == nil {
-		return errCantAck
+		return ErrCantAck.New()
 	}
 	return j.acknowledger.Reject(requeue)
 }

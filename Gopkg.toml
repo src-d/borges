@@ -8,12 +8,12 @@
 
 [[constraint]]
   name = "gopkg.in/src-d/core-retrieval.v0"
-  revision = "ad64637aef9aac22f2b9a8568e2ed1f5908c9916"
+  revision = "16e13cdd66a6398c15c09e6b9ae1ba3f1748298c"
   source = "https://github.com/src-d/core-retrieval.git"
 
 [[constraint]]
   name = "gopkg.in/src-d/framework.v0"
-  revision = "88f5399ee0037158edaef606ec57b7037a80c02a"
+  revision = "bed6b25004fcbc1b034608f01d478aca4135b865"
   source = "https://github.com/src-d/framework.git"
 
 [[constraint]]

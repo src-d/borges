@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -68,28 +69,64 @@ func (s *FilesystemSuite) cleanUpTempDirectories() {
 
 func (s *FilesystemSuite) Test() {
 	fsPairs := []*fsPair{
-		{"mem to mem", NewLocalCopier(memfs.New(), 0), memfs.New()},
-		{"mem to os", NewLocalCopier(memfs.New(), 0), s.newFilesystem()},
-		{"os to mem", NewLocalCopier(s.newFilesystem(), 0), memfs.New()},
-		{"os to os", NewLocalCopier(s.newFilesystem(), 0), s.newFilesystem()},
-		{"os to HDFS", NewHDFSCopier(hdfsURL, s.newTempPath(), s.newTempPath(), 0), s.newFilesystem()},
-		{"mem to HDFS", NewHDFSCopier(hdfsURL, s.newTempPath(), s.newTempPath(), 0), memfs.New()},
+		{
+			"mem to mem",
+			NewCopier(memfs.New(), NewLocalFs(memfs.New()), 0),
+		},
+		{
+			"mem to os",
+			NewCopier(s.newFilesystem(), NewLocalFs(memfs.New()), 0),
+		},
+		{
+			"os to mem",
+			NewCopier(s.newFilesystem(), NewLocalFs(memfs.New()), 0),
+		},
+		{
+			"os to os",
+			NewCopier(s.newFilesystem(), NewLocalFs(s.newFilesystem()), 0),
+		},
+		{
+			"os to HDFS",
+			NewCopier(s.newFilesystem(), NewHDFSFs(hdfsURL, s.newTempPath(), s.newTempPath()), 0),
+		},
+		{
+			"mem to HDFS",
+			NewCopier(memfs.New(), NewHDFSFs(hdfsURL, s.newTempPath(), s.newTempPath()), 0),
+		},
 
-		{"mem to mem", NewLocalCopier(memfs.New(), 2), memfs.New()},
-		{"mem to os", NewLocalCopier(memfs.New(), 2), s.newFilesystem()},
-		{"os to mem", NewLocalCopier(s.newFilesystem(), 2), memfs.New()},
-		{"os to os", NewLocalCopier(s.newFilesystem(), 2), s.newFilesystem()},
-		{"os to HDFS", NewHDFSCopier(hdfsURL, s.newTempPath(), s.newTempPath(), 2), s.newFilesystem()},
-		{"mem to HDFS", NewHDFSCopier(hdfsURL, s.newTempPath(), s.newTempPath(), 2), memfs.New()},
+		{
+			"mem to mem with bucketing",
+			NewCopier(memfs.New(), NewLocalFs(memfs.New()), 2),
+		},
+		{
+			"mem to os with bucketing",
+			NewCopier(s.newFilesystem(), NewLocalFs(memfs.New()), 2),
+		},
+		{
+			"os to mem with bucketing",
+			NewCopier(s.newFilesystem(), NewLocalFs(memfs.New()), 2),
+		},
+		{
+			"os to os with bucketing",
+			NewCopier(s.newFilesystem(), NewLocalFs(s.newFilesystem()), 2),
+		},
+		{
+			"os to HDFS with bucketing",
+			NewCopier(s.newFilesystem(), NewHDFSFs(hdfsURL, s.newTempPath(), s.newTempPath()), 2),
+		},
+		{
+			"mem to HDFS with bucketing",
+			NewCopier(memfs.New(), NewHDFSFs(hdfsURL, s.newTempPath(), s.newTempPath()), 2),
+		},
 	}
 
 	for _, fsPair := range fsPairs {
 		s.T().Run(fsPair.Name, func(t *testing.T) {
-			testRootedTransactioner(t, NewSivaRootedTransactioner(fsPair.Copier, fsPair.Local))
+			testRootedTransactioner(t, NewSivaRootedTransactioner(fsPair.Copier))
 		})
 
 		s.T().Run(fmt.Sprintf("%s with real repository", fsPair.Name), func(t *testing.T) {
-			testWithRealRepository(t, NewSivaRootedTransactioner(fsPair.Copier, fsPair.Local))
+			testWithRealRepository(t, NewSivaRootedTransactioner(fsPair.Copier))
 		})
 	}
 }
@@ -125,7 +162,7 @@ func testWithRealRepository(t *testing.T, s RootedTransactioner) {
 	require.NoError(err)
 	require.NotEqual(0, countTest)
 
-	tx, err := s.Begin(f.Head)
+	tx, err := s.Begin(context.TODO(), f.Head)
 	require.NoError(err)
 
 	r, err := git.Open(tx.Storer(), nil)
@@ -152,10 +189,10 @@ func testWithRealRepository(t *testing.T, s RootedTransactioner) {
 	require.NoError(err)
 	require.NotEqual(0, count)
 
-	err = tx.Commit()
+	err = tx.Commit(context.TODO())
 	require.NoError(err)
 
-	tx2, err := s.Begin(f.Head)
+	tx2, err := s.Begin(context.TODO(), f.Head)
 	require.NoError(err)
 
 	r, err = git.Open(tx2.Storer(), nil)
@@ -181,7 +218,7 @@ func testRootedTransactioner(t *testing.T, s RootedTransactioner) {
 	require := require.New(t)
 
 	// begin tx1
-	tx1, err := s.Begin(h1)
+	tx1, err := s.Begin(context.TODO(), h1)
 	require.NoError(err)
 	require.NotNil(tx1)
 	r1, err := git.Open(tx1.Storer(), nil)
@@ -193,7 +230,7 @@ func testRootedTransactioner(t *testing.T, s RootedTransactioner) {
 	require.NoError(err)
 
 	// begin tx2
-	tx2, err := s.Begin(h1)
+	tx2, err := s.Begin(context.TODO(), h1)
 	require.NoError(err)
 	require.NotNil(tx2)
 	r2, err := git.Open(tx2.Storer(), nil)
@@ -213,7 +250,7 @@ func testRootedTransactioner(t *testing.T, s RootedTransactioner) {
 	require.Equal(plumbing.ErrReferenceNotFound, err)
 
 	// commit tx1
-	err = tx1.Commit()
+	err = tx1.Commit(context.TODO())
 	require.NoError(err)
 
 	// ref1 not visible in tx2 (even with tx1 committed)
@@ -225,7 +262,7 @@ func testRootedTransactioner(t *testing.T, s RootedTransactioner) {
 	require.NoError(err)
 
 	// begin tx3
-	tx3, err := s.Begin(h1)
+	tx3, err := s.Begin(context.TODO(), h1)
 	require.NoError(err)
 	require.NotNil(tx3)
 	r3, err := git.Open(tx3.Storer(), nil)
@@ -237,7 +274,7 @@ func testRootedTransactioner(t *testing.T, s RootedTransactioner) {
 	require.NoError(tx3.Rollback())
 
 	// begin tx4
-	tx4, err := s.Begin(h1)
+	tx4, err := s.Begin(context.TODO(), h1)
 	require.NoError(err)
 	require.NotNil(tx4)
 	r4, err := git.Open(tx4.Storer(), nil)
@@ -249,12 +286,11 @@ func testRootedTransactioner(t *testing.T, s RootedTransactioner) {
 	require.NoError(err)
 
 	// commit tx4
-	err = tx4.Commit()
+	err = tx4.Commit(context.TODO())
 	require.NoError(err)
 }
 
 type fsPair struct {
 	Name   string
-	Copier Copier
-	Local  billy.Filesystem
+	Copier *Copier
 }
