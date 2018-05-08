@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/src-d/borges"
+	"github.com/src-d/borges/lock"
 	"github.com/src-d/borges/storage"
 
 	"gopkg.in/src-d/core-retrieval.v0"
@@ -26,12 +27,18 @@ var consumerCommand = &consumerCmd{command: newCommand(
 
 type consumerCmd struct {
 	command
-	WorkersCount int    `long:"workers" default:"8" description:"number of workers"`
-	Timeout      string `long:"timeout" default:"10h" description:"deadline to process a job"`
+	Locking string `long:"locking" env:"CONFIG_LOCKING" default:"local:" description:"locking service configuration"`
+	Workers int    `long:"workers" default:"8" description:"number of workers"`
+	Timeout string `long:"timeout" default:"10h" description:"deadline to process a job"`
 }
 
 func (c *consumerCmd) Execute(args []string) error {
 	c.init()
+
+	locking, err := lock.New(c.Locking)
+	if err != nil {
+		return err
+	}
 
 	b := core.Broker()
 	defer b.Close()
@@ -50,10 +57,10 @@ func (c *consumerCmd) Execute(args []string) error {
 		storage.FromDatabase(core.Database()),
 		core.RootedTransactioner(),
 		borges.NewTemporaryCloner(core.TemporaryFilesystem()),
-		core.Locking(),
+		locking,
 		timeout,
 	)
-	wp.SetWorkerCount(c.WorkersCount)
+	wp.SetWorkerCount(c.Workers)
 
 	ac := borges.NewConsumer(q, wp)
 

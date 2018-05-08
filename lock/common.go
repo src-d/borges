@@ -31,6 +31,10 @@ func New(connstr string) (Service, error) {
 	}
 
 	name := u.Scheme
+	if name == "" {
+		return nil, ErrInvalidConnectionString.New(connstr)
+	}
+
 	srvf, ok := Services[name]
 	if !ok {
 		return nil, ErrUnsupportedService.New(name)

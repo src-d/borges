@@ -368,3 +368,11 @@ func TestNewInvalidConnectionString(t *testing.T) {
 	require.True(ErrInvalidConnectionString.Is(err))
 	require.Nil(srv)
 }
+
+func TestNewInvalidConnectionStringNotDots(t *testing.T) {
+	require := require.New(t)
+	srv, err := New("foo")
+	require.Error(err)
+	require.True(ErrInvalidConnectionString.Is(err))
+	require.Nil(srv)
+}
