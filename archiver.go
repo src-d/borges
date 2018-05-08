@@ -7,13 +7,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/src-d/borges/lock"
 	"github.com/src-d/borges/metrics"
 
 	"github.com/jpillora/backoff"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/src-d/core-retrieval.v0/model"
 	"gopkg.in/src-d/core-retrieval.v0/repository"
-	"gopkg.in/src-d/framework.v0/lock"
 	"gopkg.in/src-d/go-errors.v1"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/config"

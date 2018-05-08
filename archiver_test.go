@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/src-d/borges/lock"
 	"github.com/src-d/borges/storage"
 
 	"github.com/satori/go.uuid"
@@ -20,7 +21,6 @@ import (
 	"gopkg.in/src-d/core-retrieval.v0/model"
 	"gopkg.in/src-d/core-retrieval.v0/repository"
 	"gopkg.in/src-d/core-retrieval.v0/test"
-	"gopkg.in/src-d/framework.v0/lock"
 	"gopkg.in/src-d/go-billy.v4"
 	"gopkg.in/src-d/go-billy.v4/osfs"
 	"gopkg.in/src-d/go-git-fixtures.v3"

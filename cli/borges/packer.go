@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/src-d/borges"
+	"github.com/src-d/borges/lock"
 	"github.com/src-d/borges/storage"
 
 	"github.com/sirupsen/logrus"
@@ -30,6 +31,7 @@ var packerCommand = &packerCmd{command: newCommand(
 
 type packerCmd struct {
 	command
+	Locking   string `long:"locking" env:"CONFIG_LOCKING" default:"local:" description:"locking service configuration"`
 	File      string `long:"file" short:"f" required:"true" description:"file with the repositories to pack (one per line)"`
 	OutputDir string `long:"to" default:"repositories" description:"path to store the packed siva files"`
 	Timeout   string `long:"timeout" default:"30m" description:"time to wait to consider a job failed"`
@@ -38,6 +40,11 @@ type packerCmd struct {
 
 func (c *packerCmd) Execute(args []string) error {
 	c.init()
+
+	locking, err := lock.New(c.Locking)
+	if err != nil {
+		return err
+	}
 
 	log = log.WithField("command", packerCmdName)
 	log.WithFields(logrus.Fields{
@@ -66,7 +73,7 @@ func (c *packerCmd) Execute(args []string) error {
 		store,
 		transactioner,
 		borges.NewTemporaryCloner(core.TemporaryFilesystem()),
-		core.Locking(),
+		locking,
 		timeout,
 	)
 
