@@ -69,7 +69,7 @@ func (r gitReferencer) References() ([]*model.Reference, error) {
 	var refs []*model.Reference
 	var seenRoots = make(map[plumbing.Hash][]model.SHA1)
 	return refs, iter.ForEach(func(ref *plumbing.Reference) error {
-		//TODO: add tags support
+		// TODO: add tags support
 		if ref.Type() != plumbing.HashReference || ref.Name().IsRemote() {
 			return nil
 		}

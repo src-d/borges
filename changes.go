@@ -111,8 +111,8 @@ func addToChangesDfferenceBetweenOldAndNewRefs(
 	now time.Time,
 	c Changes,
 	newRef *model.Reference,
-	oldRefs map[string]*model.Reference) error {
-
+	oldRefs map[string]*model.Reference,
+) error {
 	oldRef, ok := oldRefs[newRef.Name]
 
 	// If we don't have the reference or the init commit has changed,
@@ -132,6 +132,7 @@ func addToChangesDfferenceBetweenOldAndNewRefs(
 			CreatedAt: createdAt,
 			UpdatedAt: now,
 		}
+		newReference.Time = newRef.Time
 		c.Add(newReference)
 
 		return nil

@@ -174,7 +174,8 @@ func (a *Archiver) do(ctx context.Context, log *logrus.Entry, j *Job) (err error
 	gr, err := a.TemporaryCloner.Clone(
 		ctx,
 		j.RepositoryID.String(),
-		endpoint)
+		endpoint,
+	)
 	if err != nil {
 		var finalErr error
 		if err != transport.ErrEmptyUploadPackRequest {
@@ -278,10 +279,15 @@ func selectEndpoint(endpoints []string) (string, error) {
 	return endpoints[0], nil
 }
 
-func (a *Archiver) pushChangesToRootedRepositories(ctx context.Context, ctxLog *logrus.Entry,
-	j *Job, r *model.Repository, tr TemporaryRepository, changes Changes,
-	now time.Time) error {
-
+func (a *Archiver) pushChangesToRootedRepositories(
+	ctx context.Context,
+	ctxLog *logrus.Entry,
+	j *Job,
+	r *model.Repository,
+	tr TemporaryRepository,
+	changes Changes,
+	now time.Time,
+) error {
 	var failedInits []model.SHA1
 	for ic, cs := range changes {
 		log := ctxLog.WithField("root", ic.String())
@@ -307,6 +313,7 @@ func (a *Archiver) pushChangesToRootedRepositories(ctx context.Context, ctxLog *
 		log.Debug("push changes to rooted repository finished")
 
 		log.Debug("update repository references started")
+
 		r.References = updateRepositoryReferences(r.References, cs, ic)
 		for _, ref := range r.References {
 			ref.Repository = r

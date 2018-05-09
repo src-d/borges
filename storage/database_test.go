@@ -107,17 +107,21 @@ func (s *DatabaseSuite) TestUpdateFailed() {
 func (s *DatabaseSuite) TestUpdateFetched() {
 	require := s.Require()
 	repo := s.createRepo(model.Fetching, "foo")
-	time := withoutNs(time.Now())
+	t := withoutNs(time.Now())
 
-	err := s.store.UpdateFetched(repo, time)
+	err := s.store.UpdateFetched(repo, t)
 	require.NoError(err)
 	require.Len(repo.Endpoints, 1)
-	require.Equal(&time, repo.FetchedAt)
+	require.Equal(&t, repo.FetchedAt)
 	require.Equal(model.Fetched, repo.Status)
+	require.NotNil(repo.LastCommitAt)
+	require.NotEqual(new(time.Time), repo.LastCommitAt)
 
 	repo, err = s.store.Get(repo.ID)
 	require.NoError(err)
 	require.Equal(model.Fetched, repo.Status)
+	require.NotNil(repo.LastCommitAt)
+	require.NotEqual(new(time.Time), repo.LastCommitAt)
 }
 
 func (s *DatabaseSuite) TestUpdateWithRefsChanged() {
@@ -172,9 +176,21 @@ func (s *DatabaseSuite) createRepo(status model.FetchStatus, remotes ...string) 
 	repo.CreatedAt = withoutNs(repo.CreatedAt)
 	repo.UpdatedAt = withoutNs(repo.UpdatedAt)
 
+	repo.References = []*model.Reference{
+		makeRef(model.NewSHA1("1"), time.Now()),
+		makeRef(model.NewSHA1("2"), time.Now().Add(-5*time.Hour)),
+	}
+
 	_, err := s.rawStore.Update(repo)
 	s.Require().NoError(err)
 	return repo
+}
+
+func makeRef(hash model.SHA1, time time.Time) *model.Reference {
+	ref := model.NewReference()
+	ref.Hash = hash
+	ref.Time = time
+	return ref
 }
 
 func withoutNs(t time.Time) time.Time {
