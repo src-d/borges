@@ -8,9 +8,9 @@ import (
 	"github.com/src-d/borges"
 
 	"github.com/jessevdk/go-flags"
-	"gopkg.in/src-d/core-retrieval.v0"
-	"gopkg.in/src-d/framework.v0/queue"
 	"gopkg.in/src-d/go-git.v4/utils/ioutil"
+	"gopkg.in/src-d/go-queue.v1"
+	_ "gopkg.in/src-d/go-queue.v1/amqp"
 )
 
 const (
@@ -54,7 +54,11 @@ func (c *producerSubcmd) init() error {
 		return err
 	}
 
-	c.broker = core.Broker()
+	c.broker, err = queue.NewBroker(c.Broker)
+	if err != nil {
+		return err
+	}
+
 	c.queue, err = c.broker.Queue(c.Queue)
 	if err != nil {
 		return err

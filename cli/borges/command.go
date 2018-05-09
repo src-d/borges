@@ -70,7 +70,8 @@ func (c *command) init() {
 }
 
 type queueOpts struct {
-	Queue string `long:"queue" default:"borges" description:"queue name"`
+	Queue  string `long:"queue" default:"borges" description:"queue name"`
+	Broker string `long:"brocker" env:"CONFIG_BROKER" default:"amqp://localhost:5672" description:"brocker URL service"`
 }
 
 type loggerOpts struct {

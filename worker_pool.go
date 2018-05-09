@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/sirupsen/logrus"
-	"gopkg.in/src-d/framework.v0/queue"
+	"gopkg.in/src-d/go-queue.v1"
 )
 
 // A WorkerJob is a job to be passed to the worker. It contains the Job itself

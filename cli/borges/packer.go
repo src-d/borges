@@ -13,8 +13,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"gopkg.in/src-d/core-retrieval.v0"
 	"gopkg.in/src-d/core-retrieval.v0/repository"
-	"gopkg.in/src-d/framework.v0/queue"
 	"gopkg.in/src-d/go-billy.v4/osfs"
+	"gopkg.in/src-d/go-queue.v1/memory"
 )
 
 const (
@@ -52,7 +52,7 @@ func (c *packerCmd) Execute(args []string) error {
 		"output": c.OutputDir,
 	}).Info("initializing pack process")
 
-	broker := queue.NewMemoryBroker()
+	broker := memory.New()
 	q, err := broker.Queue("jobs")
 	if err != nil {
 		return fmt.Errorf("unable to start an in-memory queue: %s", err)
