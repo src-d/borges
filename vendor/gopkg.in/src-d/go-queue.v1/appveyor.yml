@@ -1,0 +1,20 @@
+version: "{build}"
+platform: x64
+
+clone_folder: c:\gopath\src\gopkg.in\src-d\go-queue.v1
+
+environment:
+  GOPATH: c:\gopath
+
+before_test:
+  - set PATH=C:\Program Files\erl9.2\bin;%PATH%
+  - choco install rabbitmq --ignoredependencies -y
+  - ps: Start-Sleep -s 2
+
+build_script:
+  - set PATH=%GOPATH%\bin;c:\go\bin;%PATH%
+  - go version
+  - go get -v -t ./...
+
+test_script:
+  - go test -v ./...
