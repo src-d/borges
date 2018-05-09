@@ -5,7 +5,7 @@ import (
 
 	"github.com/src-d/borges"
 
-	"gopkg.in/src-d/framework.v0/queue"
+	"gopkg.in/src-d/go-queue.v1"
 )
 
 const (

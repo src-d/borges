@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"gopkg.in/src-d/core-retrieval.v0/model"
-	"gopkg.in/src-d/framework.v0/queue"
+	"gopkg.in/src-d/go-queue.v1"
 )
 
 const (

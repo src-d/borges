@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"gopkg.in/src-d/framework.v0/queue"
+	"gopkg.in/src-d/go-queue.v1"
 )
 
 // Consumer consumes jobs from a queue and uses multiple workers to process

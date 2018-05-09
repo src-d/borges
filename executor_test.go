@@ -11,8 +11,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/suite"
 	"gopkg.in/src-d/core-retrieval.v0/test"
-	"gopkg.in/src-d/framework.v0/queue"
 	"gopkg.in/src-d/go-kallax.v1"
+	"gopkg.in/src-d/go-queue.v1/memory"
 )
 
 type ExecutorSuite struct {
@@ -53,7 +53,7 @@ func (s *ExecutorSuite) assertRepo(endpoint string, job *Job) {
 
 func (s *ExecutorSuite) runExecutor(repos ...string) ([]*Job, error) {
 	require := s.Require()
-	q, err := queue.NewMemoryBroker().Queue(kallax.NewULID().String())
+	q, err := memory.New().Queue(kallax.NewULID().String())
 	require.NoError(err)
 
 	r := ioutil.NopCloser(strings.NewReader(strings.Join(repos, "\n")))

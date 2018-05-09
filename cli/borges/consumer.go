@@ -11,6 +11,8 @@ import (
 	"github.com/src-d/borges/storage"
 
 	"gopkg.in/src-d/core-retrieval.v0"
+	"gopkg.in/src-d/go-queue.v1"
+	_ "gopkg.in/src-d/go-queue.v1/amqp"
 )
 
 const (
@@ -40,7 +42,11 @@ func (c *consumerCmd) Execute(args []string) error {
 		return err
 	}
 
-	b := core.Broker()
+	b, err := queue.NewBroker(c.Broker)
+	if err != nil {
+		return err
+	}
+
 	defer b.Close()
 	q, err := b.Queue(c.Queue)
 	if err != nil {
