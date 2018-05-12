@@ -10,7 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"gopkg.in/src-d/core-retrieval.v0/model"
 	"gopkg.in/src-d/go-billy.v4"
 	"gopkg.in/src-d/go-billy.v4/util"
@@ -25,6 +24,7 @@ import (
 	"gopkg.in/src-d/go-git.v4/plumbing/transport/server"
 	"gopkg.in/src-d/go-git.v4/storage/filesystem"
 	"gopkg.in/src-d/go-git.v4/storage/memory"
+	"gopkg.in/src-d/go-log.v0"
 )
 
 const (
@@ -68,7 +68,8 @@ func (r gitReferencer) References() ([]*model.Reference, error) {
 
 	var refs []*model.Reference
 	var seenRoots = make(map[plumbing.Hash][]model.SHA1)
-	return refs, iter.ForEach(func(ref *plumbing.Reference) error {
+
+	err = iter.ForEach(func(ref *plumbing.Reference) error {
 		//TODO: add tags support
 		if ref.Type() != plumbing.HashReference || ref.Name().IsRemote() {
 			return nil
@@ -76,7 +77,7 @@ func (r gitReferencer) References() ([]*model.Reference, error) {
 
 		c, err := ResolveCommit(r.Repository, ref.Hash())
 		if ErrObjectTypeNotSupported.Is(err) {
-			logrus.WithFields(logrus.Fields{"hash": ref.Hash(), "ref": ref.Name()}).Warn(err.Error())
+			log.With(log.Fields{"hash": ref.Hash(), "ref": ref.Name()}).Warningf(err.Error())
 			return nil
 		}
 
@@ -98,6 +99,8 @@ func (r gitReferencer) References() ([]*model.Reference, error) {
 		refs = append(refs, reference)
 		return nil
 	})
+
+	return refs, err
 }
 
 type commitFrame struct {

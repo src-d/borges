@@ -4,7 +4,6 @@ import (
 	"os"
 
 	"github.com/jessevdk/go-flags"
-	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -15,13 +14,11 @@ const (
 var (
 	version string
 	build   string
-	log     *logrus.Entry
 )
 
 var parser = flags.NewParser(nil, flags.Default)
 
 func init() {
-	log = logrus.WithField("module", borgesName)
 	parser.LongDescription = borgesDescription
 }
 

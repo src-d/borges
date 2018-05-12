@@ -1,5 +1,7 @@
 package main
 
+import "gopkg.in/src-d/go-log.v0"
+
 const (
 	updateCmdName      = "update"
 	updateCmdShortName = "update repositories processed previously"
@@ -18,7 +20,6 @@ type updateCmd struct {
 }
 
 func (c *updateCmd) Execute(args []string) error {
-	log = log.WithField("command", updateCmdName)
-	log.Warn("Update command is not implemented yet")
+	log.Warningf("update command is not implemented yet")
 	return nil
 }

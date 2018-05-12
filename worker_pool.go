@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/sirupsen/logrus"
+	"gopkg.in/src-d/go-log.v0"
 	"gopkg.in/src-d/go-queue.v1"
 )
 
@@ -17,11 +17,10 @@ type WorkerJob struct {
 }
 
 // WorkerFunc is the function the workers will execute.
-type WorkerFunc func(context.Context, *logrus.Entry, *Job) error
+type WorkerFunc func(context.Context, log.Logger, *Job) error
 
 // WorkerPool is a pool of workers that can process jobs.
 type WorkerPool struct {
-	log        *logrus.Entry
 	do         WorkerFunc
 	jobChannel chan *WorkerJob
 	workers    []*Worker
@@ -32,9 +31,8 @@ type WorkerPool struct {
 // NewWorkerPool creates a new empty worker pool. It takes a function to be used
 // by workers to process jobs. The pool is started with no workers.
 // SetWorkerCount must be called to start them.
-func NewWorkerPool(log *logrus.Entry, f WorkerFunc) *WorkerPool {
+func NewWorkerPool(f WorkerFunc) *WorkerPool {
 	return &WorkerPool{
-		log:        log,
 		do:         f,
 		jobChannel: make(chan *WorkerJob),
 		workers:    nil,
@@ -75,8 +73,8 @@ func (wp *WorkerPool) Len() int {
 func (wp *WorkerPool) add(n int) {
 	wp.wg.Add(n)
 	for i := 0; i < n; i++ {
-		log := wp.log.WithField("worker", i)
-		w := NewWorker(log, wp.do, wp.jobChannel)
+		logger := log.New(log.Fields{"worker": i})
+		w := NewWorker(logger, wp.do, wp.jobChannel)
 		go func() {
 			defer wp.wg.Done()
 			w.Start()

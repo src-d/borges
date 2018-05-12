@@ -8,9 +8,7 @@ import (
 
 	"github.com/src-d/borges/storage"
 
-	"github.com/onrik/logrus/filename"
 	"github.com/satori/go.uuid"
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"gopkg.in/src-d/core-retrieval.v0/model"
@@ -23,16 +21,6 @@ const (
 )
 
 func TestProducerSuite(t *testing.T) {
-	logrus.AddHook(filename.NewHook(
-		logrus.DebugLevel,
-		logrus.InfoLevel,
-		logrus.WarnLevel,
-		logrus.ErrorLevel,
-		logrus.FatalLevel,
-		logrus.PanicLevel),
-	)
-	logrus.SetFormatter(&logrus.TextFormatter{TimestampFormat: time.StampMicro, FullTimestamp: true})
-
 	suite.Run(t, new(ProducerSuite))
 }
 
@@ -53,7 +41,7 @@ func (s *ProducerSuite) SetupSuite() {
 
 func (s *ProducerSuite) newProducer() *Producer {
 	storer := storage.FromDatabase(s.DB)
-	return NewProducer(logrus.NewEntry(logrus.StandardLogger()), NewMentionJobIter(s.mentionsQueue, storer),
+	return NewProducer(NewMentionJobIter(s.mentionsQueue, storer),
 		s.queue, queue.PriorityNormal, testJobRetries)
 }
 
@@ -128,8 +116,7 @@ func (s *ProducerSuite) TestStartStop_TwoEqualsJobs() {
 }
 
 func (s *ProducerSuite) TestStartStop_ErrorNoNotifier() {
-	p := NewProducer(logrus.NewEntry(logrus.StandardLogger()), &DummyJobIter{}, s.queue,
-		queue.PriorityNormal, testJobRetries)
+	p := NewProducer(&DummyJobIter{}, s.queue, queue.PriorityNormal, testJobRetries)
 
 	go p.Start()
 

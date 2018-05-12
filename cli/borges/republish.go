@@ -5,6 +5,7 @@ import (
 
 	"github.com/src-d/borges"
 
+	"gopkg.in/src-d/go-log.v0"
 	"gopkg.in/src-d/go-queue.v1"
 )
 
@@ -38,19 +39,18 @@ func (c *republishCmd) Execute(args []string) error {
 	}
 	defer c.broker.Close()
 
-	log = log.WithField("command", republishCmdName)
-	log.WithField("time", c.Time).Info("starting republishing jobs...")
+	log.With(log.Fields{"time": c.Time}).Infof("starting republishing jobs...")
 
-	log.Debug("republish task triggered ")
+	log.Debugf("republish task triggered ")
 	if err := c.queue.RepublishBuried(republishCondition); err != nil {
-		log.WithField("error", err).Error("error republishing buried jobs")
+		log.Errorf(err, "error republishing buried jobs")
 	}
 
 	if lapse != 0 {
 		c.runPeriodically(lapse)
 	}
 
-	log.Info("stopping republishing jobs")
+	log.Infof("stopping republishing jobs")
 	return nil
 }
 
@@ -66,9 +66,9 @@ func republishCondition(job *queue.Job) bool {
 func (c *republishCmd) runPeriodically(lapse time.Duration) {
 	ticker := time.Tick(lapse)
 	for range ticker {
-		log.Debug("republish task triggered ")
+		log.Debugf("republish task triggered ")
 		if err := c.queue.RepublishBuried(republishCondition); err != nil {
-			log.WithField("error", err).Error("error republishing buried jobs")
+			log.Errorf(err, "error republishing buried jobs")
 		}
 	}
 }
