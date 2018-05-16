@@ -19,22 +19,22 @@ import (
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport"
 	"gopkg.in/src-d/go-kallax.v1"
-	"gopkg.in/src-d/go-log.v0"
+	"gopkg.in/src-d/go-log.v1"
 )
 
 var (
-	ErrCleanRepositoryDir     = errors.NewKind("cleaning up local repo dir failed")
-	ErrClone                  = errors.NewKind("cloning %s failed")
-	ErrPushToRootedRepository = errors.NewKind("push to rooted repo %s failed")
-	ErrArchivingRoots         = errors.NewKind("archiving %d out of %d roots failed: %s")
-	ErrEndpointsEmpty         = errors.NewKind("endpoints is empty")
-	ErrRepositoryIDNotFound   = errors.NewKind("repository id not found: %s")
-	ErrChanges                = errors.NewKind("error computing changes")
-	ErrAlreadyFetching        = errors.NewKind("repository %s was already in a fetching status")
-	ErrSetStatus              = errors.NewKind("unable to set repository to status: %s")
-	ErrFatal                  = errors.NewKind("fatal, %v: stacktrace: %s")
-	ErrCantProcessRepository  = errors.NewKind("can't process repository")
-	ErrProcessedWithErrors    = errors.NewKind("repository processed with errors")
+	ErrCleanRepositoryDir      = errors.NewKind("cleaning up local repo dir failed")
+	ErrClone                   = errors.NewKind("cloning %s failed")
+	ErrPushToRootedRepository  = errors.NewKind("push to rooted repo %s failed")
+	ErrArchivingRoots          = errors.NewKind("archiving %d out of %d roots failed: %s")
+	ErrEndpointsEmpty          = errors.NewKind("endpoints is empty")
+	ErrRepositoryIDNotFound    = errors.NewKind("repository id not found: %s")
+	ErrChanges                 = errors.NewKind("error computing changes")
+	ErrAlreadyFetching         = errors.NewKind("repository %s was already in a fetching status")
+	ErrSetStatus               = errors.NewKind("unable to set repository to status: %s")
+	ErrFatal                   = errors.NewKind("fatal, %v: stacktrace: %s")
+	ErrCannotProcessRepository = errors.NewKind("cannot process repository")
+	ErrProcessedWithErrors     = errors.NewKind("repository processed with errors")
 )
 
 // Archiver archives repositories. Archiver instances are thread-safe and can
@@ -127,7 +127,7 @@ func (a *Archiver) do(ctx context.Context, logger log.Logger, j *Job) (err error
 	}).Debugf("repository model obtained")
 
 	if err := a.isProcessableRepository(r, &now); err != nil {
-		return ErrCantProcessRepository.Wrap(err)
+		return ErrCannotProcessRepository.Wrap(err)
 	}
 
 	if err := a.Store.SetStatus(r, model.Fetching); err != nil {
@@ -141,7 +141,7 @@ func (a *Archiver) do(ctx context.Context, logger log.Logger, j *Job) (err error
 	}
 
 	logger = logger.New(log.Fields{"endpoint": endpoint})
-	gr, err := a.doClone(ctx, &now, j, r, endpoint)
+	gr, err := a.doClone(ctx, logger, &now, j, r, endpoint)
 	if err != nil {
 		return err
 	}
@@ -159,7 +159,7 @@ func (a *Archiver) do(ctx context.Context, logger log.Logger, j *Job) (err error
 }
 
 func (a *Archiver) doClone(
-	ctx context.Context, now *time.Time,
+	ctx context.Context, logger log.Logger, now *time.Time,
 	j *Job, r *model.Repository, endpoint string,
 ) (tr TemporaryRepository, err error) {
 
@@ -176,12 +176,14 @@ func (a *Archiver) doClone(
 	if err == transport.ErrRepositoryNotFound {
 		status = model.NotFound
 		err = nil
+		logger.Warningf("repository not found")
 		return
 	}
 
 	if err == transport.ErrAuthenticationRequired {
 		status = model.AuthRequired
 		err = nil
+		logger.Warningf("repository not cloned, authentication required")
 		return
 	}
 
