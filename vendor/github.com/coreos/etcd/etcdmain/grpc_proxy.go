@@ -17,6 +17,7 @@ package etcdmain
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"math"
 	"net"
 	"net/http"
@@ -26,6 +27,7 @@ import (
 	"time"
 
 	"github.com/coreos/etcd/clientv3"
+	"github.com/coreos/etcd/clientv3/leasing"
 	"github.com/coreos/etcd/clientv3/namespace"
 	"github.com/coreos/etcd/clientv3/ordering"
 	"github.com/coreos/etcd/etcdserver/api/etcdhttp"
@@ -36,10 +38,12 @@ import (
 	"github.com/coreos/etcd/pkg/transport"
 	"github.com/coreos/etcd/proxy/grpcproxy"
 
-	"github.com/cockroachdb/cmux"
+	"github.com/coreos/pkg/capnslog"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
+	"github.com/soheilhy/cmux"
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/grpclog"
 )
 
 var (
@@ -49,6 +53,8 @@ var (
 	grpcProxyDNSCluster        string
 	grpcProxyInsecureDiscovery bool
 	grpcProxyDataDir           string
+	grpcMaxCallSendMsgSize     int
+	grpcMaxCallRecvMsgSize     int
 
 	// tls for connecting to etcd
 
@@ -70,10 +76,15 @@ var (
 	grpcProxyResolverTTL        int
 
 	grpcProxyNamespace string
+	grpcProxyLeasing   string
 
 	grpcProxyEnablePprof    bool
 	grpcProxyEnableOrdering bool
+
+	grpcProxyDebug bool
 )
+
+const defaultGRPCMaxCallSendMsgSize = 1.5 * 1024 * 1024
 
 func init() {
 	rootCmd.AddCommand(newGRPCProxyCommand())
@@ -108,6 +119,8 @@ func newGRPCProxyStartCommand() *cobra.Command {
 	cmd.Flags().StringVar(&grpcProxyNamespace, "namespace", "", "string to prefix to all keys for namespacing requests")
 	cmd.Flags().BoolVar(&grpcProxyEnablePprof, "enable-pprof", false, `Enable runtime profiling data via HTTP server. Address is at client URL + "/debug/pprof/"`)
 	cmd.Flags().StringVar(&grpcProxyDataDir, "data-dir", "default.proxy", "Data directory for persistent data")
+	cmd.Flags().IntVar(&grpcMaxCallSendMsgSize, "max-send-bytes", defaultGRPCMaxCallSendMsgSize, "message send limits in bytes (default value is 1.5 MiB)")
+	cmd.Flags().IntVar(&grpcMaxCallRecvMsgSize, "max-recv-bytes", math.MaxInt32, "message receive limits in bytes (default value is math.MaxInt32)")
 
 	// client TLS for connecting to server
 	cmd.Flags().StringVar(&grpcProxyCert, "cert", "", "identify secure connections with etcd servers using this TLS certificate file")
@@ -124,12 +137,26 @@ func newGRPCProxyStartCommand() *cobra.Command {
 
 	// experimental flags
 	cmd.Flags().BoolVar(&grpcProxyEnableOrdering, "experimental-serializable-ordering", false, "Ensure serializable reads have monotonically increasing store revisions across endpoints.")
+	cmd.Flags().StringVar(&grpcProxyLeasing, "experimental-leasing-prefix", "", "leasing metadata prefix for disconnected linearized reads.")
+
+	cmd.Flags().BoolVar(&grpcProxyDebug, "debug", false, "Enable debug-level logging for grpc-proxy.")
 
 	return &cmd
 }
 
 func startGRPCProxy(cmd *cobra.Command, args []string) {
 	checkArgs()
+
+	capnslog.SetGlobalLogLevel(capnslog.INFO)
+	if grpcProxyDebug {
+		capnslog.SetGlobalLogLevel(capnslog.DEBUG)
+		grpc.EnableTracing = true
+		// enable info, warning, error
+		grpclog.SetLoggerV2(grpclog.NewLoggerV2(os.Stderr, os.Stderr, os.Stderr))
+	} else {
+		// only discard info
+		grpclog.SetLoggerV2(grpclog.NewLoggerV2(ioutil.Discard, os.Stderr, os.Stderr))
+	}
 
 	tlsinfo := newTLS(grpcProxyListenCA, grpcProxyListenCert, grpcProxyListenKey)
 	if tlsinfo == nil && grpcProxyListenAutoTLS {
@@ -202,6 +229,10 @@ func mustNewClient() *clientv3.Client {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+	cfg.DialOptions = append(cfg.DialOptions,
+		grpc.WithUnaryInterceptor(grpcproxy.AuthUnaryClientInterceptor))
+	cfg.DialOptions = append(cfg.DialOptions,
+		grpc.WithStreamInterceptor(grpcproxy.AuthStreamClientInterceptor))
 	client, err := clientv3.New(*cfg)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -216,6 +247,14 @@ func newClientCfg(eps []string) (*clientv3.Config, error) {
 		Endpoints:   eps,
 		DialTimeout: 5 * time.Second,
 	}
+
+	if grpcMaxCallSendMsgSize > 0 {
+		cfg.MaxCallSendMsgSize = grpcMaxCallSendMsgSize
+	}
+	if grpcMaxCallRecvMsgSize > 0 {
+		cfg.MaxCallRecvMsgSize = grpcMaxCallRecvMsgSize
+	}
+
 	tls := newTLS(grpcProxyCA, grpcProxyCert, grpcProxyKey)
 	if tls == nil && grpcProxyInsecureSkipTLSVerify {
 		tls = &transport.TLSInfo{}
@@ -282,6 +321,10 @@ func newGRPCProxyServer(client *clientv3.Client) *grpc.Server {
 		client.Lease = namespace.NewLease(client.Lease, grpcProxyNamespace)
 	}
 
+	if len(grpcProxyLeasing) > 0 {
+		client.KV, _, _ = leasing.NewKV(client, grpcProxyLeasing)
+	}
+
 	kvp, _ := grpcproxy.NewKvProxy(client)
 	watchp, _ := grpcproxy.NewWatchProxy(client)
 	if grpcProxyResolverPrefix != "" {
@@ -308,6 +351,10 @@ func newGRPCProxyServer(client *clientv3.Client) *grpc.Server {
 	pb.RegisterAuthServer(server, authp)
 	v3electionpb.RegisterElectionServer(server, electionp)
 	v3lockpb.RegisterLockServer(server, lockp)
+
+	// set zero values for metrics registered for this grpc server
+	grpc_prometheus.Register(server)
+
 	return server
 }
 

@@ -16,6 +16,7 @@ package integration
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -30,7 +31,6 @@ import (
 	"github.com/coreos/etcd/pkg/testutil"
 	"github.com/coreos/etcd/pkg/transport"
 
-	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 )
@@ -44,7 +44,7 @@ func TestV3PutOverwrite(t *testing.T) {
 
 	kvc := toGRPC(clus.RandClient()).KV
 	key := []byte("foo")
-	reqput := &pb.PutRequest{Key: key, Value: []byte("bar")}
+	reqput := &pb.PutRequest{Key: key, Value: []byte("bar"), PrevKv: true}
 
 	respput, err := kvc.Put(context.TODO(), reqput)
 	if err != nil {
@@ -60,6 +60,9 @@ func TestV3PutOverwrite(t *testing.T) {
 	if respput2.Header.Revision <= respput.Header.Revision {
 		t.Fatalf("expected newer revision on overwrite, got %v <= %v",
 			respput2.Header.Revision, respput.Header.Revision)
+	}
+	if pkv := respput2.PrevKv; pkv == nil || string(pkv.Value) != "bar" {
+		t.Fatalf("expected PrevKv=bar, got response %+v", respput2)
 	}
 
 	reqrange := &pb.RangeRequest{Key: key}
@@ -1274,116 +1277,6 @@ func TestV3StorageQuotaAPI(t *testing.T) {
 	}
 }
 
-// TestV3StorageQuotaApply tests the V3 server respects quotas during apply
-func TestV3StorageQuotaApply(t *testing.T) {
-	testutil.AfterTest(t)
-	quotasize := int64(16 * os.Getpagesize())
-
-	clus := NewClusterV3(t, &ClusterConfig{Size: 2})
-	defer clus.Terminate(t)
-	kvc0 := toGRPC(clus.Client(0)).KV
-	kvc1 := toGRPC(clus.Client(1)).KV
-
-	// Set a quota on one node
-	clus.Members[0].QuotaBackendBytes = quotasize
-	clus.Members[0].Stop(t)
-	clus.Members[0].Restart(t)
-	clus.waitLeader(t, clus.Members)
-	waitForRestart(t, kvc0)
-
-	key := []byte("abc")
-
-	// test small put still works
-	smallbuf := make([]byte, 1024)
-	_, serr := kvc0.Put(context.TODO(), &pb.PutRequest{Key: key, Value: smallbuf})
-	if serr != nil {
-		t.Fatal(serr)
-	}
-
-	// test big put
-	bigbuf := make([]byte, quotasize)
-	_, err := kvc1.Put(context.TODO(), &pb.PutRequest{Key: key, Value: bigbuf})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// quorum get should work regardless of whether alarm is raised
-	_, err = kvc0.Range(context.TODO(), &pb.RangeRequest{Key: []byte("foo")})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// wait until alarm is raised for sure-- poll the alarms
-	stopc := time.After(5 * time.Second)
-	for {
-		req := &pb.AlarmRequest{Action: pb.AlarmRequest_GET}
-		resp, aerr := clus.Members[0].s.Alarm(context.TODO(), req)
-		if aerr != nil {
-			t.Fatal(aerr)
-		}
-		if len(resp.Alarms) != 0 {
-			break
-		}
-		select {
-		case <-stopc:
-			t.Fatalf("timed out waiting for alarm")
-		case <-time.After(10 * time.Millisecond):
-		}
-	}
-
-	// small quota machine should reject put
-	if _, err := kvc0.Put(context.TODO(), &pb.PutRequest{Key: key, Value: smallbuf}); err == nil {
-		t.Fatalf("past-quota instance should reject put")
-	}
-
-	// large quota machine should reject put
-	if _, err := kvc1.Put(context.TODO(), &pb.PutRequest{Key: key, Value: smallbuf}); err == nil {
-		t.Fatalf("past-quota instance should reject put")
-	}
-
-	// reset large quota node to ensure alarm persisted
-	clus.Members[1].Stop(t)
-	clus.Members[1].Restart(t)
-	clus.waitLeader(t, clus.Members)
-
-	if _, err := kvc1.Put(context.TODO(), &pb.PutRequest{Key: key, Value: smallbuf}); err == nil {
-		t.Fatalf("alarmed instance should reject put after reset")
-	}
-}
-
-// TestV3AlarmDeactivate ensures that space alarms can be deactivated so puts go through.
-func TestV3AlarmDeactivate(t *testing.T) {
-	clus := NewClusterV3(t, &ClusterConfig{Size: 3})
-	defer clus.Terminate(t)
-	kvc := toGRPC(clus.RandClient()).KV
-	mt := toGRPC(clus.RandClient()).Maintenance
-
-	alarmReq := &pb.AlarmRequest{
-		MemberID: 123,
-		Action:   pb.AlarmRequest_ACTIVATE,
-		Alarm:    pb.AlarmType_NOSPACE,
-	}
-	if _, err := mt.Alarm(context.TODO(), alarmReq); err != nil {
-		t.Fatal(err)
-	}
-
-	key := []byte("abc")
-	smallbuf := make([]byte, 512)
-	_, err := kvc.Put(context.TODO(), &pb.PutRequest{Key: key, Value: smallbuf})
-	if err == nil && !eqErrGRPC(err, rpctypes.ErrGRPCNoSpace) {
-		t.Fatalf("put got %v, expected %v", err, rpctypes.ErrGRPCNoSpace)
-	}
-
-	alarmReq.Action = pb.AlarmRequest_DEACTIVATE
-	if _, err = mt.Alarm(context.TODO(), alarmReq); err != nil {
-		t.Fatal(err)
-	}
-
-	if _, err = kvc.Put(context.TODO(), &pb.PutRequest{Key: key, Value: smallbuf}); err != nil {
-		t.Fatal(err)
-	}
-}
-
 func TestV3RangeRequest(t *testing.T) {
 	defer testutil.AfterTest(t)
 	tests := []struct {
@@ -1644,7 +1537,7 @@ func TestTLSGRPCRejectInsecureClient(t *testing.T) {
 	// nil out TLS field so client will use an insecure connection
 	clus.Members[0].ClientTLSInfo = nil
 	client, err := NewClientV3(clus.Members[0])
-	if err != nil && err != grpc.ErrClientConnTimeout {
+	if err != nil && err != context.DeadlineExceeded {
 		t.Fatalf("unexpected error (%v)", err)
 	} else if client == nil {
 		// Ideally, no client would be returned. However, grpc will
@@ -1680,7 +1573,7 @@ func TestTLSGRPCRejectSecureClient(t *testing.T) {
 	client, err := NewClientV3(clus.Members[0])
 	if client != nil || err == nil {
 		t.Fatalf("expected no client")
-	} else if err != grpc.ErrClientConnTimeout {
+	} else if err != context.DeadlineExceeded {
 		t.Fatalf("unexpected error (%v)", err)
 	}
 }
@@ -1837,8 +1730,8 @@ func testTLSReload(t *testing.T, cloneFunc func() transport.TLSInfo, replaceFunc
 	// 5. expect dial time-out when loading expired certs
 	select {
 	case gerr := <-errc:
-		if gerr != grpc.ErrClientConnTimeout {
-			t.Fatalf("expected %v, got %v", grpc.ErrClientConnTimeout, gerr)
+		if gerr != context.DeadlineExceeded {
+			t.Fatalf("expected %v, got %v", context.DeadlineExceeded, gerr)
 		}
 	case <-time.After(5 * time.Second):
 		t.Fatal("failed to receive dial timeout error")
@@ -1885,7 +1778,7 @@ func TestGRPCRequireLeader(t *testing.T) {
 	md := metadata.Pairs(rpctypes.MetadataRequireLeaderKey, rpctypes.MetadataHasLeader)
 	ctx := metadata.NewOutgoingContext(context.Background(), md)
 	reqput := &pb.PutRequest{Key: []byte("foo"), Value: []byte("bar")}
-	if _, err := toGRPC(client).KV.Put(ctx, reqput); grpc.ErrorDesc(err) != rpctypes.ErrNoLeader.Error() {
+	if _, err := toGRPC(client).KV.Put(ctx, reqput); rpctypes.ErrorDesc(err) != rpctypes.ErrNoLeader.Error() {
 		t.Errorf("err = %v, want %v", err, rpctypes.ErrNoLeader)
 	}
 }
@@ -1916,7 +1809,7 @@ func TestGRPCStreamRequireLeader(t *testing.T) {
 
 	// existing stream should be rejected
 	_, err = wStream.Recv()
-	if grpc.ErrorDesc(err) != rpctypes.ErrNoLeader.Error() {
+	if rpctypes.ErrorDesc(err) != rpctypes.ErrNoLeader.Error() {
 		t.Errorf("err = %v, want %v", err, rpctypes.ErrNoLeader)
 	}
 
@@ -1926,7 +1819,7 @@ func TestGRPCStreamRequireLeader(t *testing.T) {
 		t.Fatalf("wAPI.Watch error: %v", err)
 	}
 	_, err = wStream.Recv()
-	if grpc.ErrorDesc(err) != rpctypes.ErrNoLeader.Error() {
+	if rpctypes.ErrorDesc(err) != rpctypes.ErrNoLeader.Error() {
 		t.Errorf("err = %v, want %v", err, rpctypes.ErrNoLeader)
 	}
 
@@ -1952,29 +1845,37 @@ func TestGRPCStreamRequireLeader(t *testing.T) {
 	}
 }
 
-// TestV3PutLargeRequests ensures that configurable MaxRequestBytes works as intended.
-func TestV3PutLargeRequests(t *testing.T) {
+// TestV3LargeRequests ensures that configurable MaxRequestBytes works as intended.
+func TestV3LargeRequests(t *testing.T) {
 	defer testutil.AfterTest(t)
 	tests := []struct {
-		key             string
 		maxRequestBytes uint
 		valueSize       int
 		expectError     error
 	}{
 		// don't set to 0. use 0 as the default.
-		{"foo", 1, 1024, rpctypes.ErrGRPCRequestTooLarge},
-		{"foo", 10 * 1024 * 1024, 9 * 1024 * 1024, nil},
-		{"foo", 10 * 1024 * 1024, 10 * 1024 * 1024, rpctypes.ErrGRPCRequestTooLarge},
-		{"foo", 10 * 1024 * 1024, 10*1024*1024 + 5, rpctypes.ErrGRPCRequestTooLarge},
+		{1, 1024, rpctypes.ErrGRPCRequestTooLarge},
+		{10 * 1024 * 1024, 9 * 1024 * 1024, nil},
+		{10 * 1024 * 1024, 10 * 1024 * 1024, rpctypes.ErrGRPCRequestTooLarge},
+		{10 * 1024 * 1024, 10*1024*1024 + 5, rpctypes.ErrGRPCRequestTooLarge},
 	}
 	for i, test := range tests {
 		clus := NewClusterV3(t, &ClusterConfig{Size: 1, MaxRequestBytes: test.maxRequestBytes})
 		kvcli := toGRPC(clus.Client(0)).KV
-		reqput := &pb.PutRequest{Key: []byte(test.key), Value: make([]byte, test.valueSize)}
+		reqput := &pb.PutRequest{Key: []byte("foo"), Value: make([]byte, test.valueSize)}
 		_, err := kvcli.Put(context.TODO(), reqput)
-
 		if !eqErrGRPC(err, test.expectError) {
 			t.Errorf("#%d: expected error %v, got %v", i, test.expectError, err)
+		}
+
+		// request went through, expect large response back from server
+		if test.expectError == nil {
+			reqget := &pb.RangeRequest{Key: []byte("foo")}
+			// limit receive call size with original value + gRPC overhead bytes
+			_, err = kvcli.Range(context.TODO(), reqget, grpc.MaxCallRecvMsgSize(test.valueSize+512*1024))
+			if err != nil {
+				t.Errorf("#%d: range expected no error, got %v", i, err)
+			}
 		}
 
 		clus.Terminate(t)

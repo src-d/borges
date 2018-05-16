@@ -76,8 +76,7 @@ func (c *producerSubcmd) generateJobs(getIter getIterFunc) error {
 	}
 	defer ioutil.CheckClose(ji, &err)
 
-	p := borges.NewProducer(log.WithField("command", producerCmdName),
-		ji, c.queue, queue.Priority(c.Priority), c.JobsRetries)
+	p := borges.NewProducer(ji, c.queue, queue.Priority(c.Priority), c.JobsRetries)
 
 	p.Start()
 

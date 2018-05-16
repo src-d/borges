@@ -15,14 +15,18 @@
 package v3rpc
 
 import (
+	"context"
+	"strings"
+
 	"github.com/coreos/etcd/auth"
 	"github.com/coreos/etcd/etcdserver"
 	"github.com/coreos/etcd/etcdserver/api/v3rpc/rpctypes"
 	"github.com/coreos/etcd/etcdserver/membership"
 	"github.com/coreos/etcd/lease"
 	"github.com/coreos/etcd/mvcc"
-	"google.golang.org/grpc"
+
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 var toGRPCErrorMap = map[error]error{
@@ -46,9 +50,11 @@ var toGRPCErrorMap = map[error]error{
 	etcdserver.ErrTimeoutDueToConnectionLost: rpctypes.ErrGRPCTimeoutDueToConnectionLost,
 	etcdserver.ErrUnhealthy:                  rpctypes.ErrGRPCUnhealthy,
 	etcdserver.ErrKeyNotFound:                rpctypes.ErrGRPCKeyNotFound,
+	etcdserver.ErrCorrupt:                    rpctypes.ErrGRPCCorrupt,
 
-	lease.ErrLeaseNotFound: rpctypes.ErrGRPCLeaseNotFound,
-	lease.ErrLeaseExists:   rpctypes.ErrGRPCLeaseExist,
+	lease.ErrLeaseNotFound:    rpctypes.ErrGRPCLeaseNotFound,
+	lease.ErrLeaseExists:      rpctypes.ErrGRPCLeaseExist,
+	lease.ErrLeaseTTLTooLarge: rpctypes.ErrGRPCLeaseTTLTooLarge,
 
 	auth.ErrRootUserNotExist:     rpctypes.ErrGRPCRootUserNotExist,
 	auth.ErrRootRoleNotExist:     rpctypes.ErrGRPCRootRoleNotExist,
@@ -67,9 +73,45 @@ var toGRPCErrorMap = map[error]error{
 }
 
 func togRPCError(err error) error {
+	// let gRPC server convert to codes.Canceled, codes.DeadlineExceeded
+	if err == context.Canceled || err == context.DeadlineExceeded {
+		return err
+	}
 	grpcErr, ok := toGRPCErrorMap[err]
 	if !ok {
-		return grpc.Errorf(codes.Unknown, err.Error())
+		return status.Error(codes.Unknown, err.Error())
 	}
 	return grpcErr
+}
+
+func isClientCtxErr(ctxErr error, err error) bool {
+	if ctxErr != nil {
+		return true
+	}
+
+	ev, ok := status.FromError(err)
+	if !ok {
+		return false
+	}
+
+	switch ev.Code() {
+	case codes.Canceled, codes.DeadlineExceeded:
+		// client-side context cancel or deadline exceeded
+		// "rpc error: code = Canceled desc = context canceled"
+		// "rpc error: code = DeadlineExceeded desc = context deadline exceeded"
+		return true
+	case codes.Unavailable:
+		msg := ev.Message()
+		// client-side context cancel or deadline exceeded with TLS ("http2.errClientDisconnected")
+		// "rpc error: code = Unavailable desc = client disconnected"
+		if msg == "client disconnected" {
+			return true
+		}
+		// "grpc/transport.ClientTransport.CloseStream" on canceled streams
+		// "rpc error: code = Unavailable desc = stream error: stream ID 21; CANCEL")
+		if strings.HasPrefix(msg, "stream error: ") && strings.HasSuffix(msg, "; CANCEL") {
+			return true
+		}
+	}
+	return false
 }

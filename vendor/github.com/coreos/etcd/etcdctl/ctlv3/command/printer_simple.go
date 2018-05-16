@@ -93,6 +93,11 @@ func (p *simplePrinter) KeepAlive(resp v3.LeaseKeepAliveResponse) {
 }
 
 func (s *simplePrinter) TimeToLive(resp v3.LeaseTimeToLiveResponse, keys bool) {
+	if resp.GrantedTTL == 0 && resp.TTL == -1 {
+		fmt.Printf("lease %016x already expired\n", resp.ID)
+		return
+	}
+
 	txt := fmt.Sprintf("lease %016x granted with TTL(%ds), remaining(%ds)", resp.ID, resp.GrantedTTL, resp.TTL)
 	if keys {
 		ks := make([]string, len(resp.Keys))
@@ -102,6 +107,13 @@ func (s *simplePrinter) TimeToLive(resp v3.LeaseTimeToLiveResponse, keys bool) {
 		txt += fmt.Sprintf(", attached keys(%v)", ks)
 	}
 	fmt.Println(txt)
+}
+
+func (s *simplePrinter) Leases(resp v3.LeaseLeasesResponse) {
+	fmt.Printf("found %d leases\n", len(resp.Leases))
+	for _, item := range resp.Leases {
+		fmt.Printf("%016x\n", item.ID)
+	}
 }
 
 func (s *simplePrinter) Alarm(resp v3.AlarmResponse) {
@@ -131,6 +143,13 @@ func (s *simplePrinter) MemberList(resp v3.MemberListResponse) {
 
 func (s *simplePrinter) EndpointStatus(statusList []epStatus) {
 	_, rows := makeEndpointStatusTable(statusList)
+	for _, row := range rows {
+		fmt.Println(strings.Join(row, ", "))
+	}
+}
+
+func (s *simplePrinter) EndpointHashKV(hashList []epHashKV) {
+	_, rows := makeEndpointHashKVTable(hashList)
 	for _, row := range rows {
 		fmt.Println(strings.Join(row, ", "))
 	}

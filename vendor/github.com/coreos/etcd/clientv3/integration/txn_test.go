@@ -15,6 +15,7 @@
 package integration
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -24,7 +25,6 @@ import (
 	"github.com/coreos/etcd/etcdserver/api/v3rpc/rpctypes"
 	"github.com/coreos/etcd/integration"
 	"github.com/coreos/etcd/pkg/testutil"
-	"golang.org/x/net/context"
 )
 
 func TestTxnError(t *testing.T) {
@@ -100,6 +100,8 @@ func TestTxnWriteFail(t *testing.T) {
 }
 
 func TestTxnReadRetry(t *testing.T) {
+	t.Skipf("skipping txn read retry test: re-enable after we do retry on txn read request")
+
 	defer testutil.AfterTest(t)
 
 	clus := integration.NewClusterV3(t, &integration.ClusterConfig{Size: 3})

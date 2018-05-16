@@ -522,7 +522,7 @@ func TestHashKVWhenCompacting(t *testing.T) {
 	s := NewStore(b, &lease.FakeLessor{}, nil)
 	defer os.Remove(tmpPath)
 
-	rev := 1000
+	rev := 10000
 	for i := 2; i <= rev; i++ {
 		s.Put([]byte("foo"), []byte(fmt.Sprintf("bar%d", i)), lease.NoLease)
 	}
@@ -580,6 +580,35 @@ func TestHashKVWhenCompacting(t *testing.T) {
 		wg.Wait()
 	case <-time.After(10 * time.Second):
 		testutil.FatalStack(t, "timeout")
+	}
+}
+
+// TestHashKVZeroRevision ensures that "HashByRev(0)" computes
+// correct hash value with latest revision.
+func TestHashKVZeroRevision(t *testing.T) {
+	b, tmpPath := backend.NewDefaultTmpBackend()
+	s := NewStore(b, &lease.FakeLessor{}, nil)
+	defer os.Remove(tmpPath)
+
+	rev := 1000
+	for i := 2; i <= rev; i++ {
+		s.Put([]byte("foo"), []byte(fmt.Sprintf("bar%d", i)), lease.NoLease)
+	}
+	if _, err := s.Compact(int64(rev / 2)); err != nil {
+		t.Fatal(err)
+	}
+
+	hash1, _, _, err := s.HashByRev(int64(rev))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var hash2 uint32
+	hash2, _, _, err = s.HashByRev(0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if hash1 != hash2 {
+		t.Errorf("hash %d (rev %d) != hash %d (rev 0)", hash1, rev, hash2)
 	}
 }
 
@@ -741,6 +770,11 @@ type fakeIndex struct {
 	indexCompactRespc     chan map[revision]struct{}
 }
 
+func (i *fakeIndex) Revisions(key, end []byte, atRev int64) []revision {
+	_, rev := i.Range(key, end, atRev)
+	return rev
+}
+
 func (i *fakeIndex) Get(key []byte, atRev int64) (rev, created revision, ver int64, err error) {
 	i.Recorder.Record(testutil.Action{Name: "get", Params: []interface{}{key, atRev}})
 	r := <-i.indexGetRespc
@@ -765,6 +799,10 @@ func (i *fakeIndex) RangeSince(key, end []byte, rev int64) []revision {
 }
 func (i *fakeIndex) Compact(rev int64) map[revision]struct{} {
 	i.Recorder.Record(testutil.Action{Name: "compact", Params: []interface{}{rev}})
+	return <-i.indexCompactRespc
+}
+func (i *fakeIndex) Keep(rev int64) map[revision]struct{} {
+	i.Recorder.Record(testutil.Action{Name: "keep", Params: []interface{}{rev}})
 	return <-i.indexCompactRespc
 }
 func (i *fakeIndex) Equal(b index) bool { return false }

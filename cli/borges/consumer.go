@@ -11,6 +11,7 @@ import (
 	"github.com/src-d/borges/storage"
 
 	"gopkg.in/src-d/core-retrieval.v0"
+	"gopkg.in/src-d/go-log.v1"
 	"gopkg.in/src-d/go-queue.v1"
 	_ "gopkg.in/src-d/go-queue.v1/amqp"
 )
@@ -59,7 +60,6 @@ func (c *consumerCmd) Execute(args []string) error {
 	}
 
 	wp := borges.NewArchiverWorkerPool(
-		log.WithField("command", consumerCmdName),
 		storage.FromDatabase(core.Database()),
 		core.RootedTransactioner(),
 		borges.NewTemporaryCloner(core.TemporaryFilesystem()),
@@ -75,7 +75,7 @@ func (c *consumerCmd) Execute(args []string) error {
 	go func() {
 		select {
 		case <-term:
-			log.Info("signal received, stopping...")
+			log.Infof("signal received, stopping...")
 			ac.Stop()
 		case <-done:
 		}

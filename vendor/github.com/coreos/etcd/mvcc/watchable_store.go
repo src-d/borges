@@ -144,13 +144,15 @@ func (s *watchableStore) watch(key, end []byte, startRev int64, id WatchID, ch c
 func (s *watchableStore) cancelWatcher(wa *watcher) {
 	for {
 		s.mu.Lock()
-
 		if s.unsynced.delete(wa) {
 			slowWatcherGauge.Dec()
 			break
 		} else if s.synced.delete(wa) {
 			break
 		} else if wa.compacted {
+			break
+		} else if wa.ch == nil {
+			// already canceled (e.g., cancel/close race)
 			break
 		}
 
@@ -177,7 +179,23 @@ func (s *watchableStore) cancelWatcher(wa *watcher) {
 	}
 
 	watcherGauge.Dec()
+	wa.ch = nil
 	s.mu.Unlock()
+}
+
+func (s *watchableStore) Restore(b backend.Backend) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	err := s.store.Restore(b)
+	if err != nil {
+		return err
+	}
+
+	for wa := range s.synced.watchers {
+		s.unsynced.add(wa)
+	}
+	s.synced = newWatcherGroup()
+	return nil
 }
 
 // syncWatchersLoop syncs the watcher in the unsynced map every 100ms.
@@ -410,7 +428,6 @@ func (s *watchableStore) notify(rev int64, evs []mvccpb.Event) {
 		if eb.revs != 1 {
 			plog.Panicf("unexpected multiple revisions in notification")
 		}
-
 		if w.send(WatchResponse{WatchID: w.id, Events: eb.evs, Revision: rev}) {
 			pendingEventsGauge.Add(float64(len(eb.evs)))
 		} else {

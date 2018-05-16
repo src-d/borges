@@ -14,7 +14,7 @@ import (
 	"github.com/kelseyhightower/envconfig"
 	"github.com/streadway/amqp"
 	"gopkg.in/src-d/go-errors.v1"
-	"gopkg.in/src-d/go-log.v0"
+	"gopkg.in/src-d/go-log.v1"
 )
 
 func init() {

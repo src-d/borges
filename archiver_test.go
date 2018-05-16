@@ -15,7 +15,6 @@ import (
 	"github.com/src-d/borges/storage"
 
 	"github.com/satori/go.uuid"
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"gopkg.in/src-d/core-retrieval.v0/model"
@@ -82,7 +81,7 @@ func (s *ArchiverSuite) SetupTest() {
 	})
 	s.NoError(err)
 
-	s.a = NewArchiver(logrus.NewEntry(logrus.StandardLogger()), s.store, s.tx, NewTemporaryCloner(s.tmpFs), ls, defaultTimeout)
+	s.a = NewArchiver(s.store, s.tx, NewTemporaryCloner(s.tmpFs), ls, defaultTimeout)
 }
 
 func (s *ArchiverSuite) TearDownTest() {
@@ -319,7 +318,7 @@ func checkNoFiles(t *testing.T, fs billy.Filesystem) {
 	}
 }
 
-func (s *ArchiverSuite) TestCanProcessRepository() {
+func (s *ArchiverSuite) TestIsProcessableRepository() {
 	const endpoint = "git@github.com:rick/morty.git"
 	var (
 		now       = time.Now()
@@ -341,7 +340,7 @@ func (s *ArchiverSuite) TestCanProcessRepository() {
 	s.NoError(s.store.SetStatus(modelRepo, model.Fetching))
 
 	// the repo can't be processed
-	s.Error(s.a.canProcessRepository(modelRepo, &now))
+	s.Error(s.a.isProcessableRepository(modelRepo, &now))
 
 	// the status after the error must be 'pending'
 	s.Assertions.True(modelRepo.Status == model.Pending)

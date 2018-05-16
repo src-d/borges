@@ -8,10 +8,10 @@ import (
 
 	"github.com/src-d/borges/storage"
 
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/suite"
 	"gopkg.in/src-d/core-retrieval.v0/test"
 	"gopkg.in/src-d/go-kallax.v1"
+	"gopkg.in/src-d/go-log.v1"
 	"gopkg.in/src-d/go-queue.v1/memory"
 )
 
@@ -60,14 +60,13 @@ func (s *ExecutorSuite) runExecutor(repos ...string) ([]*Job, error) {
 
 	var jobs []*Job
 
-	log := logrus.NewEntry(logrus.StandardLogger())
-	wp := NewWorkerPool(log, func(ctx context.Context, log *logrus.Entry, j *Job) error {
+	wp := NewWorkerPool(func(ctx context.Context, logger log.Logger, j *Job) error {
 		jobs = append(jobs, j)
 		return nil
 	})
 	wp.SetWorkerCount(1)
 
-	e := NewExecutor(log, q, wp, s.store, NewLineJobIter(r, s.store))
+	e := NewExecutor(q, wp, s.store, NewLineJobIter(r, s.store))
 
 	return jobs, e.Execute()
 }

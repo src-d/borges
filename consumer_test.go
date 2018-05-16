@@ -7,26 +7,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/onrik/logrus/filename"
 	"github.com/satori/go.uuid"
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"gopkg.in/src-d/go-log.v1"
 	"gopkg.in/src-d/go-queue.v1"
 )
 
 func TestConsumerSuite(t *testing.T) {
-	logrus.AddHook(filename.NewHook(
-		logrus.DebugLevel,
-		logrus.InfoLevel,
-		logrus.WarnLevel,
-		logrus.ErrorLevel,
-		logrus.FatalLevel,
-		logrus.PanicLevel),
-	)
-	logrus.SetFormatter(&logrus.TextFormatter{TimestampFormat: time.StampMicro, FullTimestamp: true})
-
 	suite.Run(t, new(ConsumerSuite))
 }
 
@@ -35,10 +24,7 @@ type ConsumerSuite struct {
 }
 
 func (s *ConsumerSuite) newConsumer() *Consumer {
-	wp := NewWorkerPool(
-		logrus.NewEntry(logrus.StandardLogger()),
-		func(context.Context, *logrus.Entry, *Job) error { return nil },
-	)
+	wp := NewWorkerPool(func(context.Context, log.Logger, *Job) error { return nil })
 	return NewConsumer(s.queue, wp)
 }
 
@@ -55,7 +41,7 @@ func (s *ConsumerSuite) TestConsumer_StartStop_FailedJob() {
 
 	processed := 0
 	done := make(chan struct{}, 1)
-	c.WorkerPool.do = func(ctx context.Context, log *logrus.Entry, j *Job) error {
+	c.WorkerPool.do = func(ctx context.Context, log log.Logger, j *Job) error {
 		defer func() { done <- struct{}{} }()
 		processed++
 		if processed == 2 {
@@ -107,7 +93,7 @@ func (s *ConsumerSuite) TestConsumer_StartStop() {
 
 	processed := 0
 	done := make(chan struct{}, 1)
-	c.WorkerPool.do = func(context.Context, *logrus.Entry, *Job) error {
+	c.WorkerPool.do = func(context.Context, log.Logger, *Job) error {
 		processed++
 		if processed > 1 {
 			assert.Fail("too many jobs processed")

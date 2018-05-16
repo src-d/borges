@@ -8,9 +8,9 @@ import (
 	"gopkg.in/src-d/core-retrieval.v0/model"
 	"gopkg.in/src-d/core-retrieval.v0/repository"
 
-	"github.com/src-d/borges/lock"
 	"gopkg.in/src-d/framework.v0/configurable"
 	"gopkg.in/src-d/framework.v0/database"
+	"gopkg.in/src-d/framework.v0/lock"
 	"gopkg.in/src-d/framework.v0/queue"
 	"gopkg.in/src-d/go-billy.v4"
 	"gopkg.in/src-d/go-billy.v4/osfs"

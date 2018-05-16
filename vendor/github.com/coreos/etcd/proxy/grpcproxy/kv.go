@@ -15,11 +15,11 @@
 package grpcproxy
 
 import (
+	"context"
+
 	"github.com/coreos/etcd/clientv3"
 	pb "github.com/coreos/etcd/etcdserver/etcdserverpb"
 	"github.com/coreos/etcd/proxy/grpcproxy/cache"
-
-	"golang.org/x/net/context"
 )
 
 type kvProxy struct {
@@ -179,7 +179,9 @@ func RangeRequestToOp(r *pb.RangeRequest) clientv3.Op {
 	if r.CountOnly {
 		opts = append(opts, clientv3.WithCountOnly())
 	}
-
+	if r.KeysOnly {
+		opts = append(opts, clientv3.WithKeysOnly())
+	}
 	if r.Serializable {
 		opts = append(opts, clientv3.WithSerializable())
 	}
@@ -195,6 +197,9 @@ func PutRequestToOp(r *pb.PutRequest) clientv3.Op {
 	}
 	if r.IgnoreLease {
 		opts = append(opts, clientv3.WithIgnoreLease())
+	}
+	if r.PrevKv {
+		opts = append(opts, clientv3.WithPrevKV())
 	}
 	return clientv3.OpPut(string(r.Key), string(r.Value), opts...)
 }

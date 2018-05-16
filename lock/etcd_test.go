@@ -13,7 +13,7 @@ import (
 	"github.com/coreos/etcd/clientv3"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"gopkg.in/src-d/go-errors.v0"
+	"gopkg.in/src-d/go-errors.v1"
 )
 
 type EtcdLockSuite struct {

@@ -5,6 +5,7 @@ import (
 
 	"gopkg.in/src-d/core-retrieval.v0/schema"
 	"gopkg.in/src-d/framework.v0/database"
+	"gopkg.in/src-d/go-log.v1"
 )
 
 const (
@@ -36,7 +37,7 @@ func (c *initCmd) Execute(args []string) error {
 		return fmt.Errorf("unable to create database schema: %s", err)
 	}
 
-	log.WithField("command", initCmdName).Info("database was successfully initialized")
+	log.Infof("database was successfully initialized")
 	return nil
 }
 

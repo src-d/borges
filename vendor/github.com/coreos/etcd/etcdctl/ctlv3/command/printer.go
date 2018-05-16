@@ -36,6 +36,7 @@ type printer interface {
 	Revoke(id v3.LeaseID, r v3.LeaseRevokeResponse)
 	KeepAlive(r v3.LeaseKeepAliveResponse)
 	TimeToLive(r v3.LeaseTimeToLiveResponse, keys bool)
+	Leases(r v3.LeaseLeasesResponse)
 
 	MemberAdd(v3.MemberAddResponse)
 	MemberRemove(id uint64, r v3.MemberRemoveResponse)
@@ -43,6 +44,7 @@ type printer interface {
 	MemberList(v3.MemberListResponse)
 
 	EndpointStatus([]epStatus)
+	EndpointHashKV([]epHashKV)
 	MoveLeader(leader, target uint64, r v3.MoveLeaderResponse)
 
 	Alarm(v3.AlarmResponse)
@@ -95,6 +97,7 @@ func (p *printerRPC) Grant(r v3.LeaseGrantResponse)                      { p.p(r
 func (p *printerRPC) Revoke(id v3.LeaseID, r v3.LeaseRevokeResponse)     { p.p(r) }
 func (p *printerRPC) KeepAlive(r v3.LeaseKeepAliveResponse)              { p.p(r) }
 func (p *printerRPC) TimeToLive(r v3.LeaseTimeToLiveResponse, keys bool) { p.p(&r) }
+func (p *printerRPC) Leases(r v3.LeaseLeasesResponse)                    { p.p(&r) }
 
 func (p *printerRPC) MemberAdd(r v3.MemberAddResponse) { p.p((*pb.MemberAddResponse)(&r)) }
 func (p *printerRPC) MemberRemove(id uint64, r v3.MemberRemoveResponse) {
@@ -146,6 +149,7 @@ func newPrinterUnsupported(n string) printer {
 }
 
 func (p *printerUnsupported) EndpointStatus([]epStatus) { p.p(nil) }
+func (p *printerUnsupported) EndpointHashKV([]epHashKV) { p.p(nil) }
 func (p *printerUnsupported) DBStatus(dbstatus)         { p.p(nil) }
 
 func (p *printerUnsupported) MoveLeader(leader, target uint64, r v3.MoveLeaderResponse) { p.p(nil) }
@@ -165,7 +169,7 @@ func makeMemberListTable(r v3.MemberListResponse) (hdr []string, rows [][]string
 			strings.Join(m.ClientURLs, ","),
 		})
 	}
-	return
+	return hdr, rows
 }
 
 func makeEndpointStatusTable(statusList []epStatus) (hdr []string, rows [][]string) {
@@ -181,7 +185,18 @@ func makeEndpointStatusTable(statusList []epStatus) (hdr []string, rows [][]stri
 			fmt.Sprint(status.Resp.RaftIndex),
 		})
 	}
-	return
+	return hdr, rows
+}
+
+func makeEndpointHashKVTable(hashList []epHashKV) (hdr []string, rows [][]string) {
+	hdr = []string{"endpoint", "hash"}
+	for _, h := range hashList {
+		rows = append(rows, []string{
+			h.Ep,
+			fmt.Sprint(h.Resp.Hash),
+		})
+	}
+	return hdr, rows
 }
 
 func makeDBStatusTable(ds dbstatus) (hdr []string, rows [][]string) {
@@ -192,5 +207,5 @@ func makeDBStatusTable(ds dbstatus) (hdr []string, rows [][]string) {
 		fmt.Sprint(ds.TotalKey),
 		humanize.Bytes(uint64(ds.TotalSize)),
 	})
-	return
+	return hdr, rows
 }

@@ -244,6 +244,119 @@ func (s *RepositorySuite) TestDeleteRemote(c *C) {
 	c.Assert(alt, IsNil)
 }
 
+func (s *RepositorySuite) TestCreateBranchAndBranch(c *C) {
+	r, _ := Init(memory.NewStorage(), nil)
+	testBranch := &config.Branch{
+		Name:   "foo",
+		Remote: "origin",
+		Merge:  "refs/heads/foo",
+	}
+	err := r.CreateBranch(testBranch)
+
+	c.Assert(err, IsNil)
+	cfg, err := r.Config()
+	c.Assert(err, IsNil)
+	c.Assert(len(cfg.Branches), Equals, 1)
+	branch := cfg.Branches["foo"]
+	c.Assert(branch.Name, Equals, testBranch.Name)
+	c.Assert(branch.Remote, Equals, testBranch.Remote)
+	c.Assert(branch.Merge, Equals, testBranch.Merge)
+
+	branch, err = r.Branch("foo")
+	c.Assert(err, IsNil)
+	c.Assert(branch.Name, Equals, testBranch.Name)
+	c.Assert(branch.Remote, Equals, testBranch.Remote)
+	c.Assert(branch.Merge, Equals, testBranch.Merge)
+}
+
+func (s *RepositorySuite) TestCreateBranchUnmarshal(c *C) {
+	r, _ := Init(memory.NewStorage(), nil)
+
+	expected := []byte(`[core]
+	bare = true
+[remote "foo"]
+	url = http://foo/foo.git
+	fetch = +refs/heads/*:refs/remotes/foo/*
+[branch "foo"]
+	remote = origin
+	merge = refs/heads/foo
+[branch "master"]
+	remote = origin
+	merge = refs/heads/master
+`)
+
+	_, err := r.CreateRemote(&config.RemoteConfig{
+		Name: "foo",
+		URLs: []string{"http://foo/foo.git"},
+	})
+	c.Assert(err, IsNil)
+	testBranch1 := &config.Branch{
+		Name:   "master",
+		Remote: "origin",
+		Merge:  "refs/heads/master",
+	}
+	testBranch2 := &config.Branch{
+		Name:   "foo",
+		Remote: "origin",
+		Merge:  "refs/heads/foo",
+	}
+	err = r.CreateBranch(testBranch1)
+	err = r.CreateBranch(testBranch2)
+
+	c.Assert(err, IsNil)
+	cfg, err := r.Config()
+	c.Assert(err, IsNil)
+	marshaled, err := cfg.Marshal()
+	c.Assert(string(expected), Equals, string(marshaled))
+}
+
+func (s *RepositorySuite) TestBranchInvalid(c *C) {
+	r, _ := Init(memory.NewStorage(), nil)
+	branch, err := r.Branch("foo")
+
+	c.Assert(err, NotNil)
+	c.Assert(branch, IsNil)
+}
+
+func (s *RepositorySuite) TestCreateBranchInvalid(c *C) {
+	r, _ := Init(memory.NewStorage(), nil)
+	err := r.CreateBranch(&config.Branch{})
+
+	c.Assert(err, NotNil)
+
+	testBranch := &config.Branch{
+		Name:   "foo",
+		Remote: "origin",
+		Merge:  "refs/heads/foo",
+	}
+	err = r.CreateBranch(testBranch)
+	c.Assert(err, IsNil)
+	err = r.CreateBranch(testBranch)
+	c.Assert(err, NotNil)
+}
+
+func (s *RepositorySuite) TestDeleteBranch(c *C) {
+	r, _ := Init(memory.NewStorage(), nil)
+	testBranch := &config.Branch{
+		Name:   "foo",
+		Remote: "origin",
+		Merge:  "refs/heads/foo",
+	}
+	err := r.CreateBranch(testBranch)
+
+	c.Assert(err, IsNil)
+
+	err = r.DeleteBranch("foo")
+	c.Assert(err, IsNil)
+
+	b, err := r.Branch("foo")
+	c.Assert(err, Equals, ErrBranchNotFound)
+	c.Assert(b, IsNil)
+
+	err = r.DeleteBranch("foo")
+	c.Assert(err, Equals, ErrBranchNotFound)
+}
+
 func (s *RepositorySuite) TestPlainInit(c *C) {
 	dir, err := ioutil.TempDir("", "plain-init")
 	c.Assert(err, IsNil)
@@ -407,6 +520,36 @@ func (s *RepositorySuite) TestPlainOpenNotExists(c *C) {
 	c.Assert(r, IsNil)
 }
 
+func (s *RepositorySuite) TestPlainOpenDetectDotGit(c *C) {
+	dir, err := ioutil.TempDir("", "plain-open")
+	c.Assert(err, IsNil)
+	defer os.RemoveAll(dir)
+
+	subdir := filepath.Join(dir, "a", "b")
+	err = os.MkdirAll(subdir, 0755)
+	c.Assert(err, IsNil)
+
+	r, err := PlainInit(dir, false)
+	c.Assert(err, IsNil)
+	c.Assert(r, NotNil)
+
+	opt := &PlainOpenOptions{DetectDotGit: true}
+	r, err = PlainOpenWithOptions(subdir, opt)
+	c.Assert(err, IsNil)
+	c.Assert(r, NotNil)
+}
+
+func (s *RepositorySuite) TestPlainOpenNotExistsDetectDotGit(c *C) {
+	dir, err := ioutil.TempDir("", "plain-open")
+	c.Assert(err, IsNil)
+	defer os.RemoveAll(dir)
+
+	opt := &PlainOpenOptions{DetectDotGit: true}
+	r, err := PlainOpenWithOptions(dir, opt)
+	c.Assert(err, Equals, ErrRepositoryNotExists)
+	c.Assert(r, IsNil)
+}
+
 func (s *RepositorySuite) TestPlainClone(c *C) {
 	r, err := PlainClone(c.MkDir(), false, &CloneOptions{
 		URL: s.GetBasicLocalRepositoryURL(),
@@ -417,6 +560,10 @@ func (s *RepositorySuite) TestPlainClone(c *C) {
 	remotes, err := r.Remotes()
 	c.Assert(err, IsNil)
 	c.Assert(remotes, HasLen, 1)
+	cfg, err := r.Config()
+	c.Assert(err, IsNil)
+	c.Assert(cfg.Branches, HasLen, 1)
+	c.Assert(cfg.Branches["master"].Name, Equals, "master")
 }
 
 func (s *RepositorySuite) TestPlainCloneContext(c *C) {
@@ -450,6 +597,7 @@ func (s *RepositorySuite) TestPlainCloneWithRecurseSubmodules(c *C) {
 	cfg, err := r.Config()
 	c.Assert(err, IsNil)
 	c.Assert(cfg.Remotes, HasLen, 1)
+	c.Assert(cfg.Branches, HasLen, 1)
 	c.Assert(cfg.Submodules, HasLen, 2)
 }
 
@@ -585,6 +733,8 @@ func (s *RepositorySuite) TestCloneConfig(c *C) {
 	c.Assert(cfg.Remotes, HasLen, 1)
 	c.Assert(cfg.Remotes["origin"].Name, Equals, "origin")
 	c.Assert(cfg.Remotes["origin"].URLs, HasLen, 1)
+	c.Assert(cfg.Branches, HasLen, 1)
+	c.Assert(cfg.Branches["master"].Name, Equals, "master")
 }
 
 func (s *RepositorySuite) TestCloneSingleBranchAndNonHEAD(c *C) {
@@ -605,6 +755,13 @@ func (s *RepositorySuite) TestCloneSingleBranchAndNonHEAD(c *C) {
 	remotes, err := r.Remotes()
 	c.Assert(err, IsNil)
 	c.Assert(remotes, HasLen, 1)
+
+	cfg, err := r.Config()
+	c.Assert(err, IsNil)
+	c.Assert(cfg.Branches, HasLen, 1)
+	c.Assert(cfg.Branches["branch"].Name, Equals, "branch")
+	c.Assert(cfg.Branches["branch"].Remote, Equals, "origin")
+	c.Assert(cfg.Branches["branch"].Merge, Equals, plumbing.ReferenceName("refs/heads/branch"))
 
 	head, err = r.Reference(plumbing.HEAD, false)
 	c.Assert(err, IsNil)
@@ -642,6 +799,13 @@ func (s *RepositorySuite) TestCloneSingleBranch(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(remotes, HasLen, 1)
 
+	cfg, err := r.Config()
+	c.Assert(err, IsNil)
+	c.Assert(cfg.Branches, HasLen, 1)
+	c.Assert(cfg.Branches["master"].Name, Equals, "master")
+	c.Assert(cfg.Branches["master"].Remote, Equals, "origin")
+	c.Assert(cfg.Branches["master"].Merge, Equals, plumbing.ReferenceName("refs/heads/master"))
+
 	head, err = r.Reference(plumbing.HEAD, false)
 	c.Assert(err, IsNil)
 	c.Assert(head, NotNil)
@@ -668,6 +832,10 @@ func (s *RepositorySuite) TestCloneDetachedHEAD(c *C) {
 	})
 	c.Assert(err, IsNil)
 
+	cfg, err := r.Config()
+	c.Assert(err, IsNil)
+	c.Assert(cfg.Branches, HasLen, 0)
+
 	head, err := r.Reference(plumbing.HEAD, false)
 	c.Assert(err, IsNil)
 	c.Assert(head, NotNil)
@@ -691,6 +859,10 @@ func (s *RepositorySuite) TestCloneDetachedHEADAndShallow(c *C) {
 
 	c.Assert(err, IsNil)
 
+	cfg, err := r.Config()
+	c.Assert(err, IsNil)
+	c.Assert(cfg.Branches, HasLen, 0)
+
 	head, err := r.Reference(plumbing.HEAD, false)
 	c.Assert(err, IsNil)
 	c.Assert(head, NotNil)
@@ -711,6 +883,10 @@ func (s *RepositorySuite) TestCloneDetachedHEADAnnotatedTag(c *C) {
 		ReferenceName: plumbing.ReferenceName("refs/tags/annotated-tag"),
 	})
 	c.Assert(err, IsNil)
+
+	cfg, err := r.Config()
+	c.Assert(err, IsNil)
+	c.Assert(cfg.Branches, HasLen, 0)
 
 	head, err := r.Reference(plumbing.HEAD, false)
 	c.Assert(err, IsNil)
@@ -1318,6 +1494,7 @@ func (s *RepositorySuite) TestResolveRevision(c *C) {
 		"branch~1":                   "918c48b83bd081e863dbe1b80f8998f058cd8294",
 		"v1.0.0~1":                   "918c48b83bd081e863dbe1b80f8998f058cd8294",
 		"master~1":                   "918c48b83bd081e863dbe1b80f8998f058cd8294",
+		"918c48b83bd081e863dbe1b80f8998f058cd8294": "918c48b83bd081e863dbe1b80f8998f058cd8294",
 	}
 
 	for rev, hash := range datas {
@@ -1337,10 +1514,19 @@ func (s *RepositorySuite) TestResolveRevisionWithErrors(c *C) {
 	err := r.clone(context.Background(), &CloneOptions{URL: url})
 	c.Assert(err, IsNil)
 
+	headRef, err := r.Head()
+	c.Assert(err, IsNil)
+
+	ref := plumbing.NewHashReference("refs/heads/918c48b83bd081e863dbe1b80f8998f058cd8294", headRef.Hash())
+	err = r.Storer.SetReference(ref)
+	c.Assert(err, IsNil)
+
 	datas := map[string]string{
-		"efs/heads/master~": "reference not found",
-		"HEAD^3":            `Revision invalid : "3" found must be 0, 1 or 2 after "^"`,
-		"HEAD^{/whatever}":  `No commit message match regexp : "whatever"`,
+		"efs/heads/master~":                        "reference not found",
+		"HEAD^3":                                   `Revision invalid : "3" found must be 0, 1 or 2 after "^"`,
+		"HEAD^{/whatever}":                         `No commit message match regexp : "whatever"`,
+		"4e1243bd22c66e76c2ba9eddc1f91394e57f9f83": "reference not found",
+		"918c48b83bd081e863dbe1b80f8998f058cd8294": `refname "918c48b83bd081e863dbe1b80f8998f058cd8294" is ambiguous`,
 	}
 
 	for rev, rerr := range datas {
@@ -1438,4 +1624,67 @@ func executeOnPath(path, cmd string) error {
 	//defer func() { fmt.Println(buf.String()) }()
 
 	return c.Run()
+}
+
+func (s *RepositorySuite) TestBrokenMultipleShallowFetch(c *C) {
+	r, _ := Init(memory.NewStorage(), nil)
+	_, err := r.CreateRemote(&config.RemoteConfig{
+		Name: DefaultRemoteName,
+		URLs: []string{s.GetBasicLocalRepositoryURL()},
+	})
+	c.Assert(err, IsNil)
+
+	c.Assert(r.Fetch(&FetchOptions{
+		Depth:    2,
+		RefSpecs: []config.RefSpec{config.RefSpec("refs/heads/master:refs/heads/master")},
+	}), IsNil)
+
+	shallows, err := r.Storer.Shallow()
+	c.Assert(err, IsNil)
+	c.Assert(len(shallows), Equals, 1)
+
+	ref, err := r.Reference("refs/heads/master", true)
+	c.Assert(err, IsNil)
+	cobj, err := r.CommitObject(ref.Hash())
+	c.Assert(err, IsNil)
+	c.Assert(cobj, NotNil)
+	err = object.NewCommitPreorderIter(cobj, nil, nil).ForEach(func(c *object.Commit) error {
+		for _, ph := range c.ParentHashes {
+			for _, h := range shallows {
+				if ph == h {
+					return storer.ErrStop
+				}
+			}
+		}
+
+		return nil
+	})
+	c.Assert(err, IsNil)
+
+	c.Assert(r.Fetch(&FetchOptions{
+		Depth:    5,
+		RefSpecs: []config.RefSpec{config.RefSpec("refs/heads/*:refs/heads/*")},
+	}), IsNil)
+
+	shallows, err = r.Storer.Shallow()
+	c.Assert(err, IsNil)
+	c.Assert(len(shallows), Equals, 3)
+
+	ref, err = r.Reference("refs/heads/master", true)
+	c.Assert(err, IsNil)
+	cobj, err = r.CommitObject(ref.Hash())
+	c.Assert(err, IsNil)
+	c.Assert(cobj, NotNil)
+	err = object.NewCommitPreorderIter(cobj, nil, nil).ForEach(func(c *object.Commit) error {
+		for _, ph := range c.ParentHashes {
+			for _, h := range shallows {
+				if ph == h {
+					return storer.ErrStop
+				}
+			}
+		}
+
+		return nil
+	})
+	c.Assert(err, IsNil)
 }
