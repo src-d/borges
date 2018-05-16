@@ -16,6 +16,7 @@ package ordering
 
 import (
 	"context"
+	gContext "context"
 	"errors"
 	"sync"
 	"testing"
@@ -25,7 +26,6 @@ import (
 	pb "github.com/coreos/etcd/etcdserver/etcdserverpb"
 	"github.com/coreos/etcd/integration"
 	"github.com/coreos/etcd/pkg/testutil"
-	gContext "golang.org/x/net/context"
 )
 
 func TestDetectKvOrderViolation(t *testing.T) {
@@ -43,17 +43,16 @@ func TestDetectKvOrderViolation(t *testing.T) {
 		},
 	}
 	cli, err := clientv3.New(cfg)
-	ctx := context.TODO()
-
-	cli.SetEndpoints(clus.Members[0].GRPCAddr())
-	_, err = cli.Put(ctx, "foo", "bar")
 	if err != nil {
 		t.Fatal(err)
 	}
+	ctx := context.TODO()
+
+	if _, err = clus.Client(0).Put(ctx, "foo", "bar"); err != nil {
+		t.Fatal(err)
+	}
 	// ensure that the second member has the current revision for the key foo
-	cli.SetEndpoints(clus.Members[1].GRPCAddr())
-	_, err = cli.Get(ctx, "foo")
-	if err != nil {
+	if _, err = clus.Client(1).Get(ctx, "foo"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -105,25 +104,23 @@ func TestDetectTxnOrderViolation(t *testing.T) {
 		},
 	}
 	cli, err := clientv3.New(cfg)
-	ctx := context.TODO()
-
-	cli.SetEndpoints(clus.Members[0].GRPCAddr())
-	_, err = cli.Put(ctx, "foo", "bar")
 	if err != nil {
 		t.Fatal(err)
 	}
+	ctx := context.TODO()
+
+	if _, err = clus.Client(0).Put(ctx, "foo", "bar"); err != nil {
+		t.Fatal(err)
+	}
 	// ensure that the second member has the current revision for the key foo
-	cli.SetEndpoints(clus.Members[1].GRPCAddr())
-	_, err = cli.Get(ctx, "foo")
-	if err != nil {
+	if _, err = clus.Client(1).Get(ctx, "foo"); err != nil {
 		t.Fatal(err)
 	}
 
 	// stop third member in order to force the member to have an outdated revision
 	clus.Members[2].Stop(t)
 	time.Sleep(1 * time.Second) // give enough time for operation
-	_, err = cli.Put(ctx, "foo", "buzz")
-	if err != nil {
+	if _, err = clus.Client(1).Put(ctx, "foo", "buzz"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -152,6 +149,9 @@ func TestDetectTxnOrderViolation(t *testing.T) {
 	cli.SetEndpoints(clus.Members[2].GRPCAddr())
 
 	_, err = orderingKv.Get(ctx, "foo", clientv3.WithSerializable())
+	if err != errOrderViolation {
+		t.Fatalf("expected %v, got %v", errOrderViolation, err)
+	}
 	orderingTxn = orderingKv.Txn(ctx)
 	_, err = orderingTxn.If(
 		clientv3.Compare(clientv3.Value("b"), ">", "a"),
@@ -204,7 +204,7 @@ var rangeTests = []struct {
 
 func TestKvOrdering(t *testing.T) {
 	for i, tt := range rangeTests {
-		mKV := &mockKV{clientv3.NewKVFromKVClient(nil), tt.response.ToOpResponse()}
+		mKV := &mockKV{clientv3.NewKVFromKVClient(nil, nil), tt.response.OpResponse()}
 		kv := &kvOrdering{
 			mKV,
 			func(r *clientv3.GetResponse) OrderViolationFunc {
@@ -258,7 +258,7 @@ var txnTests = []struct {
 
 func TestTxnOrdering(t *testing.T) {
 	for i, tt := range txnTests {
-		mKV := &mockKV{clientv3.NewKVFromKVClient(nil), tt.response.ToOpResponse()}
+		mKV := &mockKV{clientv3.NewKVFromKVClient(nil, nil), tt.response.OpResponse()}
 		kv := &kvOrdering{
 			mKV,
 			func(r *clientv3.TxnResponse) OrderViolationFunc {

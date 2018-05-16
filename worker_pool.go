@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"gopkg.in/src-d/go-log.v0"
+	"gopkg.in/src-d/go-log.v1"
 	"gopkg.in/src-d/go-queue.v1"
 )
 

@@ -24,7 +24,7 @@ import (
 	"github.com/coreos/etcd/etcdserver/etcdserverpb"
 	"github.com/coreos/etcd/raft"
 
-	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 const (
@@ -33,18 +33,18 @@ const (
 )
 
 // HandleMetricsHealth registers metrics and health handlers.
-func HandleMetricsHealth(mux *http.ServeMux, srv *etcdserver.EtcdServer) {
-	mux.Handle(pathMetrics, prometheus.Handler())
+func HandleMetricsHealth(mux *http.ServeMux, srv etcdserver.ServerV2) {
+	mux.Handle(pathMetrics, promhttp.Handler())
 	mux.Handle(PathHealth, NewHealthHandler(func() Health { return checkHealth(srv) }))
 }
 
 // HandlePrometheus registers prometheus handler on '/metrics'.
 func HandlePrometheus(mux *http.ServeMux) {
-	mux.Handle(pathMetrics, prometheus.Handler())
+	mux.Handle(pathMetrics, promhttp.Handler())
 }
 
 // HandleHealth registers health handler on '/health'.
-func HandleHealth(mux *http.ServeMux, srv *etcdserver.EtcdServer) {
+func HandleHealth(mux *http.ServeMux, srv etcdserver.ServerV2) {
 	mux.Handle(PathHealth, NewHealthHandler(func() Health { return checkHealth(srv) }))
 }
 
@@ -58,7 +58,7 @@ func NewHealthHandler(hfunc func() Health) http.HandlerFunc {
 		}
 		h := hfunc()
 		d, _ := json.Marshal(h)
-		if !h.Health {
+		if h.Health != "true" {
 			http.Error(w, string(d), http.StatusServiceUnavailable)
 			return
 		}
@@ -70,33 +70,32 @@ func NewHealthHandler(hfunc func() Health) http.HandlerFunc {
 // Health defines etcd server health status.
 // TODO: remove manual parsing in etcdctl cluster-health
 type Health struct {
-	Health bool     `json:"health"`
-	Errors []string `json:"errors,omitempty"`
+	Health string `json:"health"`
 }
 
-func checkHealth(srv *etcdserver.EtcdServer) Health {
-	h := Health{Health: false}
+// TODO: server NOSPACE, etcdserver.ErrNoLeader in health API
+
+func checkHealth(srv etcdserver.ServerV2) Health {
+	h := Health{Health: "true"}
 
 	as := srv.Alarms()
 	if len(as) > 0 {
-		for _, v := range as {
-			h.Errors = append(h.Errors, v.Alarm.String())
+		h.Health = "false"
+	}
+
+	if h.Health == "true" {
+		if uint64(srv.Leader()) == raft.None {
+			h.Health = "false"
 		}
-		return h
 	}
 
-	if uint64(srv.Leader()) == raft.None {
-		h.Errors = append(h.Errors, etcdserver.ErrNoLeader.Error())
-		return h
+	if h.Health == "true" {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		_, err := srv.Do(ctx, etcdserverpb.Request{Method: "QGET"})
+		cancel()
+		if err != nil {
+			h.Health = "false"
+		}
 	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	_, err := srv.Do(ctx, etcdserverpb.Request{Method: "QGET"})
-	cancel()
-	if err != nil {
-		h.Errors = append(h.Errors, err.Error())
-	}
-
-	h.Health = err == nil
 	return h
 }

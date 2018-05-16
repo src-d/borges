@@ -5,7 +5,7 @@ import (
 	"net/url"
 	"time"
 
-	"gopkg.in/src-d/go-errors.v0"
+	"gopkg.in/src-d/go-errors.v1"
 )
 
 var (

@@ -3,8 +3,8 @@ package core
 import (
 	"testing"
 
-	"github.com/src-d/borges/lock"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/src-d/framework.v0/lock"
 )
 
 func TestDatabase(t *testing.T) {

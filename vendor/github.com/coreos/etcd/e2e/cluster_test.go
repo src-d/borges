@@ -112,10 +112,11 @@ type etcdProcessClusterConfig struct {
 	isClientAutoTLS       bool
 	isClientCRL           bool
 
-	forceNewCluster   bool
-	initialToken      string
-	quotaBackendBytes int64
-	noStrictReconfig  bool
+	forceNewCluster     bool
+	initialToken        string
+	quotaBackendBytes   int64
+	noStrictReconfig    bool
+	initialCorruptCheck bool
 }
 
 // newEtcdProcessCluster launches a new cluster from etcd processes, returning
@@ -197,7 +198,7 @@ func (cfg *etcdProcessClusterConfig) etcdServerProcessConfigs() []*etcdServerPro
 			var derr error
 			dataDirPath, derr = ioutil.TempDir("", name+".etcd")
 			if derr != nil {
-				panic("could not get tempdir for datadir")
+				panic(fmt.Sprintf("could not get tempdir for datadir: %s", derr))
 			}
 		}
 		initialCluster[i] = fmt.Sprintf("%s=%s", name, purl.String())
@@ -212,6 +213,7 @@ func (cfg *etcdProcessClusterConfig) etcdServerProcessConfigs() []*etcdServerPro
 			"--data-dir", dataDirPath,
 			"--snapshot-count", fmt.Sprintf("%d", cfg.snapCount),
 		}
+		args = addV2Args(args)
 		if cfg.forceNewCluster {
 			args = append(args, "--force-new-cluster")
 		}
@@ -222,6 +224,9 @@ func (cfg *etcdProcessClusterConfig) etcdServerProcessConfigs() []*etcdServerPro
 		}
 		if cfg.noStrictReconfig {
 			args = append(args, "--strict-reconfig-check=false")
+		}
+		if cfg.initialCorruptCheck {
+			args = append(args, "--experimental-initial-corrupt-check")
 		}
 		var murl string
 		if cfg.metricsURLScheme != "" {

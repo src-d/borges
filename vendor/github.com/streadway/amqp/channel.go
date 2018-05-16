@@ -624,7 +624,11 @@ started with noAck.
 When global is true, these Qos settings apply to all existing and future
 consumers on all channels on the same connection.  When false, the Channel.Qos
 settings will apply to all existing and future consumers on this channel.
-RabbitMQ does not implement the global flag.
+
+Please see the RabbitMQ Consumer Prefetch documentation for an explanation of
+how the global flag is implemented in RabbitMQ, as it differs from the
+AMQP 0.9.1 specification in that global Qos settings are limited in scope to
+channels, not connections (https://www.rabbitmq.com/consumer-prefetch.html).
 
 To get round-robin behavior between consumers consuming from the same queue on
 different connections, set the prefetch count to 1, and the next available
@@ -816,7 +820,7 @@ func (ch *Channel) QueueDeclarePassive(name string, durable, autoDelete, exclusi
 QueueInspect passively declares a queue by name to inspect the current message
 count and consumer count.
 
-Use this method to check how many unacknowledged messages reside in the queue,
+Use this method to check how many messages ready for delivery reside in the queue,
 how many consumers are receiving deliveries, and whether a queue by this
 name already exists.
 
@@ -1541,6 +1545,9 @@ is true.
 See also Delivery.Ack
 */
 func (ch *Channel) Ack(tag uint64, multiple bool) error {
+	ch.m.Lock()
+	defer ch.m.Unlock()
+
 	return ch.send(&basicAck{
 		DeliveryTag: tag,
 		Multiple:    multiple,
@@ -1555,6 +1562,9 @@ it must be redelivered or dropped.
 See also Delivery.Nack
 */
 func (ch *Channel) Nack(tag uint64, multiple bool, requeue bool) error {
+	ch.m.Lock()
+	defer ch.m.Unlock()
+
 	return ch.send(&basicNack{
 		DeliveryTag: tag,
 		Multiple:    multiple,

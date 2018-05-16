@@ -5,7 +5,7 @@ import (
 
 	"gopkg.in/src-d/core-retrieval.v0/schema"
 	"gopkg.in/src-d/framework.v0/database"
-	"gopkg.in/src-d/go-log.v0"
+	"gopkg.in/src-d/go-log.v1"
 )
 
 const (

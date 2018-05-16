@@ -15,6 +15,7 @@
 package rafthttp
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -23,7 +24,7 @@ import (
 	"github.com/coreos/etcd/raft"
 	"github.com/coreos/etcd/raft/raftpb"
 	"github.com/coreos/etcd/snap"
-	"golang.org/x/net/context"
+
 	"golang.org/x/time/rate"
 )
 
@@ -229,6 +230,7 @@ func (p *peer) send(m raftpb.Message) {
 			plog.MergeWarningf("dropped internal raft message to %s since %s's sending buffer is full (bad/overloaded network)", p.id, name)
 		}
 		plog.Debugf("dropped %s to %s since %s's sending buffer is full", m.Type, p.id, name)
+		sentFailures.WithLabelValues(types.ID(m.To).String()).Inc()
 	}
 }
 

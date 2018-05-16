@@ -15,13 +15,13 @@
 package e2e
 
 import (
+	"context"
 	"os"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/coreos/etcd/clientv3"
-	"golang.org/x/net/context"
 )
 
 func TestCtlV3Alarm(t *testing.T) {
@@ -53,7 +53,7 @@ func alarmTest(cx ctlCtx) {
 	}
 
 	// '/health' handler should return 'false'
-	if err := cURLGet(cx.epc, cURLReq{endpoint: "/health", expected: `{"health":false,"errors":["NOSPACE"]}`}); err != nil {
+	if err := cURLGet(cx.epc, cURLReq{endpoint: "/health", expected: `{"health":"false"}`}); err != nil {
 		cx.t.Fatalf("failed get with curl (%v)", err)
 	}
 

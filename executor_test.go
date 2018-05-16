@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/suite"
 	"gopkg.in/src-d/core-retrieval.v0/test"
 	"gopkg.in/src-d/go-kallax.v1"
-	"gopkg.in/src-d/go-log.v0"
+	"gopkg.in/src-d/go-log.v1"
 	"gopkg.in/src-d/go-queue.v1/memory"
 )
 

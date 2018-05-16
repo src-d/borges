@@ -3,7 +3,7 @@ package borges
 import (
 	"context"
 
-	log "gopkg.in/src-d/go-log.v0"
+	"gopkg.in/src-d/go-log.v1"
 )
 
 const TemporaryError = "temporary"

@@ -35,21 +35,24 @@ func spawnCmd(args []string) (*expect.ExpectProcess, error) {
 	if args[0] == binPath {
 		return spawnEtcd(args)
 	}
+	if args[0] == ctlBinPath || args[0] == ctlBinPath+"3" {
+		// avoid test flag conflicts in coverage enabled etcdctl by putting flags in ETCDCTL_ARGS
+		env := []string{
+			// was \xff, but that's used for testing boundary conditions; 0xe7cd should be safe
+			"ETCDCTL_ARGS=" + strings.Join(args, "\xe7\xcd"),
+		}
+		if args[0] == ctlBinPath+"3" {
+			env = append(env, "ETCDCTL_API=3")
+		}
 
-	if args[0] == ctlBinPath {
 		covArgs, err := getCovArgs()
 		if err != nil {
 			return nil, err
 		}
-		// avoid test flag conflicts in coverage enabled etcdctl by putting flags in ETCDCTL_ARGS
-		ctl_cov_env := []string{
-			// was \xff, but that's used for testing boundary conditions; 0xe7cd should be safe
-			"ETCDCTL_ARGS=" + strings.Join(args, "\xe7\xcd"),
-		}
 		// when withFlagByEnv() is used in testCtl(), env variables for ctl is set to os.env.
 		// they must be included in ctl_cov_env.
-		ctl_cov_env = append(ctl_cov_env, os.Environ()...)
-		ep, err := expect.NewExpectWithEnv(binDir+"/etcdctl_test", covArgs, ctl_cov_env)
+		env = append(env, os.Environ()...)
+		ep, err := expect.NewExpectWithEnv(binDir+"/etcdctl_test", covArgs, env)
 		if err != nil {
 			return nil, err
 		}
@@ -66,7 +69,7 @@ func spawnEtcd(args []string) (*expect.ExpectProcess, error) {
 		return nil, err
 	}
 
-	env := []string{}
+	var env []string
 	if args[1] == "grpc-proxy" {
 		// avoid test flag conflicts in coverage enabled etcd by putting flags in ETCDCOV_ARGS
 		env = append(os.Environ(), "ETCDCOV_ARGS="+strings.Join(args, "\xe7\xcd"))

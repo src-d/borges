@@ -13,7 +13,7 @@ import (
 	"gopkg.in/src-d/core-retrieval.v0/model"
 	"gopkg.in/src-d/go-billy.v4"
 	"gopkg.in/src-d/go-billy.v4/util"
-	"gopkg.in/src-d/go-errors.v0"
+	"gopkg.in/src-d/go-errors.v1"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/config"
 	"gopkg.in/src-d/go-git.v4/plumbing"
@@ -24,7 +24,7 @@ import (
 	"gopkg.in/src-d/go-git.v4/plumbing/transport/server"
 	"gopkg.in/src-d/go-git.v4/storage/filesystem"
 	"gopkg.in/src-d/go-git.v4/storage/memory"
-	"gopkg.in/src-d/go-log.v0"
+	"gopkg.in/src-d/go-log.v1"
 )
 
 const (

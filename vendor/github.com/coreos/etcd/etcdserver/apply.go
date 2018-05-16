@@ -16,16 +16,18 @@ package etcdserver
 
 import (
 	"bytes"
+	"context"
 	"sort"
 	"time"
 
+	"github.com/coreos/etcd/auth"
 	pb "github.com/coreos/etcd/etcdserver/etcdserverpb"
 	"github.com/coreos/etcd/lease"
 	"github.com/coreos/etcd/mvcc"
 	"github.com/coreos/etcd/mvcc/mvccpb"
 	"github.com/coreos/etcd/pkg/types"
+
 	"github.com/gogo/protobuf/proto"
-	"golang.org/x/net/context"
 )
 
 const (
@@ -105,6 +107,8 @@ func (s *EtcdServer) newApplierV3() applierV3 {
 }
 
 func (a *applierV3backend) Apply(r *pb.InternalRaftRequest) *applyResult {
+	defer warnOfExpensiveRequest(time.Now(), r)
+
 	ar := &applyResult{}
 
 	// call into a.s.applyV3.F instead of a.F so upper appliers can check individual calls
@@ -223,8 +227,9 @@ func (a *applierV3backend) DeleteRange(txn mvcc.TxnWrite, dr *pb.DeleteRangeRequ
 			return nil, err
 		}
 		if rr != nil {
+			resp.PrevKvs = make([]*mvccpb.KeyValue, len(rr.KVs))
 			for i := range rr.KVs {
-				resp.PrevKvs = append(resp.PrevKvs, &rr.KVs[i])
+				resp.PrevKvs[i] = &rr.KVs[i]
 			}
 		}
 	}
@@ -318,11 +323,12 @@ func (a *applierV3backend) Range(txn mvcc.TxnRead, r *pb.RangeRequest) (*pb.Rang
 
 	resp.Header.Revision = rr.Rev
 	resp.Count = int64(rr.Count)
+	resp.Kvs = make([]*mvccpb.KeyValue, len(rr.KVs))
 	for i := range rr.KVs {
 		if r.KeysOnly {
 			rr.KVs[i].Value = nil
 		}
-		resp.Kvs = append(resp.Kvs, &rr.KVs[i])
+		resp.Kvs[i] = &rr.KVs[i]
 	}
 	return resp, nil
 }
@@ -423,7 +429,7 @@ func applyCompares(rv mvcc.ReadView, cmps []*pb.Compare) bool {
 // applyCompare applies the compare request.
 // If the comparison succeeds, it returns true. Otherwise, returns false.
 func applyCompare(rv mvcc.ReadView, c *pb.Compare) bool {
-	// TOOD: possible optimizations
+	// TODO: possible optimizations
 	// * chunk reads for large ranges to conserve memory
 	// * rewrite rules for common patterns:
 	//	ex. "[a, b) createrev > 0" => "limit 1 /\ kvs > 0"
@@ -577,9 +583,11 @@ func (a *applierV3backend) Alarm(ar *pb.AlarmRequest) (*pb.AlarmResponse, error)
 			break
 		}
 
+		plog.Warningf("alarm %v raised by peer %s", m.Alarm, types.ID(m.MemberID))
 		switch m.Alarm {
+		case pb.AlarmType_CORRUPT:
+			a.s.applyV3 = newApplierV3Corrupt(a)
 		case pb.AlarmType_NOSPACE:
-			plog.Warningf("alarm raised %+v", m)
 			a.s.applyV3 = newApplierV3Capped(a)
 		default:
 			plog.Errorf("unimplemented alarm activation (%+v)", m)
@@ -596,7 +604,8 @@ func (a *applierV3backend) Alarm(ar *pb.AlarmRequest) (*pb.AlarmResponse, error)
 		}
 
 		switch m.Alarm {
-		case pb.AlarmType_NOSPACE:
+		case pb.AlarmType_NOSPACE, pb.AlarmType_CORRUPT:
+			// TODO: check kv hash before deactivating CORRUPT?
 			plog.Infof("alarm disarmed %+v", ar)
 			a.s.applyV3 = a.s.newApplierV3()
 		default:
@@ -646,7 +655,7 @@ func (a *applierV3backend) AuthDisable() (*pb.AuthDisableResponse, error) {
 }
 
 func (a *applierV3backend) Authenticate(r *pb.InternalAuthenticateRequest) (*pb.AuthenticateResponse, error) {
-	ctx := context.WithValue(context.WithValue(a.s.ctx, "index", a.s.consistIndex.ConsistentIndex()), "simpleToken", r.SimpleToken)
+	ctx := context.WithValue(context.WithValue(a.s.ctx, auth.AuthenticateParamIndex{}, a.s.consistIndex.ConsistentIndex()), auth.AuthenticateParamSimpleTokenPrefix{}, r.SimpleToken)
 	resp, err := a.s.AuthStore().Authenticate(ctx, r.Name, r.Password)
 	if resp != nil {
 		resp.Header = newHeader(a.s)

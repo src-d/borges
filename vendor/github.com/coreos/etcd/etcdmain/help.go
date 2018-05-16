@@ -54,6 +54,8 @@ member flags:
 		time (in milliseconds) of a heartbeat interval.
 	--election-timeout '1000'
 		time (in milliseconds) for an election to timeout. See tuning documentation for details.
+	--initial-election-tick-advance 'true'
+		whether to fast-forward initial election ticks on boot for faster election.
 	--listen-peer-urls 'http://localhost:2380'
 		list of URLs to listen on for peer traffic.
 	--listen-client-urls 'http://localhost:2379'
@@ -70,6 +72,12 @@ member flags:
 		maximum number of operations permitted in a transaction.
 	--max-request-bytes '1572864'
 		maximum client request size in bytes the server will accept.
+	--grpc-keepalive-min-time '5s'
+		minimum duration interval that a client should wait before pinging server.
+	--grpc-keepalive-interval '2h'
+		frequency duration of server-to-client ping to check if a connection is alive (0 to disable).
+	--grpc-keepalive-timeout '20s'
+		additional duration of wait before closing a non-responsive connection (0 to disable).
 
 clustering flags:
 
@@ -94,13 +102,13 @@ clustering flags:
 		HTTP proxy to use for traffic to discovery service.
 	--discovery-srv ''
 		dns srv domain used to bootstrap the cluster.
-	--strict-reconfig-check
+	--strict-reconfig-check '` + strconv.FormatBool(embed.DefaultStrictReconfigCheck) + `'
 		reject reconfiguration requests that would cause quorum loss.
 	--auto-compaction-retention '0'
 		auto compaction retention length. 0 means disable auto compaction.
 	--auto-compaction-mode 'periodic'
-		'periodic' means hours, 'revision' means revision numbers to retain by auto compaction
-	--enable-v2
+		interpret 'auto-compaction-retention' one of: periodic|revision. 'periodic' for duration based retention, defaulting to hours if no time unit is provided (e.g. '5m'). 'revision' for revision number based retention.
+	--enable-v2 '` + strconv.FormatBool(embed.DefaultEnableV2) + `'
 		Accept etcd V2 client requests.
 
 proxy flags:
@@ -133,7 +141,7 @@ security flags:
 	--client-crl-file ''
 		path to the client certificate revocation list file.
 	--trusted-ca-file ''
-		path to the client server TLS trusted CA key file.
+		path to the client server TLS trusted CA cert file.
 	--auto-tls 'false'
 		client TLS using generated certificates.
 	--peer-ca-file '' [DEPRECATED]
@@ -146,6 +154,8 @@ security flags:
 		enable peer client cert authentication.
 	--peer-trusted-ca-file ''
 		path to the peer server TLS trusted CA file.
+	--peer-cert-allowed-cn ''
+		Required CN for client certs connecting to the peer endpoint.
 	--peer-auto-tls 'false'
 		peer TLS using self-generated certificates if --peer-key-file and --peer-cert-file are not provided.
 	--peer-crl-file ''
@@ -179,5 +189,13 @@ profiling flags:
 auth flags:
 	--auth-token 'simple'
 		Specify a v3 authentication token type and its options ('simple' or 'jwt').
+
+experimental flags:
+	--experimental-initial-corrupt-check 'false'
+		enable to check data corruption before serving any client/peer traffic.
+	--experimental-corrupt-check-time '0s'
+		duration of time between cluster corruption check passes.
+	--experimental-enable-v2v3 ''
+		serve v2 requests through the v3 backend under a given prefix.
 `
 )

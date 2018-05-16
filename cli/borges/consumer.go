@@ -11,7 +11,7 @@ import (
 	"github.com/src-d/borges/storage"
 
 	"gopkg.in/src-d/core-retrieval.v0"
-	"gopkg.in/src-d/go-log.v0"
+	"gopkg.in/src-d/go-log.v1"
 	"gopkg.in/src-d/go-queue.v1"
 	_ "gopkg.in/src-d/go-queue.v1/amqp"
 )

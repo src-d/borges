@@ -1,6 +1,6 @@
 package main
 
-import "gopkg.in/src-d/go-log.v0"
+import "gopkg.in/src-d/go-log.v1"
 
 const (
 	updateCmdName      = "update"

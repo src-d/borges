@@ -296,6 +296,48 @@ func TestWatchFutureRev(t *testing.T) {
 	}
 }
 
+func TestWatchRestore(t *testing.T) {
+	test := func(delay time.Duration) func(t *testing.T) {
+		return func(t *testing.T) {
+			b, tmpPath := backend.NewDefaultTmpBackend()
+			s := newWatchableStore(b, &lease.FakeLessor{}, nil)
+			defer cleanup(s, b, tmpPath)
+
+			testKey := []byte("foo")
+			testValue := []byte("bar")
+			rev := s.Put(testKey, testValue, lease.NoLease)
+
+			newBackend, newPath := backend.NewDefaultTmpBackend()
+			newStore := newWatchableStore(newBackend, &lease.FakeLessor{}, nil)
+			defer cleanup(newStore, newBackend, newPath)
+
+			w := newStore.NewWatchStream()
+			w.Watch(testKey, nil, rev-1)
+
+			time.Sleep(delay)
+
+			newStore.Restore(b)
+			select {
+			case resp := <-w.Chan():
+				if resp.Revision != rev {
+					t.Fatalf("rev = %d, want %d", resp.Revision, rev)
+				}
+				if len(resp.Events) != 1 {
+					t.Fatalf("failed to get events from the response")
+				}
+				if resp.Events[0].Kv.ModRevision != rev {
+					t.Fatalf("kv.rev = %d, want %d", resp.Events[0].Kv.ModRevision, rev)
+				}
+			case <-time.After(time.Second):
+				t.Fatal("failed to receive event in 1 second.")
+			}
+		}
+	}
+
+	t.Run("Normal", test(0))
+	t.Run("RunSyncWatchLoopBeforeRestore", test(time.Millisecond*120)) // longer than default waitDuration
+}
+
 // TestWatchBatchUnsynced tests batching on unsynced watchers
 func TestWatchBatchUnsynced(t *testing.T) {
 	b, tmpPath := backend.NewDefaultTmpBackend()
@@ -505,4 +547,50 @@ func TestWatchVictims(t *testing.T) {
 		t.Fatal(err)
 	default:
 	}
+}
+
+// TestStressWatchCancelClose tests closing a watch stream while
+// canceling its watches.
+func TestStressWatchCancelClose(t *testing.T) {
+	b, tmpPath := backend.NewDefaultTmpBackend()
+	s := newWatchableStore(b, &lease.FakeLessor{}, nil)
+
+	defer func() {
+		s.store.Close()
+		os.Remove(tmpPath)
+	}()
+
+	testKey, testValue := []byte("foo"), []byte("bar")
+	var wg sync.WaitGroup
+	readyc := make(chan struct{})
+	wg.Add(100)
+	for i := 0; i < 100; i++ {
+		go func() {
+			defer wg.Done()
+			w := s.NewWatchStream()
+			ids := make([]WatchID, 10)
+			for i := range ids {
+				ids[i] = w.Watch(testKey, nil, 0)
+			}
+			<-readyc
+			wg.Add(1 + len(ids)/2)
+			for i := range ids[:len(ids)/2] {
+				go func(n int) {
+					defer wg.Done()
+					w.Cancel(ids[n])
+				}(i)
+			}
+			go func() {
+				defer wg.Done()
+				w.Close()
+			}()
+		}()
+	}
+
+	close(readyc)
+	for i := 0; i < 100; i++ {
+		s.Put(testKey, testValue, lease.NoLease)
+	}
+
+	wg.Wait()
 }

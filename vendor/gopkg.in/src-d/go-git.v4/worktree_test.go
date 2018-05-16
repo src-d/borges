@@ -3,16 +3,19 @@ package git
 import (
 	"bytes"
 	"context"
+	"errors"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
 	"runtime"
 	"testing"
+	"time"
 
 	"gopkg.in/src-d/go-git.v4/config"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/filemode"
+	"gopkg.in/src-d/go-git.v4/plumbing/format/gitignore"
 	"gopkg.in/src-d/go-git.v4/plumbing/format/index"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
 	"gopkg.in/src-d/go-git.v4/storage/memory"
@@ -1070,6 +1073,35 @@ func (s *WorktreeSuite) TestAddUntracked(c *C) {
 	c.Assert(obj.Size(), Equals, int64(3))
 }
 
+func (s *WorktreeSuite) TestIgnored(c *C) {
+	fs := memfs.New()
+	w := &Worktree{
+		r:          s.Repository,
+		Filesystem: fs,
+	}
+
+	w.Excludes = make([]gitignore.Pattern, 0)
+	w.Excludes = append(w.Excludes, gitignore.ParsePattern("foo", nil))
+
+	err := w.Checkout(&CheckoutOptions{Force: true})
+	c.Assert(err, IsNil)
+
+	idx, err := w.r.Storer.Index()
+	c.Assert(err, IsNil)
+	c.Assert(idx.Entries, HasLen, 9)
+
+	err = util.WriteFile(w.Filesystem, "foo", []byte("FOO"), 0755)
+	c.Assert(err, IsNil)
+
+	status, err := w.Status()
+	c.Assert(err, IsNil)
+	c.Assert(status, HasLen, 0)
+
+	file := status.File("foo")
+	c.Assert(file.Staging, Equals, Untracked)
+	c.Assert(file.Worktree, Equals, Untracked)
+}
+
 func (s *WorktreeSuite) TestAddModified(c *C) {
 	fs := memfs.New()
 	w := &Worktree{
@@ -1832,4 +1864,40 @@ func (s *WorktreeSuite) TestGrep(c *C) {
 			}
 		}
 	}
+}
+
+func (s *WorktreeSuite) TestAddAndCommit(c *C) {
+	dir, err := ioutil.TempDir("", "plain-repo")
+	c.Assert(err, IsNil)
+	defer os.RemoveAll(dir)
+
+	repo, err := PlainInit(dir, false)
+	c.Assert(err, IsNil)
+
+	w, err := repo.Worktree()
+	c.Assert(err, IsNil)
+
+	_, err = w.Add(".")
+	c.Assert(err, IsNil)
+
+	w.Commit("Test Add And Commit", &CommitOptions{Author: &object.Signature{
+		Name:  "foo",
+		Email: "foo@foo.foo",
+		When:  time.Now(),
+	}})
+
+	iter, err := w.r.Log(&LogOptions{})
+	c.Assert(err, IsNil)
+	err = iter.ForEach(func(c *object.Commit) error {
+		files, err := c.Files()
+		if err != nil {
+			return err
+		}
+
+		err = files.ForEach(func(f *object.File) error {
+			return errors.New("Expected no files, got at least 1")
+		})
+		return err
+	})
+	c.Assert(err, IsNil)
 }
