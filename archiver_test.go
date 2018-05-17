@@ -196,6 +196,10 @@ func (s *ArchiverSuite) TestFixtures() {
 			// check references in database
 			mr, err := s.rawStore.FindOne(model.NewRepositoryQuery().FindByID(rid).WithReferences(nil))
 			require.NoError(err)
+			if len(mr.References) > 0 {
+				require.NotNil(mr.LastCommitAt)
+				require.NotEqual(new(time.Time), mr.LastCommitAt)
+			}
 			checkReferencesInDB(t, mr, ct.NewReferences)
 
 			// check references in siva files

@@ -288,8 +288,12 @@ func selectEndpoint(endpoints []string) (string, error) {
 }
 
 func (a *Archiver) pushChangesToRootedRepositories(
-	ctx context.Context, logger log.Logger,
-	j *Job, r *model.Repository, tr TemporaryRepository, changes Changes,
+	ctx context.Context,
+	logger log.Logger,
+	j *Job,
+	r *model.Repository,
+	tr TemporaryRepository,
+	changes Changes,
 	now *time.Time,
 ) error {
 	var failedInits []model.SHA1

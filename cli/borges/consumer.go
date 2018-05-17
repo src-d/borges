@@ -78,13 +78,13 @@ func (c *consumerCmd) Execute(args []string) error {
 			log.Infof("signal received, stopping...")
 			ac.Stop()
 		case <-done:
+			ac.Stop()
 		}
 	}()
 	signal.Notify(term, syscall.SIGTERM, os.Interrupt)
 
 	err = ac.Start()
 	close(done)
-	ac.Stop()
 
 	return err
 }
