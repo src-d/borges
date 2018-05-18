@@ -59,6 +59,10 @@ Other important settings are:
 * `CONFIG_LOCKING`, by default: `local:`, other options: `etcd:`
 * `CONFIG_HDFS`: (host:port) If this property is not provided, all root repositories will be stored into the local filesystem, by default: `""`
 * `CONFIG_BUCKETSIZE`, by default: `0`, number of characters used from the siva file name to create bucket directories. The value `0` means that all files will be saved at the same level.
+* `LOG_LEVEL`: Minimum log level that is printed, by default: `info`.
+* `LOG_FORMAT`: Format to print logs (`text` or `json`), by default: `text`.
+
+**Note:** This version is only compatible with rovers >= 2.6.2. It will also have problems with RabbitMQ queues created by previous versions.
 
 ## Producer
 
@@ -67,11 +71,11 @@ updated next and enqueues new jobs for them.
 
 To launch the producer you just have to run it with the default configuration:
 
-    borges producer
+    borges producer mentions
 
-Producer reads [mentions](https://github.com/src-d/core-retrieval/blob/master/model/mention.go) from [Rover](https://github.com/src-d/rovers)'s RabbitMQ queue, but it can also read URLs directly from a file with the special CLI option:
+Producer reads [mentions](https://github.com/src-d/core-retrieval/blob/master/model/mention.go) from [rovers](https://github.com/src-d/rovers)'s RabbitMQ queue, but it can also read URLs directly from a file with the special CLI option:
 
-    borges producer --source=file --file /path/to/file
+    borges producer file /path/to/file
 
 The file must contain a url per line, it looks like:
 
@@ -84,7 +88,7 @@ http://github.com/d/repo4.git
 
 You can change the priority of jobs produced with `--priority` option. It is a number from 0 to 8 where 0 is the lowest priority:
 
-    borges producer --source=file --file /path/to/file --priority 8
+    borges producer file --priority 8 /path/to/file
 
 When jobs fail they're sent to the buried queue. If you want to requeue them, you can pass the `--republish-buried` flag (this only works for the `mentions` source). For example:
 
@@ -100,7 +104,8 @@ CONFIG_DBPASS="pass" \
 CONFIG_DBHOST="postgres" \
 CONFIG_DBNAME="borges-db"  \
 CONFIG_BROKER="amqp://guest:guest@rabbitmq:5672" \
-borges producer --loglevel=debug
+LOG_LEVEL=debug \
+borges producer mentions
 ```
 
 For more details, use `borges producer -h`.
@@ -130,7 +135,8 @@ A command you could use to run it could be:
 ```bash
 $ CONFIG_TEMP_DIR="/borges/tmp"  \
 CONFIG_ROOT_REPOSITORIES_DIR="/borges/root-repositories"  \
-borges consumer --workers=20 --loglevel=debug
+LOG_LEVEL=debug \
+borges consumer --workers=20
 ```
 
 For more details, use `borges consumer -h`
@@ -202,7 +208,8 @@ docker run --name borges_consumer --link rabbitmq --link postgres \
         -e CONFIG_DBHOST=postgres -e CONFIG_DBNAME=testing \
         -e CONFIG_BROKER=amqp://guest:guest@rabbitmq:5672/ \
         -e CONFIG_ROOT_REPOSITORIES_DIR=/borges/root-repositories \
-        quay.io/srcd/borges /bin/sh -c "borges init; borges consumer --loglevel=debug --workers=8"
+        -e LOG_LEVEL=debug \
+        quay.io/srcd/borges /bin/sh -c "borges init; borges consumer --workers=8"
 ```
 
 Be sure to replace `/path/to/store/repos/locally` with the path on your hard drive where you want your root repositories (as siva files) stored.
@@ -214,7 +221,8 @@ docker run --name borges_consumer --link rabbitmq --link postgres \
         -e CONFIG_DBUSER=testing -e CONFIG_DBPASS=testing \
         -e CONFIG_DBHOST=postgres -e CONFIG_DBNAME=testing \
         -e CONFIG_BROKER=amqp://guest:guest@rabbitmq:5672/ \
-        quay.io/srcd/borges borges producer --loglevel=debug
+        -e LOG_LEVEL=debug \
+        quay.io/srcd/borges borges producer mentions
 ```
 
 However, you can also process just a specific list of repositories without having to setup rovers on your own. Write the repository URLs in a file, one repository per line and feed it to the borges producer with the `file` source. (This example assumes you have a `repos.txt` in the current directory).
@@ -225,7 +233,8 @@ docker run --name borges_consumer_file --link rabbitmq --link postgres \
         -e CONFIG_DBUSER=testing -e CONFIG_DBPASS=testing \
         -e CONFIG_DBHOST=postgres -e CONFIG_DBNAME=testing \
         -e CONFIG_BROKER=amqp://guest:guest@rabbitmq:5672/ \
-        quay.io/srcd/borges borges producer --loglevel=debug --source=file --file=/opt/borges/repos.txt
+        -e LOG_LEVEL=debug \
+        quay.io/srcd/borges borges producer file /opt/borges/repos.txt
 ```
 
 Congratulations, now you have a fully working repository processing pipeline!
