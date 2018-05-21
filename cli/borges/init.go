@@ -22,12 +22,9 @@ var initCommand = &initCmd{simpleCommand: newSimpleCommand(
 
 type initCmd struct {
 	simpleCommand
-	loggerOpts
 }
 
 func (c *initCmd) Execute(args []string) error {
-	c.init()
-
 	db, err := database.Default()
 	if err != nil {
 		return fmt.Errorf("unable to get database: %s", err)

@@ -4,21 +4,18 @@ import (
 	"fmt"
 	"net/http"
 	_ "net/http/pprof"
-	"os"
-	"strings"
-	"time"
 
 	"github.com/src-d/borges/metrics"
-
-	"github.com/onrik/logrus/filename"
-	"github.com/sirupsen/logrus"
+	"gopkg.in/src-d/go-log.v1"
 )
 
+// ExecutableCommand holds a command and executable function.
 type ExecutableCommand interface {
 	Command
 	Execute(args []string) error
 }
 
+// Command contains the information about a command.
 type Command interface {
 	Name() string
 	ShortDescription() string
@@ -48,7 +45,6 @@ func (c *simpleCommand) LongDescription() string { return c.longDescription }
 type command struct {
 	simpleCommand
 	queueOpts
-	loggerOpts
 	metricsOpts
 	profilerOpts
 }
@@ -64,7 +60,6 @@ func newCommand(name, short, long string) command {
 }
 
 func (c *command) init() {
-	c.loggerOpts.init()
 	c.profilerOpts.maybeStartProfiler()
 	c.metricsOpts.maybeStartMetrics()
 }
@@ -72,71 +67,6 @@ func (c *command) init() {
 type queueOpts struct {
 	Queue  string `long:"queue" default:"borges" description:"queue name"`
 	Broker string `long:"brocker" env:"CONFIG_BROKER" default:"amqp://localhost:5672" description:"brocker URL service"`
-}
-
-type loggerOpts struct {
-	LogLevel      string `short:"" long:"loglevel" description:"max log level enabled (debug, info, warn, error, fatal, panic)" default:"info"`
-	LogFile       string `short:"" long:"logfile" description:"path to file where logs will be stored" default:""`
-	LogFormat     string `short:"" long:"logformat" description:"format used to output the logs (json or text)" default:"text"`
-	LogTimeFormat string `short:"" long:"logtimeformat" description:"format used for marshaling timestamps" default:"Jan _2 15:04:05.000000"`
-}
-
-func (c *loggerOpts) init() {
-	logrus.AddHook(filename.NewHook(
-		logrus.DebugLevel,
-		logrus.InfoLevel,
-		logrus.WarnLevel,
-		logrus.ErrorLevel,
-		logrus.FatalLevel,
-		logrus.PanicLevel),
-	)
-
-	switch strings.ToLower(c.LogLevel) {
-	case "debug":
-		logrus.SetLevel(logrus.DebugLevel)
-		break
-	case "info":
-		logrus.SetLevel(logrus.InfoLevel)
-		break
-	case "warn":
-		logrus.SetLevel(logrus.WarnLevel)
-		break
-	case "error":
-		logrus.SetLevel(logrus.ErrorLevel)
-		break
-	case "fatal":
-		logrus.SetLevel(logrus.FatalLevel)
-		break
-	case "panic":
-		logrus.SetLevel(logrus.PanicLevel)
-		break
-	default:
-		panic(fmt.Sprintf("unknown level name %q", c.LogLevel))
-	}
-
-	if c.LogTimeFormat == "" {
-		c.LogTimeFormat = time.StampMicro
-	}
-
-	switch strings.ToLower(c.LogFormat) {
-	case "json":
-		logrus.SetFormatter(&logrus.JSONFormatter{TimestampFormat: c.LogTimeFormat})
-		break
-	case "text", "txt":
-		logrus.SetFormatter(&logrus.TextFormatter{TimestampFormat: c.LogTimeFormat, FullTimestamp: true})
-		break
-	default:
-		panic(fmt.Sprintf("unknown log format %q", c.LogFormat))
-	}
-
-	logrus.SetOutput(os.Stdout)
-	if c.LogFile != "" {
-		if f, err := os.OpenFile(c.LogFile, os.O_CREATE|os.O_WRONLY, 0666); err != nil {
-			logrus.Errorf("Failed to log to file (%s), using default stdout", c.LogFile)
-		} else {
-			logrus.SetOutput(f)
-		}
-	}
 }
 
 type metricsOpts struct {
@@ -148,9 +78,12 @@ func (c *metricsOpts) maybeStartMetrics() {
 	if c.Metrics {
 		addr := fmt.Sprintf("0.0.0.0:%d", c.MetricsPort)
 		go func() {
-			logrus.Debug("Started metrics service at", "address", addr)
+			logger := log.New(log.Fields{"address": addr})
+			logger.Debugf("Started metrics service")
 			if err := metrics.Start(addr); err != nil {
-				logrus.Warn("metrics service stopped", "err", err)
+				logger.With(log.Fields{
+					"error": err,
+				}).Warningf("metrics service stopped")
 			}
 		}()
 	}
@@ -165,13 +98,13 @@ func (c *profilerOpts) maybeStartProfiler() {
 	if c.Profiler {
 		addr := fmt.Sprintf("0.0.0.0:%d", c.ProfilerPort)
 		go func() {
-			logrus.WithField("address", addr).Debug("Started CPU, memory and block profilers at")
+			logger := log.New(log.Fields{"address": addr})
+			logger.Debugf("Started CPU, memory and block profilers")
 			err := http.ListenAndServe(addr, nil)
 			if err != nil {
-				logrus.WithFields(logrus.Fields{
-					"address": addr,
-					"error":   err,
-				}).Warn("Profiler failed to listen and serve at")
+				logger.With(log.Fields{
+					"error": err,
+				}).Warningf("profiler failed to listen and serve")
 			}
 		}()
 	}
