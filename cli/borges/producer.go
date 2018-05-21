@@ -123,7 +123,7 @@ func init() {
 	}
 
 	for _, subcommand := range producerSubcommands {
-		_, err := c.AddCommand(
+		s, err := c.AddCommand(
 			subcommand.Name(),
 			subcommand.ShortDescription(),
 			subcommand.LongDescription(),
@@ -133,5 +133,7 @@ func init() {
 		if err != nil {
 			panic(err)
 		}
+
+		setPrioritySettings(s)
 	}
 }
