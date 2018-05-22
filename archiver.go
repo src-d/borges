@@ -152,6 +152,7 @@ func (a *Archiver) do(ctx context.Context, logger log.Logger, j *Job) (err error
 
 	log.Debugf("remote repository cloned")
 	if err := a.doPush(ctx, logger, &now, j, r, endpoint, gr); err != nil {
+		_ = gr.Close()
 		return err
 	}
 
@@ -374,9 +375,8 @@ func (a *Archiver) pushChangesToRootedRepository(ctx context.Context, logger log
 		return err
 	}
 
-	return withInProcRepository(ic, rr, func(url string) error {
+	err = withInProcRepository(ic, rr, func(url string) error {
 		if err := StoreConfig(rr, r); err != nil {
-			_ = tx.Rollback()
 			return err
 		}
 
@@ -386,7 +386,6 @@ func (a *Archiver) pushChangesToRootedRepository(ctx context.Context, logger log
 			onlyPushDurationSec := int64(time.Now().Sub(pushStart) / time.Second)
 			logger.With(log.Fields{"refs": refspecs, "took": onlyPushDurationSec}).
 				Errorf(err, "error pushing one change for")
-			_ = tx.Rollback()
 			return err
 		}
 		onlyPushDurationSec := int64(time.Now().Sub(pushStart) / time.Second)
@@ -400,6 +399,12 @@ func (a *Archiver) pushChangesToRootedRepository(ctx context.Context, logger log
 		}).Debugf("copy siva file from FS")
 		return err
 	})
+
+	if err != nil {
+		_ = tx.Rollback()
+	}
+
+	return err
 }
 
 func (a *Archiver) beginTxWithRetries(
