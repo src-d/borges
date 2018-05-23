@@ -360,7 +360,7 @@ func (a *Archiver) pushChangesToRootedRepository(ctx context.Context, logger log
 
 	sivaCpFromDuration := time.Now().Sub(rootedRepoCpStart)
 	logger.With(log.Fields{
-		"rooted-repository": ic,
+		"rooted-repository": ic.String(),
 		"copy-from-remote":  sivaCpFromDuration,
 	}).Debugf("copy siva file from FS")
 
@@ -395,7 +395,7 @@ func (a *Archiver) pushChangesToRootedRepository(ctx context.Context, logger log
 		var rootedRepoCpStart = time.Now()
 		err = a.commitTxWithRetries(ctx, logger, ic, tx, maxRetries)
 		logger.With(log.Fields{
-			"rooted-repository": ic,
+			"rooted-repository": ic.String(),
 			"copy-to-remote":    time.Now().Sub(rootedRepoCpStart),
 		}).Debugf("copy siva file from FS")
 		return err
