@@ -8,7 +8,7 @@
 
 [[constraint]]
   name = "gopkg.in/src-d/core-retrieval.v0"
-  revision = "16e13cdd66a6398c15c09e6b9ae1ba3f1748298c"
+  revision = "66bc47b361f027ec9666d9cffbf2e8acdc6d4f1f"
   source = "https://github.com/src-d/core-retrieval.git"
 
 [[constraint]]
