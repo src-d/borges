@@ -35,6 +35,10 @@ var (
 	ErrFatal                   = errors.NewKind("fatal, %v: stacktrace: %s")
 	ErrCannotProcessRepository = errors.NewKind("cannot process repository")
 	ErrProcessedWithErrors     = errors.NewKind("repository processed with errors")
+
+	// StrRemoveTmpFiles is the string used to log when tmp files could not
+	// be deleted.
+	StrRemoveTmpFiles = "could not remove tmp files"
 )
 
 // Archiver archives repositories. Archiver instances are thread-safe and can
@@ -152,7 +156,11 @@ func (a *Archiver) do(ctx context.Context, logger log.Logger, j *Job) (err error
 
 	log.Debugf("remote repository cloned")
 	if err := a.doPush(ctx, logger, &now, j, r, endpoint, gr); err != nil {
-		_ = gr.Close()
+		e := gr.Close()
+		if e != nil {
+			logger.Errorf(err, StrRemoveTmpFiles)
+		}
+
 		return err
 	}
 
@@ -359,10 +367,13 @@ func (a *Archiver) pushChangesToRootedRepository(ctx context.Context, logger log
 	var rootedRepoCpStart = time.Now()
 	tx, err := a.beginTxWithRetries(ctx, logger, plumbing.Hash(ic), maxRetries)
 
+	logger = logger.With(log.Fields{
+		"rooted-repository": ic.String(),
+	})
+
 	sivaCpFromDuration := time.Now().Sub(rootedRepoCpStart)
 	logger.With(log.Fields{
-		"rooted-repository": ic.String(),
-		"copy-from-remote":  sivaCpFromDuration,
+		"copy-from-remote": sivaCpFromDuration,
 	}).Debugf("copy siva file from FS")
 
 	if err != nil {
@@ -371,7 +382,11 @@ func (a *Archiver) pushChangesToRootedRepository(ctx context.Context, logger log
 
 	rr, err := git.Open(tx.Storer(), nil)
 	if err != nil {
-		_ = tx.Rollback()
+		e := tx.Rollback()
+		if e != nil {
+			logger.Errorf(e, StrRemoveTmpFiles)
+		}
+
 		return err
 	}
 
@@ -393,15 +408,25 @@ func (a *Archiver) pushChangesToRootedRepository(ctx context.Context, logger log
 
 		var rootedRepoCpStart = time.Now()
 		err = a.commitTxWithRetries(ctx, logger, ic, tx, maxRetries)
+		if err != nil {
+			logger.With(log.Fields{
+				"copy-to-remote": time.Now().Sub(rootedRepoCpStart),
+			}).Errorf(err, "could not copy siva file to FS")
+			return err
+		}
+
 		logger.With(log.Fields{
-			"rooted-repository": ic.String(),
-			"copy-to-remote":    time.Now().Sub(rootedRepoCpStart),
-		}).Debugf("copy siva file from FS")
-		return err
+			"copy-to-remote": time.Now().Sub(rootedRepoCpStart),
+		}).Debugf("copy siva file to FS")
+
+		return nil
 	})
 
 	if err != nil {
-		_ = tx.Rollback()
+		e := tx.Rollback()
+		if e != nil {
+			logger.Errorf(err, StrRemoveTmpFiles)
+		}
 	}
 
 	return err
