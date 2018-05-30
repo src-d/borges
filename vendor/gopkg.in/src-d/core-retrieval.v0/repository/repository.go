@@ -62,6 +62,7 @@ func (s *sivaRootedTransactioner) Begin(ctx context.Context, h plumbing.Hash) (T
 	localTmpPath := filepath.Join(localPath, "tmp")
 
 	if err := s.copier.CopyFromRemote(ctx, origPath, localSivaPath); err != nil {
+		util.RemoveAll(local, localPath)
 		return nil, err
 	}
 
@@ -87,6 +88,7 @@ func (s *sivaRootedTransactioner) Begin(ctx context.Context, h plumbing.Hash) (T
 	}
 
 	if err != nil {
+		util.RemoveAll(local, localPath)
 		return nil, err
 	}
 

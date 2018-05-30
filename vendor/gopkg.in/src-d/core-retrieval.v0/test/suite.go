@@ -84,12 +84,13 @@ func vendorDirectories() []string {
 	var dirs []string
 
 	for {
-		if dir == "." || dir == "/" {
+		dirs = append(dirs, filepath.Join(dir, "vendor"))
+		parent := filepath.Dir(dir)
+		if parent == dir {
 			break
 		}
 
-		dirs = append(dirs, filepath.Join(dir, "vendor"))
-		dir = filepath.Dir(dir)
+		dir = parent
 	}
 
 	return dirs

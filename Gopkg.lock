@@ -395,7 +395,7 @@
     "schema",
     "test"
   ]
-  revision = "16e13cdd66a6398c15c09e6b9ae1ba3f1748298c"
+  revision = "66bc47b361f027ec9666d9cffbf2e8acdc6d4f1f"
   source = "https://github.com/src-d/core-retrieval.git"
 
 [[projects]]
@@ -545,6 +545,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "3cc65b489878aa60e55cc7fa75880fd31668c37e41a98ea9fde7a36151fb7168"
+  inputs-digest = "89f996a967e39ff6d956ef8faa5c02b89d4651197422ac51cd5a99a28051cfd1"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -349,3 +349,106 @@ func (s *ArchiverSuite) TestIsProcessableRepository() {
 	// the status after the error must be 'pending'
 	s.Assertions.True(modelRepo.Status == model.Pending)
 }
+
+func TestDeleteTmpOnError(t *testing.T) {
+	require := require.New(t)
+	fixtures.Init()
+
+	var suite test.Suite
+	suite.SetT(t)
+	suite.Setup()
+
+	rawStore := model.NewRepositoryStore(suite.DB)
+	store := storage.FromDatabase(suite.DB)
+
+	tmpPath, err := ioutil.TempDir(os.TempDir(),
+		fmt.Sprintf("borges-tests%d", rand.Uint32()))
+	require.NoError(err)
+
+	defer os.RemoveAll(tmpPath)
+
+	fs := osfs.New(tmpPath)
+
+	rootedFs, err := fs.Chroot("rooted")
+	require.NoError(err)
+	txFs, err := fs.Chroot("tx")
+	require.NoError(err)
+	tmpFs, err := fs.Chroot("tmp")
+	require.NoError(err)
+
+	bucket := 0
+
+	// This copier uses a rooted fs that fails writing.
+	copier := repository.NewCopier(
+		NewBrokenFS(txFs),
+		repository.NewLocalFs(rootedFs),
+		bucket)
+	tx := repository.NewSivaRootedTransactioner(copier)
+
+	ls, err := lock.NewLocal().NewSession(&lock.SessionConfig{
+		Timeout: defaultTimeout,
+	})
+	require.NoError(err)
+
+	a := NewArchiver(store, tx, NewTemporaryCloner(tmpFs), ls, defaultTimeout)
+
+	repoFixture := fixtures.ByTag("worktree").One()
+	repoPath := repoFixture.Worktree().Root()
+	repoURL := fmt.Sprintf("file://%s", repoPath)
+	defer fixtures.Clean()
+
+	mr := model.NewRepository()
+	mr.Endpoints = append(mr.Endpoints, repoURL)
+	updated, err := rawStore.Save(mr)
+	require.NoError(err)
+	require.False(updated)
+
+	err = a.Do(context.TODO(), &Job{RepositoryID: uuid.UUID(mr.ID)})
+	require.Error(err)
+
+	// After an error the temporary repository should be deleted.
+	files, err := tmpFs.ReadDir("/local_repos")
+	require.NoError(err)
+	require.Len(files, 0)
+}
+
+func NewBrokenFS(fs billy.Filesystem) billy.Filesystem {
+	return &BrokenFS{
+		Filesystem: fs,
+	}
+}
+
+type BrokenFS struct {
+	billy.Filesystem
+}
+
+func (fs *BrokenFS) OpenFile(
+	name string,
+	flag int,
+	perm os.FileMode,
+) (billy.File, error) {
+	file, err := fs.Filesystem.OpenFile(name, flag, perm)
+	if err != nil {
+		return nil, err
+	}
+
+	return &BrokenFile{
+		File: file,
+	}, nil
+}
+
+type BrokenFile struct {
+	billy.File
+	count int
+}
+
+func (fs *BrokenFile) Write(p []byte) (int, error) {
+	// A siva copy takes less than 10 writes to complete, it should be a push.
+	if fs.count > 10 {
+		return 0, fmt.Errorf("could not write to broken file")
+	}
+
+	fs.count++
+
+	return fs.File.Write(p)
+}
