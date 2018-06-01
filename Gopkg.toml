@@ -12,11 +12,6 @@
   source = "https://github.com/src-d/core-retrieval.git"
 
 [[constraint]]
-  name = "gopkg.in/src-d/framework.v0"
-  revision = "bed6b25004fcbc1b034608f01d478aca4135b865"
-  source = "https://github.com/src-d/framework.git"
-
-[[constraint]]
   name = "gopkg.in/src-d/go-billy.v4"
   source = "https://github.com/src-d/go-billy.git"
   version = "4.2.0"
@@ -37,6 +32,10 @@
 [[constraint]]
   name = "gopkg.in/src-d/go-queue.v1"
   version = "~1.0.2"
+
+[[constraint]]
+  name = "github.com/lib/pq"
+  branch = "master"
 
 [[override]]
   name = "gopkg.in/src-d/go-billy-siva.v4"

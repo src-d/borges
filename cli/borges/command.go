@@ -8,6 +8,7 @@ import (
 
 	"github.com/src-d/borges/metrics"
 
+	_ "github.com/lib/pq"
 	"gopkg.in/src-d/go-log.v1"
 )
 
