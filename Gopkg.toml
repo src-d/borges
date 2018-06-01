@@ -32,3 +32,11 @@
 [[constraint]]
   name = "gopkg.in/src-d/go-kallax.v1"
   version = "1.3.4"
+
+[prune]
+  unused-packages = true
+  go-tests = true
+
+  [[prune.project]]
+    name = "gopkg.in/src-d/go-git-fixtures.v3"
+    unused-packages = false
