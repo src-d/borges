@@ -12,7 +12,7 @@ import (
 const (
 	republishCmdName      = "republish"
 	republishCmdShortDesc = "requeue jobs from buried queues"
-	republishCmdLongDesc  = ""
+	republishCmdLongDesc  = "This producer is used to reprocess failed jobs. It reads from buried queues, generates a job and queues it."
 )
 
 // republishCommand is a producer subcommand.
@@ -25,11 +25,11 @@ var republishCommand = &republishCmd{producerSubcmd: newProducerSubcmd(
 type republishCmd struct {
 	producerSubcmd
 
-	Time string `long:"time" short:"t" default:"0" description:"elapsed time between republish triggers"`
+	Interval string `long:"interval" env:"BORGES_REPUBLISH_INTERVAL" short:"t" default:"0" description:"elapsed time between republish triggers"`
 }
 
 func (c *republishCmd) Execute(args []string) error {
-	lapse, err := time.ParseDuration(c.Time)
+	lapse, err := time.ParseDuration(c.Interval)
 	if err != nil {
 		return err
 	}
@@ -39,7 +39,7 @@ func (c *republishCmd) Execute(args []string) error {
 	}
 	defer c.broker.Close()
 
-	log.With(log.Fields{"time": c.Time}).Infof("starting republishing jobs...")
+	log.With(log.Fields{"interval": c.Interval}).Infof("starting republishing jobs...")
 
 	log.Debugf("republish task triggered ")
 	if err := c.queue.RepublishBuried(republishCondition); err != nil {

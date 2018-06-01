@@ -10,9 +10,6 @@ import (
 	"github.com/src-d/borges/lock"
 	"github.com/src-d/borges/storage"
 
-	"gopkg.in/src-d/core-retrieval.v0"
-	"gopkg.in/src-d/core-retrieval.v0/repository"
-	"gopkg.in/src-d/go-billy.v4/osfs"
 	"gopkg.in/src-d/go-queue.v1/memory"
 )
 
@@ -22,23 +19,25 @@ const (
 	packerCmdLongDesc  = ""
 )
 
-var packerCommand = &packerCmd{command: newCommand(
+var packerCommand = &packerCmd{consumerSubcmd: newConsumerSubcmd(
 	packerCmdName,
 	packerCmdShortDesc,
 	packerCmdLongDesc,
 )}
 
 type packerCmd struct {
-	command
-	Locking   string `long:"locking" env:"CONFIG_LOCKING" default:"local:" description:"locking service configuration"`
-	File      string `long:"file" short:"f" required:"true" description:"file with the repositories to pack (one per line)"`
-	OutputDir string `long:"to" default:"repositories" description:"path to store the packed siva files"`
-	Timeout   string `long:"timeout" default:"30m" description:"time to wait to consider a job failed"`
-	Workers   int    `long:"workers" default:"1" description:"number of workers to use, 0 means the same number as processors"`
+	consumerSubcmd
+
+	filePositionalArgs `positional-args:"true" required:"1"`
 }
 
 func (c *packerCmd) Execute(args []string) error {
 	c.init()
+
+	tmp, err := c.newTemporaryFilesystem()
+	if err != nil {
+		return err
+	}
 
 	locking, err := lock.New(c.Locking)
 	if err != nil {
@@ -57,7 +56,7 @@ func (c *packerCmd) Execute(args []string) error {
 		return fmt.Errorf("invalid format in the given `--timeout` flag: %s", err)
 	}
 
-	transactioner, err := c.newRootedTransactioner()
+	transactioner, err := c.newRootedTransactioner(tmp)
 	if err != nil {
 		return fmt.Errorf("unable to initialize rooted transactioner: %s", err)
 	}
@@ -65,7 +64,7 @@ func (c *packerCmd) Execute(args []string) error {
 	wp := borges.NewArchiverWorkerPool(
 		store,
 		transactioner,
-		borges.NewTemporaryCloner(core.TemporaryFilesystem()),
+		borges.NewTemporaryCloner(tmp),
 		locking,
 		timeout,
 	)
@@ -88,20 +87,6 @@ func (c *packerCmd) Execute(args []string) error {
 	)
 
 	return executor.Execute()
-}
-
-func (c *packerCmd) newRootedTransactioner() (repository.RootedTransactioner, error) {
-	tmpFs, err := core.TemporaryFilesystem().Chroot("borges-packer")
-	if err != nil {
-		return nil, err
-	}
-
-	copier := repository.NewCopier(
-		tmpFs,
-		repository.NewLocalFs(osfs.New(c.OutputDir)),
-		0)
-
-	return repository.NewSivaRootedTransactioner(copier), nil
 }
 
 func init() {

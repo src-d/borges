@@ -1,11 +1,13 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"net/http"
 	_ "net/http/pprof"
 
 	"github.com/src-d/borges/metrics"
+
 	"gopkg.in/src-d/go-log.v1"
 )
 
@@ -45,6 +47,11 @@ func (c *simpleCommand) LongDescription() string { return c.longDescription }
 type command struct {
 	simpleCommand
 	queueOpts
+
+	DebugOptions debugOpts `group:"debug options"`
+}
+
+type debugOpts struct {
 	metricsOpts
 	profilerOpts
 }
@@ -60,18 +67,27 @@ func newCommand(name, short, long string) command {
 }
 
 func (c *command) init() {
-	c.profilerOpts.maybeStartProfiler()
-	c.metricsOpts.maybeStartMetrics()
+	c.DebugOptions.profilerOpts.maybeStartProfiler()
+	c.DebugOptions.metricsOpts.maybeStartMetrics()
+}
+
+type databaseOpts struct {
+	DatabaseDriver string `long:"database-driver" env:"BORGES_DATABASE_DRIVER" default:"postgres" description:"database driver"`
+	Database       string `long:"database" env:"BORGES_DATABASE" default:"postgres://testing:testing@0.0.0.0:5432/testing?application_name=borges&sslmode=disable&connect_timeout=30" description:"database connection string"`
+}
+
+func (c *databaseOpts) openDatabase() (*sql.DB, error) {
+	return sql.Open(c.DatabaseDriver, c.Database)
 }
 
 type queueOpts struct {
-	Queue  string `long:"queue" default:"borges" description:"queue name"`
-	Broker string `long:"broker" env:"CONFIG_BROKER" default:"amqp://localhost:5672" description:"broker URL service"`
+	Queue  string `long:"queue" env:"BORGES_QUEUE" default:"borges" description:"queue name"`
+	Broker string `long:"broker" env:"BORGES_BROKER" default:"amqp://localhost:5672" description:"broker service URI"`
 }
 
 type metricsOpts struct {
-	Metrics     bool `long:"metrics" description:"expose a metrics endpoint using an HTTP server"`
-	MetricsPort int  `long:"metrics-port" description:"port to bind metrics to" default:"6062"`
+	Metrics     bool `long:"metrics" env:"BORGES_METRICS_ENABLE" description:"expose a metrics endpoint using an HTTP server"`
+	MetricsPort int  `long:"metrics-port" env:"BORGES_METRICS_PORT" description:"port to bind metrics to" default:"6062"`
 }
 
 func (c *metricsOpts) maybeStartMetrics() {
@@ -90,8 +106,8 @@ func (c *metricsOpts) maybeStartMetrics() {
 }
 
 type profilerOpts struct {
-	Profiler     bool `long:"profiler" description:"start CPU, memory and block profilers"`
-	ProfilerPort int  `long:"profiler-port" description:"port to bind profiler to" default:"6061"`
+	Profiler     bool `long:"profiler" env:"BORGES_PROFILER_ENABLE" description:"start CPU, memory and block profilers"`
+	ProfilerPort int  `long:"profiler-port" env:"BORGES_PROFILER_PORT" description:"port to bind profiler to" default:"6061"`
 }
 
 func (c *profilerOpts) maybeStartProfiler() {
