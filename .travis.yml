@@ -26,6 +26,9 @@ before_script:
 
 script:
   - make test-coverage
+  - go get github.com/golang/dep/cmd/dep
+  - dep ensure
+  - make no-changes-in-commit
 
 before_deploy:
   - make packages
