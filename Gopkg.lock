@@ -481,7 +481,7 @@
     "plumbing/transport/ssh",
     "storage",
     "storage/filesystem",
-    "storage/filesystem/internal/dotgit",
+    "storage/filesystem/dotgit",
     "storage/memory",
     "utils/binary",
     "utils/diff",
@@ -492,9 +492,9 @@
     "utils/merkletrie/internal/frame",
     "utils/merkletrie/noder"
   ]
-  revision = "57570e84f8c5739f0f4a59387493e590e709dde9"
+  revision = "b23570073eaee3489e5e3d666f22ba5cbeb53243"
   source = "https://github.com/src-d/go-git.git"
-  version = "v4.4.0"
+  version = "v4.4.1"
 
 [[projects]]
   name = "gopkg.in/src-d/go-kallax.v1"
@@ -545,6 +545,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "64c2e3caa80adbe705cc2069fb72250b21679ceca838515385af7a0e01a3b78a"
+  inputs-digest = "71ab36d4c12959ed1d1731f3b8a5a8120bf2f58437ec96d1eeb115e655940f27"
   solver-name = "gps-cdcl"
   solver-version = 1
