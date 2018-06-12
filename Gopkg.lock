@@ -167,12 +167,6 @@
   version = "v0.3.0"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/onrik/logrus"
-  packages = ["filename"]
-  revision = "6a64e23a4923a8d0d4db2806dcf3e55af1e48f61"
-
-[[projects]]
   name = "github.com/pelletier/go-buffruneio"
   packages = ["."]
   revision = "c37440a7cf42ac63b919c752ca73a85067e05992"
@@ -508,8 +502,8 @@
 [[projects]]
   name = "gopkg.in/src-d/go-log.v1"
   packages = ["."]
-  revision = "2ff6802d241cd249cba62ffca2a5e87ab8f19710"
-  version = "v1.0.0"
+  revision = "289c0569da6b085f689b7b133944816c3428ed64"
+  version = "v1.0.1"
 
 [[projects]]
   name = "gopkg.in/src-d/go-queue.v1"
