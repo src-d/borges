@@ -18,6 +18,7 @@ import (
 	"gopkg.in/src-d/go-git.v4/config"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport"
+	"gopkg.in/src-d/go-git.v4/storage"
 	"gopkg.in/src-d/go-kallax.v1"
 	"gopkg.in/src-d/go-log.v1"
 )
@@ -380,13 +381,11 @@ func (a *Archiver) pushChangesToRootedRepository(ctx context.Context, logger log
 		return err
 	}
 
-	rr, err := git.Open(tx.Storer(), nil)
+	rr, err := a.openGitWithRetries(tx.Storer(), logger, maxRetries)
 	if err != nil {
-		e := tx.Rollback()
-		if e != nil {
+		if e := tx.Rollback(); e != nil {
 			logger.Errorf(e, StrRemoveTmpFiles)
 		}
-
 		return err
 	}
 
@@ -481,6 +480,25 @@ func (a *Archiver) commitTxWithRetries(
 
 	a.backoff.Reset()
 	return
+}
+
+func (a *Archiver) openGitWithRetries(storage storage.Storer, logger log.Logger, numRetries float64) (*git.Repository, error) {
+	var (
+		repo *git.Repository
+		err  error
+	)
+	for a.backoff.Attempt() < numRetries {
+		if repo, err = git.Open(storage, nil); err == nil {
+			break
+		}
+
+		tts := a.backoff.Duration()
+		logger.With(log.Fields{"wait": tts}).Errorf(err, "waiting for git Open")
+		time.Sleep(tts)
+	}
+	a.backoff.Reset()
+
+	return repo, err
 }
 
 func (a *Archiver) changesToPushRefSpec(id kallax.ULID, changes []*Command) []config.RefSpec {
