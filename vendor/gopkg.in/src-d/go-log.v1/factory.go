@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/onrik/logrus/filename"
 	"github.com/sirupsen/logrus"
 	"github.com/x-cray/logrus-prefixed-formatter"
 	"golang.org/x/crypto/ssh/terminal"
@@ -164,7 +163,7 @@ func (f *LoggerFactory) setDefaultFormat() error {
 
 func (f *LoggerFactory) setHook(l *logrus.Logger) {
 	if f.Level == DebugLevel {
-		l.AddHook(filename.NewHook(
+		l.AddHook(newFilenameHook(
 			logrus.DebugLevel,
 			logrus.InfoLevel,
 			logrus.WarnLevel,
