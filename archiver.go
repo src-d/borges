@@ -374,7 +374,7 @@ func (a *Archiver) pushChangesToRootedRepository(ctx context.Context, logger log
 
 	sivaCpFromDuration := time.Now().Sub(rootedRepoCpStart)
 	logger.With(log.Fields{
-		"copy-from-remote": sivaCpFromDuration,
+		"duration": sivaCpFromDuration,
 	}).Debugf("copy siva file from FS")
 
 	if err != nil {
@@ -398,24 +398,28 @@ func (a *Archiver) pushChangesToRootedRepository(ctx context.Context, logger log
 		pushStart := time.Now()
 		if err := tr.Push(ctx, url, refspecs); err != nil {
 			onlyPushDurationSec := int64(time.Now().Sub(pushStart) / time.Second)
-			logger.With(log.Fields{"refs": refspecs, "took": onlyPushDurationSec}).
-				Errorf(err, "error pushing one change for")
+			logger.With(log.Fields{
+				"refs":     refspecs,
+				"duration": onlyPushDurationSec,
+			}).Errorf(err, "error pushing one change for")
 			return err
 		}
 		onlyPushDurationSec := int64(time.Now().Sub(pushStart) / time.Second)
-		logger.With(log.Fields{"took": onlyPushDurationSec}).Debugf("one change pushed")
+		logger.With(log.Fields{
+			"duration": onlyPushDurationSec,
+		}).Debugf("one change pushed")
 
 		var rootedRepoCpStart = time.Now()
 		err = a.commitTxWithRetries(ctx, logger, ic, tx, maxRetries)
 		if err != nil {
 			logger.With(log.Fields{
-				"copy-to-remote": time.Now().Sub(rootedRepoCpStart),
+				"duration": time.Now().Sub(rootedRepoCpStart),
 			}).Errorf(err, "could not copy siva file to FS")
 			return err
 		}
 
 		logger.With(log.Fields{
-			"copy-to-remote": time.Now().Sub(rootedRepoCpStart),
+			"duration": time.Now().Sub(rootedRepoCpStart),
 		}).Debugf("copy siva file to FS")
 
 		return nil
