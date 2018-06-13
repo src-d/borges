@@ -512,8 +512,8 @@
     "amqp",
     "memory"
   ]
-  revision = "d6c29d20d76c8e0dbb49dc979260c6706a44516c"
-  version = "v1.0.1"
+  revision = "eb1b2b056253e95af1ce0f84bd1e92616a3a80d2"
+  version = "v1.0.2"
 
 [[projects]]
   name = "gopkg.in/src-d/go-siva.v1"
