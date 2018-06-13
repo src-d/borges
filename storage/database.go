@@ -6,6 +6,7 @@ import (
 
 	"gopkg.in/src-d/core-retrieval.v0/model"
 	"gopkg.in/src-d/go-kallax.v1"
+	"gopkg.in/src-d/go-log.v1"
 )
 
 // DatabaseStore implements a borges.RepositoryStorage based on a database.
@@ -21,18 +22,50 @@ func FromDatabase(db *sql.DB) *DatabaseStore {
 
 // Create honors the borges.RepositoryStore interface.
 func (s *DatabaseStore) Create(repo *model.Repository) error {
+	start := time.Now()
 	_, err := s.Save(repo)
-	return err
+
+	logger := log.With(log.Fields{
+		"duration": time.Since(start),
+		"endpoint": repo.Endpoints,
+	})
+
+	if err != nil {
+		logger.Errorf(err, "could not create repository")
+		return err
+	}
+
+	logger.Debugf("create repository finished")
+	return nil
 }
 
 // Get honors the borges.RepositoryStore interface.
 func (s *DatabaseStore) Get(id kallax.ULID) (*model.Repository, error) {
+	start := time.Now()
+
 	q := model.NewRepositoryQuery().WithReferences(nil).FindByID(id)
-	return s.FindOne(q)
+	r, err := s.FindOne(q)
+
+	logger := log.With(log.Fields{
+		"duration": time.Since(start),
+		"id":       id,
+	})
+
+	if err != nil {
+		logger.Errorf(err, "could not get repository")
+		return nil, err
+	}
+
+	logger.Debugf("get repository finished")
+	return r, nil
 }
 
 // GetByEndpoints honors the borges.RepositoryStore interface.
-func (s *DatabaseStore) GetByEndpoints(endpoints ...string) ([]*model.Repository, error) {
+func (s *DatabaseStore) GetByEndpoints(
+	endpoints ...string,
+) ([]*model.Repository, error) {
+	start := time.Now()
+
 	q := make([]interface{}, len(endpoints))
 	for _, ep := range endpoints {
 		q = append(q, ep)
@@ -50,10 +83,18 @@ func (s *DatabaseStore) GetByEndpoints(endpoints ...string) ([]*model.Repository
 	}
 
 	repositories, err := rs.All()
+
+	logger := log.With(log.Fields{
+		"duration":  time.Since(start),
+		"endpoints": endpoints,
+	})
+
 	if err != nil {
+		logger.Errorf(err, "could not get repository by endpoints")
 		return nil, err
 	}
 
+	logger.Debugf("get repository by endpoints finished")
 	return repositories, nil
 }
 
@@ -96,8 +137,13 @@ func (s *DatabaseStore) UpdateFetched(repo *model.Repository, fetchedAt time.Tim
 	)
 }
 
-func (s *DatabaseStore) updateWithRefsChanged(repo *model.Repository, fields ...kallax.SchemaField) error {
-	return s.Transaction(func(store *model.RepositoryStore) error {
+func (s *DatabaseStore) updateWithRefsChanged(
+	repo *model.Repository,
+	fields ...kallax.SchemaField,
+) error {
+	start := time.Now()
+
+	err := s.Transaction(func(store *model.RepositoryStore) error {
 		var refStore model.ReferenceStore
 		kallax.StoreFrom(&refStore, store)
 
@@ -131,6 +177,19 @@ func (s *DatabaseStore) updateWithRefsChanged(repo *model.Repository, fields ...
 		_, err = store.Update(repo, fields...)
 		return err
 	})
+
+	logger := log.With(log.Fields{
+		"duration": time.Since(start),
+		"id":       repo.ID,
+	})
+
+	if err != nil {
+		logger.Errorf(err, "could not update with references")
+		return err
+	}
+
+	logger.Debugf("update with references finished")
+	return nil
 }
 
 func lastCommitTime(refs []*model.Reference) *time.Time {
