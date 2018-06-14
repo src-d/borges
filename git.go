@@ -296,6 +296,13 @@ func (b *temporaryRepositoryBuilder) Clone(
 		RefSpecs: []config.RefSpec{FetchRefSpec, FetchHEAD},
 	}
 	err = remote.FetchContext(ctx, o)
+	if err == git.ErrForceNeeded {
+		// retry with force
+		// update even when the remote branch does not descend from it.
+		o.Force = true
+		err = remote.FetchContext(ctx, o)
+	}
+
 	if err == git.NoErrAlreadyUpToDate || err == transport.ErrEmptyRemoteRepository {
 		r, err = git.Init(memory.NewStorage(), nil)
 	}
