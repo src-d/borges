@@ -73,6 +73,11 @@ The list of available variables is:
 - `AMQP_BACKOFF_MIN` (default: 20ms): Minimum time to wait for retry the connection or queue channel assignment.
 - `AMQP_BACKOFF_MAX` (default: 30s): Maximum time to wait for retry the connection or queue channel assignment.
 - `AMQP_BACKOFF_FACTOR` (default: 2): Multiplying factor for each increment step on the retry.
+- `AMQP_BURIED_QUEUE_SUFFIX` (default: `.buriedQueue`): Suffix for the buried queue name.
+- `AMQP_BURIED_EXCHANGE_SUFFIX` (default: `.buriedExchange`): Suffix for the exchange name.
+- `AMQP_BURIED_TIMEOUT` (default: 500): Time in milliseconds to wait for new jobs from the buried queue.
+- `AMQP_RETRIES_HEADER` (default: `x-retries`): Message header to set the number of retries.
+- `AMQP_ERROR_HEADER` (default: `x-error-type`): Message header to set the error type.
 
 License
 -------

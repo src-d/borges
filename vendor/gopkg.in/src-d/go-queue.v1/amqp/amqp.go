@@ -35,9 +35,9 @@ var DefaultConfiguration Configuration
 // Configuration AMQP configuration settings, this settings are set using the
 // envinroment varabiles.
 type Configuration struct {
-	BuriedQueueSuffix        string `envconfig:"BURIED_QUEUE_SUFFIX" default:".buriedQueue"`
-	BuriedExchangeSuffix     string `envconfig:"BURIED_EXCHANGE_SUFFIX" default:".buriedExchange"`
-	BuriedNonBlockingRetries int    `envconfig:"BURIED_BLOCKING_RETRIES" default:"3"`
+	BuriedQueueSuffix    string `envconfig:"BURIED_QUEUE_SUFFIX" default:".buriedQueue"`
+	BuriedExchangeSuffix string `envconfig:"BURIED_EXCHANGE_SUFFIX" default:".buriedExchange"`
+	BuriedTimeout        int    `envconfig:"BURIED_TIMEOUT" default:"500"`
 
 	RetriesHeader string `envconfig:"RETRIES_HEADER" default:"x-retries"`
 	ErrorHeader   string `envconfig:"ERROR_HEADER" default:"x-error-type"`
@@ -345,50 +345,66 @@ func (q *Queue) RepublishBuried(conditions ...queue.RepublishConditionFunc) erro
 
 	defer iter.Close()
 
-	retries := 0
+	timeout := time.Duration(DefaultConfiguration.BuriedTimeout) * time.Millisecond
+
 	var notComplying []*queue.Job
 	var errorsPublishing []*jobErr
 	for {
-		j, err := iter.(*JobIter).nextNonBlocking()
+		j, err := iter.(*JobIter).nextWithTimeout(timeout)
 		if err != nil {
 			return err
 		}
 
 		if j == nil {
-			// check (in non blocking mode) up to DefaultConfiguration.BuriedNonBlockingRetries
-			// with a small delay between them just in case some job is
-			// arriving, return if there is nothing after all the retries
-			// (meaning: BuriedQueue is surely empty or any arriving jobs will
-			// have to wait to the next call).
-			if retries > DefaultConfiguration.BuriedNonBlockingRetries {
-				break
-			}
+			log.Debugf("no more jobs in the buried queue")
 
-			time.Sleep(50 * time.Millisecond)
-			retries++
-			continue
+			break
 		}
-
-		retries = 0
 
 		if err = j.Ack(); err != nil {
 			return err
 		}
 
 		if queue.RepublishConditions(conditions).Comply(j) {
+			start := time.Now()
 			if err = q.Publish(j); err != nil {
+				log.With(log.Fields{
+					"duration": time.Since(start),
+					"id":       j.ID,
+				}).Errorf(err, "error publishing job")
+
 				errorsPublishing = append(errorsPublishing, &jobErr{j, err})
+			} else {
+				log.With(log.Fields{
+					"duration": time.Since(start),
+					"id":       j.ID,
+				}).Debugf("job republished")
 			}
 		} else {
-			notComplying = append(notComplying, j)
+			log.With(log.Fields{
+				"id":           j.ID,
+				"error-type":   j.ErrorType,
+				"content-type": j.ContentType,
+				"retries":      j.Retries,
+			}).Debugf("job does not comply with conditions")
 
+			notComplying = append(notComplying, j)
 		}
 	}
 
-	for _, job := range notComplying {
+	log.Debugf("rejecting %v non complying jobs", len(notComplying))
+
+	for i, job := range notComplying {
+		start := time.Now()
+
 		if err = job.Reject(true); err != nil {
 			return err
 		}
+
+		log.With(log.Fields{
+			"duration": time.Since(start),
+			"id":       job.ID,
+		}).Debugf("job rejected (%v/%v)", i, len(notComplying))
 	}
 
 	return q.handleRepublishErrors(errorsPublishing)
@@ -397,11 +413,18 @@ func (q *Queue) RepublishBuried(conditions ...queue.RepublishConditionFunc) erro
 func (q *Queue) handleRepublishErrors(list []*jobErr) error {
 	if len(list) > 0 {
 		stringErrors := []string{}
-		for _, je := range list {
+		for i, je := range list {
 			stringErrors = append(stringErrors, je.err.Error())
+			start := time.Now()
+
 			if err := q.buriedQueue.Publish(je.job); err != nil {
 				return err
 			}
+
+			log.With(log.Fields{
+				"duration": time.Since(start),
+				"id":       je.job.ID,
+			}).Debugf("job reburied (%v/%v)", i, len(list))
 		}
 
 		return ErrRepublishingJobs.New(strings.Join(stringErrors, ": "))
@@ -499,7 +522,7 @@ func (i *JobIter) Next() (*queue.Job, error) {
 	return fromDelivery(&d)
 }
 
-func (i *JobIter) nextNonBlocking() (*queue.Job, error) {
+func (i *JobIter) nextWithTimeout(timeout time.Duration) (*queue.Job, error) {
 	select {
 	case d, ok := <-i.c:
 		if !ok {
@@ -507,7 +530,7 @@ func (i *JobIter) nextNonBlocking() (*queue.Job, error) {
 		}
 
 		return fromDelivery(&d)
-	default:
+	case <-time.After(timeout):
 		return nil, nil
 	}
 }
