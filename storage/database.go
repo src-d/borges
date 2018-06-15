@@ -76,7 +76,8 @@ func (s *DatabaseStore) GetByEndpoints(
 			WithReferences(nil).
 			Where(kallax.And(kallax.ArrayOverlap(
 				model.Schema.Repository.Endpoints, q...,
-			))),
+			))).
+			Order(kallax.Asc(model.Schema.Repository.Endpoints)),
 	)
 	if err != nil {
 		return nil, err

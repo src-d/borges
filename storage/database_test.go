@@ -54,9 +54,20 @@ func (s *DatabaseSuite) TestGetByEndpoints() {
 	result, err := s.store.GetByEndpoints("bar", "baz")
 	require.Len(result, 3)
 	require.NoError(err)
-	require.Equal(repos[1].ID, result[0].ID)
-	require.Equal(repos[2].ID, result[1].ID)
-	require.Equal(repos[3].ID, result[2].ID)
+
+	expected := []kallax.ULID{
+		repos[1].ID,
+		repos[2].ID,
+		repos[3].ID,
+	}
+
+	got := []kallax.ULID{
+		result[0].ID,
+		result[1].ID,
+		result[2].ID,
+	}
+
+	require.ElementsMatch(expected, got)
 
 	result, err = s.store.GetByEndpoints("notfound")
 	require.Len(result, 0)
