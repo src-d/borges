@@ -451,7 +451,7 @@
   revision = "20d25e2804050c1cd24a7eea1e7a6447dd0e74ec"
 
 [[projects]]
-  digest = "1:2892127ce61cc3f3483078bebdaf961908719e9219dc3e3b8aff72fe319b069d"
+  digest = "1:db14b97a08ebfe2c5c29487a66cb815b8db0c2babb9853f695c1450f89692c43"
   name = "gopkg.in/src-d/core-retrieval.v0"
   packages = [
     "model",
@@ -460,7 +460,7 @@
     "test",
   ]
   pruneopts = "UT"
-  revision = "66bc47b361f027ec9666d9cffbf2e8acdc6d4f1f"
+  revision = "5252fe35bfba3e0635a06ff5633758b53127c588"
   source = "https://github.com/src-d/core-retrieval.git"
 
 [[projects]]
