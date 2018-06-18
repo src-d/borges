@@ -40,9 +40,8 @@ type consumerSubcmd struct {
 	Workers int    `long:"workers" env:"BORGES_WORKERS" default:"1" description:"number of workers"`
 	Timeout string `long:"timeout" env:"BORGES_TIMEOUT" default:"10h" description:"deadline to process a job"`
 
-	RootRepositoriesDir     string `long:"root-repositories-dir" env:"BORGES_ROOT_REPOSITORIES_DIR" default:"/tmp/root-repositories" description:"path to the directory storing rooted repositories (can be local path or hdfs://)"`
-	RootRepositoriesTempDir string `long:"root-repositories-temp-dir" env:"BORGES_ROOT_REPOSITORIES_DIR" default:"/tmp/root-repositories-dot-copy"`
-	BucketSize              int    `long:"bucket-size" env:"BORGES_BUCKET_SIZE" default:"0" description:"if higher than zero, repositories are stored in bucket directories with a prefix of the given amount of characters from its root hash"`
+	RootRepositoriesDir string `long:"root-repositories-dir" env:"BORGES_ROOT_REPOSITORIES_DIR" default:"/tmp/root-repositories" description:"path to the directory storing rooted repositories (can be local path or hdfs://)"`
+	BucketSize          int    `long:"bucket-size" env:"BORGES_BUCKET_SIZE" default:"0" description:"if higher than zero, repositories are stored in bucket directories with a prefix of the given amount of characters from its root hash"`
 
 	TempDir      string `long:"temp-dir" env:"BORGES_TEMP_DIR" default:"/tmp/borges" description:"path of temporary directory to clone repositories into"`
 	CleanTempDir bool   `long:"temp-dir-clean" env:"BORGES_TEMP_DIR_CLEAN" description:"clean temporary directory before starting"`
@@ -167,7 +166,6 @@ func (c *consumerSubcmd) newRootedTransactioner(tmp billy.Filesystem) (
 		remote = repository.NewHDFSFs(
 			u.String(),
 			path,
-			c.RootRepositoriesTempDir,
 		)
 	} else {
 		remote = repository.NewLocalFs(osfs.New(c.RootRepositoriesDir))

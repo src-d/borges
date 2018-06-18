@@ -27,8 +27,6 @@ type Fs interface {
 	DeleteIfExists(string) error
 	// Base returns the base path of the filesystem to write files to.
 	Base() string
-	// TempDir returns the base path for temporary directories.
-	TempDir() string
 }
 
 // Copier is in charge of copying files from a local filesystem to the remote
@@ -154,21 +152,15 @@ func (fs *localFs) Base() string {
 }
 
 type hdfsFs struct {
-	url     string
-	base    string
-	tmpBase string
-	client  *hdfs.Client
+	url    string
+	base   string
+	client *hdfs.Client
 }
 
 // NewHDFSFs returns a filesystem that can access a HDFS cluster.
 // URL is the hdfs connection URL and base is the base path to store all the files.
-// tmpBase is the path to store all temporary .copy files while copying, which defaults
-// to base if empty.
-func NewHDFSFs(URL, base, tmpBase string) Fs {
-	if tmpBase == "" {
-		tmpBase = base
-	}
-	return &hdfsFs{url: URL, base: base, tmpBase: tmpBase}
+func NewHDFSFs(URL, base string) Fs {
+	return &hdfsFs{url: URL, base: base}
 }
 
 // HDFSNamenodeError is returned when there is a namenode error.
@@ -273,10 +265,6 @@ func (fs *hdfsFs) DeleteIfExists(file string) (err error) {
 	}
 
 	return
-}
-
-func (fs *hdfsFs) TempDir() string {
-	return fs.tmpBase
 }
 
 func (fs *hdfsFs) Base() string {
