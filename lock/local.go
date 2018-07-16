@@ -150,6 +150,10 @@ func (s *localSess) Close() error {
 	return nil
 }
 
+func (s *localSess) Done() <-chan struct{} {
+	return nil
+}
+
 type localLocker struct {
 	id     string
 	sess   *localSess

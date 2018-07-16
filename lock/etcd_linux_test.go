@@ -18,11 +18,13 @@ func (s *EtcdLockSuite) TestLockExpire() {
 	assert.NoError(err)
 
 	locker := session.NewLocker(id)
+	done := session.Done()
 	ch, err := locker.Lock()
 	assert.NoError(err)
 
 	err = s.cmd.Process.Signal(syscall.SIGSTOP)
 	assert.NoError(err)
+	<-done
 	<-ch
 	err = s.cmd.Process.Signal(syscall.SIGCONT)
 	assert.NoError(err)

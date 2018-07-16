@@ -148,18 +148,18 @@ func (s *etcdSrv) NewSession(cfg *SessionConfig) (Session, error) {
 	}, nil
 }
 
-func (l *etcdSrv) Close() error {
-	if l.closed {
+func (s *etcdSrv) Close() error {
+	if s.closed {
 		return ErrAlreadyClosed.New()
 	}
 
-	defer func() { l.closed = true }()
+	defer func() { s.closed = true }()
 
-	if l.client == nil {
+	if s.client == nil {
 		return nil
 	}
 
-	return l.client.Close()
+	return s.client.Close()
 }
 
 type etcdSess struct {
@@ -183,6 +183,10 @@ func (s *etcdSess) Close() error {
 
 	s.session = nil
 	return session.Close()
+}
+
+func (s *etcdSess) Done() <-chan struct{} {
+	return s.Done()
 }
 
 type etcdLock struct {
@@ -214,8 +218,8 @@ func (l *etcdLock) Lock() (<-chan struct{}, error) {
 	return l.session.Done(), nil
 }
 
-func (m *etcdLock) Unlock() error {
-	return m.mutex.Unlock(context.TODO())
+func (l *etcdLock) Unlock() error {
+	return l.mutex.Unlock(context.TODO())
 }
 
 func isContextDeadlineExceededError(err error) bool {
