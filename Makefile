@@ -7,11 +7,11 @@ DOCKER_REGISTRY = quay.io
 DOCKER_ORG = srcd
 
 # Including ci Makefile
-CI_REPOSITORY ?= https://github.com/src-d/ci.git
-CI_PATH ?= $(shell pwd)/.ci
-
+CI_REPOSITORY ?= https://github.com/jfontan/ci.git
+CI_BRANCH ?= improvement/add-godep-ensure
+CI_PATH ?= .ci
 MAKEFILE := $(CI_PATH)/Makefile.main
 $(MAKEFILE):
-	git clone --quiet --depth 1 $(CI_REPOSITORY) $(CI_PATH);
+	git clone --quiet --depth 1 -b $(CI_BRANCH) $(CI_REPOSITORY) $(CI_PATH);
 
 -include $(MAKEFILE)
