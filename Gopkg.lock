@@ -499,6 +499,14 @@
   version = "v4.2.0"
 
 [[projects]]
+  branch = "master"
+  digest = "1:e06647f941a9fcafa387ac94bc7fd4d9a6e505fea1bde382364bdd72c83a1900"
+  name = "gopkg.in/src-d/go-cli.v0"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "abb24f09af07b8cf9da4650357895b71e945da50"
+
+[[projects]]
   digest = "1:2d25bb0c1949e33cd719974f48ccd93e8b4f859417d1c7a69fee437c141cf01f"
   name = "gopkg.in/src-d/go-errors.v0"
   packages = ["."]
@@ -651,6 +659,7 @@
     "gopkg.in/src-d/go-billy.v4/memfs",
     "gopkg.in/src-d/go-billy.v4/osfs",
     "gopkg.in/src-d/go-billy.v4/util",
+    "gopkg.in/src-d/go-cli.v0",
     "gopkg.in/src-d/go-errors.v1",
     "gopkg.in/src-d/go-git-fixtures.v3",
     "gopkg.in/src-d/go-git.v4",

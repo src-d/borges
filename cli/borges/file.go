@@ -5,33 +5,25 @@ import (
 
 	"github.com/src-d/borges"
 	"github.com/src-d/borges/storage"
+
+	"gopkg.in/src-d/go-cli.v0"
 )
 
-const (
-	fileCmdName      = "file"
-	fileCmdShortDesc = "produce jobs from file"
-	fileCmdLongDesc  = "This producer reads from a file one repository URL per line, generates a job and queues it."
-)
-
-// fileCommand is a producer subcommand.
-var fileCommand = &fileCmd{producerSubcmd: newProducerSubcmd(
-	fileCmdName,
-	fileCmdShortDesc,
-	fileCmdLongDesc,
-)}
-
-type fileCmd struct {
-	producerSubcmd
-
-	filePositionalArgs `positional-args:"true" required:"1"`
+func init() {
+	producerCommandAdder.AddCommand(&fileCmd{}, setPrioritySettings)
 }
 
-type filePositionalArgs struct {
-	File string `positional-arg-name:"path" description:"file with repositories to pack, one per line"`
+type fileCmd struct {
+	cli.Command `name:"file" short-description:"produce jobs from file" long-description:"This producer reads from a file one repository URL per line, generates a job and queues it."`
+	producerOpts
+
+	PositionalArgs struct {
+		File string `positional-arg-name:"path" description:"file with repositories to pack, one per line"`
+	} `positional-args:"true" required:"1"`
 }
 
 func (c *fileCmd) Execute(args []string) error {
-	if err := c.producerSubcmd.init(); err != nil {
+	if err := c.producerOpts.init(); err != nil {
 		return err
 	}
 	defer c.broker.Close()
@@ -46,7 +38,7 @@ func (c *fileCmd) jobIter() (borges.JobIter, error) {
 	}
 
 	storer := storage.FromDatabase(db)
-	f, err := os.Open(c.File)
+	f, err := os.Open(c.PositionalArgs.File)
 	if err != nil {
 		return nil, err
 	}

@@ -9,29 +9,20 @@ import (
 	"github.com/src-d/borges"
 
 	"github.com/jessevdk/go-flags"
+	"gopkg.in/src-d/go-cli.v0"
 	"gopkg.in/src-d/go-git.v4/utils/ioutil"
 	"gopkg.in/src-d/go-queue.v1"
 	_ "gopkg.in/src-d/go-queue.v1/amqp"
 )
 
-const (
-	producerCmdName      = "producer"
-	producerCmdShortDesc = "create new jobs and put them into the queue"
-	producerCmdLongDesc  = ""
-)
-
-var producerCommand = &producerCmd{simpleCommand: newSimpleCommand(
-	producerCmdName,
-	producerCmdShortDesc,
-	producerCmdLongDesc,
-)}
+var producerCommandAdder = app.AddCommand(&producerCmd{})
 
 type producerCmd struct {
-	simpleCommand
+	cli.Command `name:"producer" short-description:"create new jobs and put them into the queue" long-description:""`
 }
 
-type producerSubcmd struct {
-	command
+type producerOpts struct {
+	queueOpts
 	databaseOpts
 
 	database *sql.DB
@@ -42,17 +33,7 @@ type producerSubcmd struct {
 	JobsRetries   int   `long:"job-retries" env:"BORGES_JOB_RETRIES" default:"5" description:"number of times a falied job should be processed again before reject it"`
 }
 
-func newProducerSubcmd(name, short, long string) producerSubcmd {
-	return producerSubcmd{command: newCommand(
-		name,
-		short,
-		long,
-	)}
-}
-
-func (c *producerSubcmd) init() error {
-	c.command.init()
-
+func (c *producerOpts) init() error {
 	err := checkPriority(c.QueuePriority)
 	if err != nil {
 		return err
@@ -78,7 +59,7 @@ func (c *producerSubcmd) init() error {
 
 type getIterFunc func() (borges.JobIter, error)
 
-func (c *producerSubcmd) generateJobs(getIter getIterFunc) error {
+func (c *producerOpts) generateJobs(getIter getIterFunc) error {
 	ji, err := getIter()
 	if err != nil {
 		return err
@@ -112,37 +93,4 @@ func checkPriority(prio uint8) error {
 	}
 
 	return nil
-}
-
-var producerSubcommands = []ExecutableCommand{
-	mentionsCommand,
-	fileCommand,
-	republishCommand,
-}
-
-func init() {
-	c, err := parser.AddCommand(
-		producerCommand.name,
-		producerCommand.shortDescription,
-		producerCommand.longDescription,
-		producerCommand)
-
-	if err != nil {
-		panic(err)
-	}
-
-	for _, subcommand := range producerSubcommands {
-		s, err := c.AddCommand(
-			subcommand.Name(),
-			subcommand.ShortDescription(),
-			subcommand.LongDescription(),
-			subcommand,
-		)
-
-		if err != nil {
-			panic(err)
-		}
-
-		setPrioritySettings(s)
-	}
 }

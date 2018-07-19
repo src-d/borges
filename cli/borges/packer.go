@@ -10,30 +10,23 @@ import (
 	"github.com/src-d/borges/lock"
 	"github.com/src-d/borges/storage"
 
+	"gopkg.in/src-d/go-cli.v0"
 	"gopkg.in/src-d/go-queue.v1/memory"
 )
 
-const (
-	packerCmdName      = "pack"
-	packerCmdShortDesc = "quickly pack remote or local repositories into siva files"
-	packerCmdLongDesc  = ""
-)
-
-var packerCommand = &packerCmd{consumerSubcmd: newConsumerSubcmd(
-	packerCmdName,
-	packerCmdShortDesc,
-	packerCmdLongDesc,
-)}
+func init() {
+	app.AddCommand(&packerCmd{})
+}
 
 type packerCmd struct {
-	consumerSubcmd
-
-	filePositionalArgs `positional-args:"true" required:"1"`
+	cli.Command `name:"pack" short-description:"pack remote or local repositories into siva files" long-description:""`
+	consumerOpts
+	PositionalArgs struct {
+		File string `positional-arg-name:"path" description:"file with repositories to pack, one per line"`
+	} `positional-args:"true" required:"1"`
 }
 
 func (c *packerCmd) Execute(args []string) error {
-	c.init()
-
 	tmp, err := c.newTemporaryFilesystem()
 	if err != nil {
 		return err
@@ -74,9 +67,10 @@ func (c *packerCmd) Execute(args []string) error {
 	}
 	wp.SetWorkerCount(c.Workers)
 
-	f, err := os.Open(c.File)
+	f, err := os.Open(c.PositionalArgs.File)
 	if err != nil {
-		return fmt.Errorf("unable to open file %q with repositories: %s", c.File, err)
+		return fmt.Errorf("unable to open file %q with repositories: %s",
+			c.PositionalArgs.File, err)
 	}
 
 	executor := borges.NewExecutor(
@@ -87,16 +81,4 @@ func (c *packerCmd) Execute(args []string) error {
 	)
 
 	return executor.Execute()
-}
-
-func init() {
-	_, err := parser.AddCommand(
-		packerCommand.Name(),
-		packerCommand.ShortDescription(),
-		packerCommand.LongDescription(),
-		packerCommand)
-
-	if err != nil {
-		panic(err)
-	}
 }

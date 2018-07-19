@@ -12,6 +12,10 @@
   source = "https://github.com/src-d/core-retrieval.git"
 
 [[constraint]]
+  name = "gopkg.in/src-d/go-cli.v0"
+  branch = "master"
+
+[[constraint]]
   name = "gopkg.in/src-d/go-billy.v4"
   source = "https://github.com/src-d/go-billy.git"
   version = "4.2.0"
