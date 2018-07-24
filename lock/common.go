@@ -76,6 +76,8 @@ type Session interface {
 	// Close closes the session and releases any resources held by it.
 	// If it is called more than once, ErrAlreadyClosed is returned.
 	Close() error
+	// Done notifies the client when the session is finished.
+	Done() <-chan struct{}
 }
 
 // Locker is the interface to a lock.

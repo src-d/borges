@@ -308,51 +308,67 @@ func (a *Archiver) pushChangesToRootedRepositories(
 ) error {
 	var failedInits []model.SHA1
 	for ic, cs := range changes {
-		logger = logger.New(log.Fields{"root": ic.String()})
-		lock := a.LockSession.NewLocker(fmt.Sprintf("borges/%s", ic.String()))
-		ch, err := lock.Lock()
-		if err != nil {
-			failedInits = append(failedInits, ic)
-			logger.Errorf(err, "failed to acquire lock")
-			continue
-		}
+		done := make(chan struct{})
+		sessionDone := a.LockSession.Done()
+		ctx, cancel := context.WithCancel(ctx)
+		go func(ic model.SHA1, cs []*Command) {
+			defer close(done)
+			logger = logger.New(log.Fields{"root": ic.String()})
+			lock := a.LockSession.NewLocker(fmt.Sprintf("borges/%s", ic.String()))
+			ch, err := lock.Lock()
+			if err != nil {
+				failedInits = append(failedInits, ic)
+				logger.Errorf(err, "failed to acquire lock")
+				return
+			}
 
-		logger.Debugf("push changes to rooted repository started")
-		if err := a.pushChangesToRootedRepository(ctx, logger, r, tr, ic, cs); err != nil {
-			err = ErrPushToRootedRepository.Wrap(err, ic.String())
-			logger.Errorf(err, "error pushing changes to rooted repository")
+			logger.Debugf("push changes to rooted repository started")
+			if err := a.pushChangesToRootedRepository(ctx, logger, r, tr, ic, cs); err != nil {
+				err = ErrPushToRootedRepository.Wrap(err, ic.String())
+				logger.Errorf(err, "error pushing changes to rooted repository")
 
-			failedInits = append(failedInits, ic)
+				failedInits = append(failedInits, ic)
+				if err := lock.Unlock(); err != nil {
+					logger.Errorf(err, "failed to release lock")
+				}
+				return
+			}
+
+			logger.Debugf("push changes to rooted repository finished")
+			logger.Debugf("update repository references started")
+			r.References = updateRepositoryReferences(r.References, cs, ic)
+			for _, ref := range r.References {
+				ref.Repository = r
+			}
+
+			if err := a.Store.UpdateFetched(r, *now); err != nil {
+				err = ErrPushToRootedRepository.Wrap(err, ic.String())
+				logger.Errorf(err, "error updating repository in database")
+				failedInits = append(failedInits, ic)
+			}
+
+			logger.Debugf("update repository references finished")
+
+			select {
+			case <-ch:
+				logger.Errorf(err, "lost the lock")
+			default:
+			}
+
 			if err := lock.Unlock(); err != nil {
 				logger.Errorf(err, "failed to release lock")
 			}
+		}(ic, cs)
+
+		select {
+		case <-done:
+		case <-sessionDone:
+			cancel()
+			<-done
 			continue
 		}
 
-		logger.Debugf("push changes to rooted repository finished")
-		logger.Debugf("update repository references started")
-		r.References = updateRepositoryReferences(r.References, cs, ic)
-		for _, ref := range r.References {
-			ref.Repository = r
-		}
-
-		if err := a.Store.UpdateFetched(r, *now); err != nil {
-			err = ErrPushToRootedRepository.Wrap(err, ic.String())
-			logger.Errorf(err, "error updating repository in database")
-			failedInits = append(failedInits, ic)
-		}
-
-		logger.Debugf("update repository references finished")
-
-		select {
-		case <-ch:
-			logger.Errorf(err, "lost the lock")
-		default:
-		}
-
-		if err := lock.Unlock(); err != nil {
-			logger.Errorf(err, "failed to release lock")
-		}
+		cancel()
 	}
 
 	if len(changes) == 0 {
