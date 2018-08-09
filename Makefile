@@ -1,7 +1,6 @@
 # Package configuration
 PROJECT = borges
 COMMANDS = cli/borges
-GOFLAGS = -tags norwfs
 
 DOCKER_REGISTRY = quay.io
 DOCKER_ORG = srcd
