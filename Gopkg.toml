@@ -19,6 +19,7 @@
 [[constraint]]
   name = "gopkg.in/src-d/go-billy.v4"
   source = "https://github.com/src-d/go-billy.git"
+  version = "4.2.0"
 
 [[constraint]]
   name = "gopkg.in/src-d/go-git-fixtures.v3"
@@ -27,7 +28,7 @@
 [[constraint]]
   name = "gopkg.in/src-d/go-git.v4"
   source = "https://github.com/src-d/go-git.git"
-  version = "4.4.1"
+  version = "4.5.0"
 
 [[constraint]]
   name = "gopkg.in/src-d/go-kallax.v1"
@@ -36,6 +37,11 @@
 [[constraint]]
   name = "gopkg.in/src-d/go-queue.v1"
   version = "~1.0.2"
+
+[[override]]
+  name = "gopkg.in/src-d/go-billy-siva.v4"
+  source = "https://github.com/src-d/go-billy-siva"
+  revision = "cd8ce6d3364eb9355e1f63649174b26901fb43c4"
 
 [prune]
   unused-packages = true

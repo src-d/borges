@@ -24,6 +24,10 @@ var (
 	ErrWriteOnlyFile            = errors.New("file is write-only")
 )
 
+const sivaCapabilities = billy.ReadCapability |
+	billy.WriteCapability |
+	billy.SeekCapability
+
 type SivaSync interface {
 	// Sync closes any open files, this method should be called at the end of
 	// program to ensure that all the files are properly closed, otherwise the
@@ -48,6 +52,7 @@ type sivaFS struct {
 	path       string
 	f          billy.File
 	rw         *siva.ReadWriter
+	index      siva.Index
 
 	fileWriteModeOpen bool
 }
@@ -210,6 +215,9 @@ func (fs *sivaFS) Remove(path string) error {
 	e := index.Find(path)
 
 	if e != nil {
+		// delete index cache on modification
+		fs.index = nil
+
 		return fs.rw.WriteHeader(&siva.Header{
 			Name:    path,
 			ModTime: time.Now(),
@@ -241,6 +249,11 @@ func (fs *sivaFS) Rename(from, to string) error {
 
 func (fs *sivaFS) Sync() error {
 	return fs.ensureClosed()
+}
+
+// Capability implements billy.Capable interface.
+func (fs *sivaFS) Capabilities() billy.Capability {
+	return sivaCapabilities
 }
 
 func (fs *sivaFS) ensureOpen() error {
@@ -291,6 +304,9 @@ func (fs *sivaFS) createFile(path string, flag int, mode os.FileMode) (billy.Fil
 		ModTime: time.Now(),
 	}
 
+	// delete index cache on modification
+	fs.index = nil
+
 	if err := fs.rw.WriteHeader(header); err != nil {
 		return nil, err
 	}
@@ -335,12 +351,19 @@ func (fs *sivaFS) openFile(path string, flag int, mode os.FileMode) (billy.File,
 }
 
 func (fs *sivaFS) getIndex() (siva.Index, error) {
+	// return cached index
+	if fs.index != nil {
+		return fs.index, nil
+	}
+
 	index, err := fs.rw.Index()
 	if err != nil {
 		return nil, err
 	}
 
-	return index.Filter(), nil
+	fs.index = index.Filter()
+
+	return fs.index, nil
 }
 
 func listFiles(index siva.Index, dir string) ([]os.FileInfo, error) {
@@ -361,10 +384,16 @@ func listFiles(index siva.Index, dir string) ([]os.FileInfo, error) {
 
 func getDir(index siva.Index, dir string) (os.FileInfo, error) {
 	dir = addTrailingSlash(dir)
+	lenDir := len(dir)
 
-	entries, err := index.Glob(path.Join(dir, "*"))
-	if err != nil {
-		return nil, err
+	entries := make([]*siva.IndexEntry, 0)
+
+	for _, e := range index {
+		if len(e.Name) > lenDir {
+			if e.Name[:lenDir] == dir {
+				entries = append(entries, e)
+			}
+		}
 	}
 
 	if len(entries) == 0 {
@@ -386,6 +415,7 @@ func listDirs(index siva.Index, dir string) ([]os.FileInfo, error) {
 
 	depth := strings.Count(dir, "/")
 	dirs := map[string]time.Time{}
+	dirOrder := make([]string, 0)
 	for _, e := range index {
 		if !strings.HasPrefix(e.Name, dir) {
 			continue
@@ -400,12 +430,15 @@ func listDirs(index siva.Index, dir string) ([]os.FileInfo, error) {
 		oldDir, ok := dirs[dir]
 		if !ok || oldDir.Before(e.ModTime) {
 			dirs[dir] = e.ModTime
+			if !ok {
+				dirOrder = append(dirOrder, dir)
+			}
 		}
 	}
 
 	contents := []os.FileInfo{}
-	for dir, mt := range dirs {
-		contents = append(contents, newDirFileInfo(dir, mt))
+	for _, dir := range dirOrder {
+		contents = append(contents, newDirFileInfo(dir, dirs[dir]))
 	}
 
 	return contents, nil
@@ -445,6 +478,11 @@ type temp struct {
 	SivaSync
 
 	defaultDir string
+}
+
+// Capability implements billy.Capable interface.
+func (h *temp) Capabilities() billy.Capability {
+	return sivaCapabilities
 }
 
 func (h *temp) TempFile(dir, prefix string) (billy.File, error) {

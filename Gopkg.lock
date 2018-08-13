@@ -494,15 +494,15 @@
   source = "https://github.com/src-d/framework.git"
 
 [[projects]]
-  digest = "1:2cf8fb51ad71dc99886293996090749baa0fcf6105b7fa7056a3ee524e86c5ef"
+  digest = "1:c057dcdb0f2891f49cc48a6faa3d39efee510b040c6aaa6341e71a79a759ea12"
   name = "gopkg.in/src-d/go-billy-siva.v4"
   packages = ["."]
   pruneopts = "UT"
-  revision = "593006c4c2ffd1bbf7b54f4a9cd2beb00c68054c"
-  version = "v4.1.0"
+  revision = "cd8ce6d3364eb9355e1f63649174b26901fb43c4"
+  source = "https://github.com/src-d/go-billy-siva"
 
 [[projects]]
-  digest = "1:69ca364f3e0125c73b02b65607a9cc2044f7cd37ea852da7f4ea7adeee6644ef"
+  digest = "1:38a7affd09d9ae9111aa4e4406216b27ead3c798d38e11572757d7f37b92e631"
   name = "gopkg.in/src-d/go-billy.v4"
   packages = [
     ".",
@@ -514,9 +514,9 @@
     "util",
   ]
   pruneopts = "UT"
-  revision = "df053870ae7070b0350624ba5a22161ba3796cc0"
+  revision = "83cf655d40b15b427014d7875d10850f96edba14"
   source = "https://github.com/src-d/go-billy.git"
-  version = "v4.1.1"
+  version = "v4.2.0"
 
 [[projects]]
   digest = "1:2d25bb0c1949e33cd719974f48ccd93e8b4f859417d1c7a69fee437c141cf01f"
@@ -543,7 +543,7 @@
   version = "v3.1.0"
 
 [[projects]]
-  digest = "1:20657b3b444ad2f2ef4a820f47acfdafaf352cf42707066c0242047689f2bc7c"
+  digest = "1:e0fabac30ae26530d84ebaefd95c62cbd280bb4176734913852cb1938bcc8610"
   name = "gopkg.in/src-d/go-git.v4"
   packages = [
     ".",
@@ -588,9 +588,9 @@
     "utils/merkletrie/noder",
   ]
   pruneopts = "UT"
-  revision = "b23570073eaee3489e5e3d666f22ba5cbeb53243"
+  revision = "3bd5e82b2512d85becae9677fa06b5a973fd4cfb"
   source = "https://github.com/src-d/go-git.git"
-  version = "v4.4.1"
+  version = "v4.5.0"
 
 [[projects]]
   digest = "1:14b7aed41e3af4188cba97fa03d01cedc15c5a4c1aff19ef72def0baed5b8b73"
