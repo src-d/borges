@@ -232,6 +232,17 @@ func (f *ChangesFixture) setReferences(r *git.Repository, refs []*model.Referenc
 		return err
 	}
 
+	// If there is no explicit HEAD, set it to the first reference.
+	// This will avoid errors on missing HEAD, since borges expects HEAD to
+	// exist.
+	if _, err := r.Storer.Reference(plumbing.HEAD); err != nil {
+		err := r.Storer.SetReference(plumbing.NewSymbolicReference(
+			plumbing.HEAD, plumbing.ReferenceName(refs[0].Name)))
+		if err != nil {
+			return err
+		}
+	}
+
 	for _, ref := range refs {
 		if err := r.Storer.SetReference(ref.GitReference()); err != nil {
 			return err

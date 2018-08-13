@@ -280,7 +280,6 @@ func checkReferences(t *testing.T, obtained *git.Repository, refs []*model.Refer
 
 func checkReferencesInDB(t *testing.T, obtained *model.Repository, refs []*model.Reference) {
 	require := require.New(t)
-	require.Equal(len(refs), len(obtained.References))
 	obtainedRefs := modelToMemRefs(t, obtained.References)
 	expectedRefs := modelToMemRefs(t, refs)
 	require.Equal(expectedRefs, obtainedRefs)
@@ -290,6 +289,11 @@ func modelToMemRefs(t *testing.T, refs []*model.Reference) memory.ReferenceStora
 	require := require.New(t)
 	m := memory.ReferenceStorage{}
 	for _, ref := range refs {
+		// skip HEAD, since we added it for avoiding go-git errors
+		if ref.Name == "refs/heads/HEAD" {
+			continue
+		}
+
 		err := m.SetReference(ref.GitReference())
 		require.NoError(err)
 	}
