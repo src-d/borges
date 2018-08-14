@@ -203,13 +203,8 @@ Now, you can start the borges consumer, the component that will be listening for
 
 ```
 docker run --name borges_consumer --link rabbitmq --link postgres \
-        -v /path/to/store/repos/locally:/borges/root-repositories \
-        -e CONFIG_DBUSER=testing -e CONFIG_DBPASS=testing \
-        -e CONFIG_DBHOST=postgres -e CONFIG_DBNAME=testing \
-        -e CONFIG_BROKER=amqp://guest:guest@rabbitmq:5672/ \
-        -e CONFIG_ROOT_REPOSITORIES_DIR=/borges/root-repositories \
-        -e LOG_LEVEL=debug \
-        quay.io/srcd/borges /bin/sh -c "borges init; borges consumer --workers=8"
+        -v /path/to/store/repos/locally:/var/root-repositories \
+        quay.io/srcd/borges /bin/sh -c "borges init; borges consumer --workers=1"
 ```
 
 Be sure to replace `/path/to/store/repos/locally` with the path on your hard drive where you want your root repositories (as siva files) stored.
@@ -218,10 +213,6 @@ Finally, you need to send jobs to the borges consumer using the borges producer.
 
 ```
 docker run --name borges_consumer --link rabbitmq --link postgres \
-        -e CONFIG_DBUSER=testing -e CONFIG_DBPASS=testing \
-        -e CONFIG_DBHOST=postgres -e CONFIG_DBNAME=testing \
-        -e CONFIG_BROKER=amqp://guest:guest@rabbitmq:5672/ \
-        -e LOG_LEVEL=debug \
         quay.io/srcd/borges borges producer mentions
 ```
 
@@ -230,14 +221,12 @@ However, you can also process just a specific list of repositories without havin
 ```
 docker run --name borges_consumer_file --link rabbitmq --link postgres \
         -e $(pwd):/opt/borges
-        -e CONFIG_DBUSER=testing -e CONFIG_DBPASS=testing \
-        -e CONFIG_DBHOST=postgres -e CONFIG_DBNAME=testing \
-        -e CONFIG_BROKER=amqp://guest:guest@rabbitmq:5672/ \
-        -e LOG_LEVEL=debug \
         quay.io/srcd/borges borges producer file /opt/borges/repos.txt
 ```
 
 Congratulations, now you have a fully working repository processing pipeline!
+
+**Note:** remember you can configure borges using environment variables as described in previous sections by using the `-e` flag of docker, e.g `-e CONFIG_DBHOST=foo`.
 
 # Running Borges in Kubernetes
 
