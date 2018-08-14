@@ -18,7 +18,7 @@
   revision = "9c5fe88206d7765837fed3732a42ef88fc51f1a1"
 
 [[projects]]
-  digest = "1:44ecffb9f46858b6443a02b58580e96d83181219dfb755c621e7456789936326"
+  digest = "1:1bffef4deb3058063b9e45ef71c4bf9c73f240e44344e6758da35ac74a2c18d3"
   name = "github.com/colinmarc/hdfs"
   packages = [
     ".",
@@ -31,7 +31,7 @@
   version = "v1.1.0"
 
 [[projects]]
-  digest = "1:2b0882806b67cfe73eb4220cd85e03c7a4a0c765ba43d1681bd7e2ea9a3875b4"
+  digest = "1:feaac257f82e79b460021e5381f5dd8c82dfc5fb1ad4663347a369074d62573a"
   name = "github.com/coreos/etcd"
   packages = [
     "auth/authpb",
@@ -55,7 +55,7 @@
   version = "v1.1.0"
 
 [[projects]]
-  digest = "1:0417f48517eafe384b94fd38238b699c3714b5f12554e8a212446d58b024d2a2"
+  digest = "1:de4a74b504df31145ffa8ca0c4edbffa2f3eb7f466753962184611b618fa5981"
   name = "github.com/emirpasic/gods"
   packages = [
     "containers",
@@ -78,7 +78,7 @@
   version = "v1.7.0"
 
 [[projects]]
-  digest = "1:1c7ee3db39572e69b6b0be541ab77891ce4b90d03c7cb1817885ecbdebb276f7"
+  digest = "1:8f13f978d35181fada0ea713c14a224f2b329fa91c13438b2811331ecd8b16e1"
   name = "github.com/gogo/protobuf"
   packages = [
     "gogoproto",
@@ -90,7 +90,7 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:cb22af0ed7c72d495d8be1106233ee553898950f15fd3f5404406d44c2e86888"
+  digest = "1:17fe264ee908afc795734e8c4e63db2accabaf57326dbf21763a7d6b86096260"
   name = "github.com/golang/protobuf"
   packages = [
     "proto",
@@ -161,7 +161,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:81a86a5e3dff6f6785c080d57c5c5f225a3dc5ff0e392ccba4f7bd0dab5b5299"
+  digest = "1:1e537dfb7b4d543e25efa2c812084dd65736f8010979c1b7e167a5b876563199"
   name = "github.com/lib/pq"
   packages = [
     ".",
@@ -267,7 +267,7 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:e757a42ef7cb21b4cfa0ca29a2ed8009944ef017cd9b1d4ac3998ce803dd5e8d"
+  digest = "1:3681df693b35e7df9937dbd54b9f179aee5b54f4a28f72ad191e87038e6ffcab"
   name = "github.com/src-d/gcfg"
   packages = [
     ".",
@@ -288,7 +288,7 @@
   revision = "8e4aba63da9fc5571e01c6a45dc809a58cbc5a68"
 
 [[projects]]
-  digest = "1:a2d9ae08610b8291a6af9dc0eded415ce5859181c7756989c5164195dda46253"
+  digest = "1:c52d48fe752736ae45b72959e1e4fc1a5b60d5b56f8fad42c58414daab5f309d"
   name = "github.com/stretchr/testify"
   packages = [
     "assert",
@@ -317,7 +317,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:10e86c6452453fb0b68c3ab5f6eacabd29dea90aeae87ebbb876c6bfc22df905"
+  digest = "1:19e1d54d606ac95f91a37079b677a7dc5aafe47e525dd0845db528a2e163f400"
   name = "golang.org/x/crypto"
   packages = [
     "cast5",
@@ -342,7 +342,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:a53a9c6ef5dfab06ebd56728a6f80ff905b0bde97f150f86012cdbc4926aa77e"
+  digest = "1:49131f79ef90ca701638024267ba6e3b5cd0ce387e0b3ec79961a42430873db9"
   name = "golang.org/x/net"
   packages = [
     "context",
@@ -358,7 +358,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:9f14317f6f15863d0342b7d6835513920bb44fc2c6932ed9cc4f3810c3932cbb"
+  digest = "1:105645ed366a17f9ed1007059f0d3506e73e2098f2a1e793ffa92917d6461060"
   name = "golang.org/x/sys"
   packages = [
     "unix",
@@ -368,7 +368,7 @@
   revision = "7c87d13f8e835d2fb3a70a2912c811ed0c1d241b"
 
 [[projects]]
-  digest = "1:7509ba4347d1f8de6ae9be8818b0cd1abc3deeffe28aeaf4be6d4b6b5178d9ca"
+  digest = "1:a2ab62866c75542dd18d2b069fec854577a20211d7c0ea6ae746072a1dccdd18"
   name = "golang.org/x/text"
   packages = [
     "collate",
@@ -391,7 +391,7 @@
   version = "v0.3.0"
 
 [[projects]]
-  digest = "1:32092ea77970acb1ba70c18653e50cfc9e628e29e5e59574d45954ad843348b3"
+  digest = "1:59f595bc6a0e6733123a830095350106302b958653b1834baf4277e57923a0d3"
   name = "google.golang.org/appengine"
   packages = [
     ".",
@@ -417,7 +417,7 @@
   revision = "7bb2a897381c9c5ab2aeb8614f758d7766af68ff"
 
 [[projects]]
-  digest = "1:e43157d6b6989505d1c8a29335fc5622ee5e82c3741f5e691f0e188cd8a67d18"
+  digest = "1:589c6e40a1002d6c796e48e7228a561791d3f3082645ea6663ad5e3437a32856"
   name = "google.golang.org/grpc"
   packages = [
     ".",
@@ -467,7 +467,7 @@
   version = "v2.13"
 
 [[projects]]
-  digest = "1:49f37d28dab294def334a5956bae7b59ff29215c269357021dc08ec00c39a9a2"
+  digest = "1:f735d431ead3fb571082d3738528532d65edcfc0e6223751dbb564cca03f39f5"
   name = "gopkg.in/src-d/core-retrieval.v0"
   packages = [
     ".",
@@ -481,7 +481,7 @@
   source = "https://github.com/src-d/core-retrieval.git"
 
 [[projects]]
-  digest = "1:82226b142f186cf958bf318ddddbc54bf6f5287958037a71d0cc331a34603211"
+  digest = "1:7a1956fbe61a901d5a7158a12e2b9c7064789c171cf8af18438fca19f43b4751"
   name = "gopkg.in/src-d/framework.v0"
   packages = [
     "configurable",
@@ -502,7 +502,7 @@
   version = "v4.1.0"
 
 [[projects]]
-  digest = "1:d8055485e06c34b6e5950f46554281b18e4047971a174138e701ced71adf74be"
+  digest = "1:69ca364f3e0125c73b02b65607a9cc2044f7cd37ea852da7f4ea7adeee6644ef"
   name = "gopkg.in/src-d/go-billy.v4"
   packages = [
     ".",
@@ -535,7 +535,7 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:8a035ae4d550a977228d96eea1806b9e81ba13e38b23061c3fe6ba1211049cc5"
+  digest = "1:251a6672526e992d31a9db679a7aa0a2d19b96f95af3417d237d65135ccd0fef"
   name = "gopkg.in/src-d/go-git-fixtures.v3"
   packages = ["."]
   pruneopts = "T"
@@ -543,7 +543,7 @@
   version = "v3.1.0"
 
 [[projects]]
-  digest = "1:a05edfee51cda6fefc33f5816afa99a178d4b8f58759e2c314bdcbf21b46dc80"
+  digest = "1:20657b3b444ad2f2ef4a820f47acfdafaf352cf42707066c0242047689f2bc7c"
   name = "gopkg.in/src-d/go-git.v4"
   packages = [
     ".",
@@ -612,7 +612,7 @@
   version = "v1.0.1"
 
 [[projects]]
-  digest = "1:95c5e7079780dad51eeea6dc82d20b3368fc4077c26e893fffe76d3b52159f1b"
+  digest = "1:3be17174dc9d8ea716d763f20eb160171f179469b51f1a8f5eb00ef2c0b04ab5"
   name = "gopkg.in/src-d/go-queue.v1"
   packages = [
     ".",
@@ -632,7 +632,7 @@
   version = "v1.1.3"
 
 [[projects]]
-  digest = "1:8ad92609b5d7e609c766100b5c38392891f09f852d3cb162eb9845e1d7532f20"
+  digest = "1:a7438a3f7f92a25e8fb1d67de9ff4fc3355b86249999bf131092b76823db13e6"
   name = "gopkg.in/vmihailenco/msgpack.v2"
   packages = [
     ".",
