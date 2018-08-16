@@ -212,14 +212,14 @@ Be sure to replace `/path/to/store/repos/locally` with the path on your hard dri
 Finally, you need to send jobs to the borges consumer using the borges producer. If you have [rovers](https://github.com/src-d/rovers) setup already, you may want to use the rovers' mentions as the source.
 
 ```
-docker run --name borges_consumer --link rabbitmq --link postgres \
+docker run --name borges_producer --link rabbitmq --link postgres \
         quay.io/srcd/borges borges producer mentions
 ```
 
 However, you can also process just a specific list of repositories without having to setup rovers on your own. Write the repository URLs in a file, one repository per line and feed it to the borges producer with the `file` source. (This example assumes you have a `repos.txt` in the current directory).
 
 ```
-docker run --name borges_consumer_file --link rabbitmq --link postgres \
+docker run --name borges_producer_file --link rabbitmq --link postgres \
         -e $(pwd):/opt/borges
         quay.io/srcd/borges borges producer file /opt/borges/repos.txt
 ```
