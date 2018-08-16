@@ -2,6 +2,7 @@
 PROJECT = borges
 COMMANDS = cli/borges
 
+GO_BUILD_ENV = CGO_ENABLED=0
 GO_TAGS = norwfs
 
 # Including ci Makefile
