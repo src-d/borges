@@ -126,9 +126,9 @@ To launch a consumer instance from the command line with default configuration:
 
     borges consumer
 
-You can select the number of workers to use, by default it uses 8:
+You can select the number of workers to use, by default it uses 1:
 
-    borges consumer --workers=20
+    borges consumer --workers=4
 
 A command you could use to run it could be:
 
@@ -136,7 +136,7 @@ A command you could use to run it could be:
 $ CONFIG_TEMP_DIR="/borges/tmp"  \
 CONFIG_ROOT_REPOSITORIES_DIR="/borges/root-repositories"  \
 LOG_LEVEL=debug \
-borges consumer --workers=20
+borges consumer --workers=4
 ```
 
 For more details, use `borges consumer -h`

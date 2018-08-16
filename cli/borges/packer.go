@@ -34,7 +34,7 @@ type packerCmd struct {
 	File      string `long:"file" short:"f" required:"true" description:"file with the repositories to pack (one per line)"`
 	OutputDir string `long:"to" default:"repositories" description:"path to store the packed siva files"`
 	Timeout   string `long:"timeout" default:"30m" description:"time to wait to consider a job failed"`
-	Workers   int    `long:"workers" default:"0" description:"number of workers to use, defaults to number of available processors"`
+	Workers   int    `long:"workers" default:"1" description:"number of workers to use, 0 means the same number as processors"`
 }
 
 func (c *packerCmd) Execute(args []string) error {
