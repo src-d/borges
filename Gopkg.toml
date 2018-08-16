@@ -28,7 +28,7 @@
 [[constraint]]
   name = "gopkg.in/src-d/go-git.v4"
   source = "https://github.com/src-d/go-git.git"
-  version = "4.5.0"
+  revision = "43d17e14b714665ab5bc2ecc220b6740779d733f"
 
 [[constraint]]
   name = "gopkg.in/src-d/go-kallax.v1"
@@ -40,8 +40,7 @@
 
 [[override]]
   name = "gopkg.in/src-d/go-billy-siva.v4"
-  source = "https://github.com/src-d/go-billy-siva"
-  revision = "cd8ce6d3364eb9355e1f63649174b26901fb43c4"
+  version = "4.2.1"
 
 [prune]
   unused-packages = true
