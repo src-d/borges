@@ -33,6 +33,7 @@ before_deploy:
   - make packages
 
 deploy:
+  go: 1.10.x
   provider: releases
   api_key: $GITHUB_TOKEN
   file_glob: true
