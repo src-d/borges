@@ -1,7 +1,6 @@
 language: go
 
 go:
-  - 1.9.x
   - 1.10.x
   - tip
 
@@ -34,6 +33,7 @@ before_deploy:
   - make packages
 
 deploy:
+  go: 1.10.x
   provider: releases
   api_key: $GITHUB_TOKEN
   file_glob: true
