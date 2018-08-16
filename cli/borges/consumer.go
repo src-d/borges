@@ -31,7 +31,7 @@ var consumerCommand = &consumerCmd{command: newCommand(
 type consumerCmd struct {
 	command
 	Locking string `long:"locking" env:"CONFIG_LOCKING" default:"local:" description:"locking service configuration"`
-	Workers int    `long:"workers" default:"8" description:"number of workers"`
+	Workers int    `long:"workers" default:"1" description:"number of workers"`
 	Timeout string `long:"timeout" default:"10h" description:"deadline to process a job"`
 }
 
