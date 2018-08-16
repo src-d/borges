@@ -98,25 +98,34 @@ func newBackoff() *backoff.Backoff {
 
 // Do archives a repository according to a job.
 func (a *Archiver) Do(ctx context.Context, j *Job) error {
-	log := log.New(log.Fields{"job": j.RepositoryID})
-	log.Debugf("job started")
-	if err := a.do(ctx, log, j); err != nil {
-		log.Errorf(err, "job finished with error")
+	logger := log.New(log.Fields{"job": j.RepositoryID})
+	logger.Debugf("job started")
+
+	endpoint, err := a.do(ctx, logger, j)
+	if endpoint != "" {
+		logger = logger.New(log.Fields{"endpoint": endpoint})
+	}
+	if err != nil {
+		logger.Errorf(err, "job finished with error")
 		return err
 	}
 
-	log.Infof("job finished successfully")
+	logger.Infof("job finished successfully")
 	return nil
 }
 
-func (a *Archiver) do(ctx context.Context, logger log.Logger, j *Job) (err error) {
+func (a *Archiver) do(
+	ctx context.Context,
+	logger log.Logger,
+	j *Job,
+) (endpoint string, err error) {
 	now := time.Now()
 	ctx, cancel := context.WithTimeout(ctx, a.Timeout)
 	defer cancel()
 
 	r, err := a.getRepositoryModel(j)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	defer a.reportMetrics(r, now)
@@ -129,30 +138,33 @@ func (a *Archiver) do(ctx context.Context, logger log.Logger, j *Job) (err error
 		"status":     r.Status,
 		"last-fetch": r.FetchedAt,
 		"references": len(r.References),
+		"endpoints":  r.Endpoints,
 	}).Debugf("repository model obtained")
 
 	if err := a.isProcessableRepository(r, &now); err != nil {
-		return ErrCannotProcessRepository.Wrap(err)
+		return "", ErrCannotProcessRepository.Wrap(err)
 	}
 
 	if err := a.Store.SetStatus(r, model.Fetching); err != nil {
-		return ErrSetStatus.Wrap(err, model.Fetching)
+		return "", ErrSetStatus.Wrap(err, model.Fetching)
 	}
 
-	endpoint, err := selectEndpoint(r.Endpoints)
+	endpoint, err = selectEndpoint(r.Endpoints)
 	if err != nil {
 		a.updateFailed(r, model.Pending)
-		return err
+		return endpoint, err
 	}
 
 	logger = logger.New(log.Fields{"endpoint": endpoint})
+	logger.Infof("clone started")
+
 	gr, err := a.doClone(ctx, logger, &now, j, r, endpoint)
 	if err != nil {
-		return err
+		return endpoint, err
 	}
 
 	if gr == nil {
-		return nil
+		return endpoint, nil
 	}
 
 	log.Debugf("remote repository cloned")
@@ -162,10 +174,10 @@ func (a *Archiver) do(ctx context.Context, logger log.Logger, j *Job) (err error
 			logger.Errorf(err, StrRemoveTmpFiles)
 		}
 
-		return err
+		return endpoint, err
 	}
 
-	return gr.Close()
+	return endpoint, gr.Close()
 }
 
 func (a *Archiver) doClone(
