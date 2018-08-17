@@ -186,7 +186,7 @@ func (s *etcdSess) Close() error {
 }
 
 func (s *etcdSess) Done() <-chan struct{} {
-	return s.Done()
+	return s.session.Done()
 }
 
 type etcdLock struct {
