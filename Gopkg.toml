@@ -28,7 +28,7 @@
 [[constraint]]
   name = "gopkg.in/src-d/go-git.v4"
   source = "https://github.com/src-d/go-git.git"
-  revision = "43d17e14b714665ab5bc2ecc220b6740779d733f"
+  revision = "005d5dc961a7053d88da53536f4a5eb4c305529b"
 
 [[constraint]]
   name = "gopkg.in/src-d/go-kallax.v1"
