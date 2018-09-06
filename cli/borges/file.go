@@ -5,14 +5,12 @@ import (
 
 	"github.com/src-d/borges"
 	"github.com/src-d/borges/storage"
-
-	"gopkg.in/src-d/core-retrieval.v0"
 )
 
 const (
 	fileCmdName      = "file"
 	fileCmdShortDesc = "produce jobs from file"
-	fileCmdLongDesc  = ""
+	fileCmdLongDesc  = "This producer reads from a file one repository URL per line, generates a job and queues it."
 )
 
 // fileCommand is a producer subcommand.
@@ -29,7 +27,7 @@ type fileCmd struct {
 }
 
 type filePositionalArgs struct {
-	File string `positional-arg-name:"path"`
+	File string `positional-arg-name:"path" description:"file with repositories to pack, one per line"`
 }
 
 func (c *fileCmd) Execute(args []string) error {
@@ -42,7 +40,12 @@ func (c *fileCmd) Execute(args []string) error {
 }
 
 func (c *fileCmd) jobIter() (borges.JobIter, error) {
-	storer := storage.FromDatabase(core.Database())
+	db, err := c.openDatabase()
+	if err != nil {
+		return nil, err
+	}
+
+	storer := storage.FromDatabase(db)
 	f, err := os.Open(c.File)
 	if err != nil {
 		return nil, err

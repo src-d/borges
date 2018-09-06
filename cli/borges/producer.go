@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"strconv"
 	"strings"
@@ -31,11 +32,14 @@ type producerCmd struct {
 
 type producerSubcmd struct {
 	command
-	broker queue.Broker
-	queue  queue.Queue
+	databaseOpts
 
-	Priority    uint8 `long:"priority" default:"4" description:"priority used to enqueue jobs, goes from 0 (lowest) to :MAX: (highest)"`
-	JobsRetries int   `long:"job-retries" default:"5" description:"number of times a falied job should be processed again before reject it"`
+	database *sql.DB
+	broker   queue.Broker
+	queue    queue.Queue
+
+	QueuePriority uint8 `long:"queue-priority" env:"BORGES_QUEUE_PRIORITY" default:"4" description:"priority used to enqueue jobs, goes from 0 (lowest) to :MAX: (highest)"`
+	JobsRetries   int   `long:"job-retries" env:"BORGES_JOB_RETRIES" default:"5" description:"number of times a falied job should be processed again before reject it"`
 }
 
 func newProducerSubcmd(name, short, long string) producerSubcmd {
@@ -49,7 +53,7 @@ func newProducerSubcmd(name, short, long string) producerSubcmd {
 func (c *producerSubcmd) init() error {
 	c.command.init()
 
-	err := checkPriority(c.Priority)
+	err := checkPriority(c.QueuePriority)
 	if err != nil {
 		return err
 	}
@@ -60,6 +64,11 @@ func (c *producerSubcmd) init() error {
 	}
 
 	c.queue, err = c.broker.Queue(c.Queue)
+	if err != nil {
+		return err
+	}
+
+	c.database, err = c.openDatabase()
 	if err != nil {
 		return err
 	}
@@ -76,7 +85,7 @@ func (c *producerSubcmd) generateJobs(getIter getIterFunc) error {
 	}
 	defer ioutil.CheckClose(ji, &err)
 
-	p := borges.NewProducer(ji, c.queue, queue.Priority(c.Priority), c.JobsRetries)
+	p := borges.NewProducer(ji, c.queue, queue.Priority(c.QueuePriority), c.JobsRetries)
 
 	p.Start()
 

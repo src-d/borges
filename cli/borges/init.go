@@ -4,14 +4,13 @@ import (
 	"fmt"
 
 	"gopkg.in/src-d/core-retrieval.v0/schema"
-	"gopkg.in/src-d/framework.v0/database"
 	"gopkg.in/src-d/go-log.v1"
 )
 
 const (
 	initCmdName      = "init"
 	initCmdShortDesc = "initialize the database schema"
-	initCmdLongDesc  = ""
+	initCmdLongDesc  = "Connects to the database and initializes the schema."
 )
 
 var initCommand = &initCmd{simpleCommand: newSimpleCommand(
@@ -22,10 +21,11 @@ var initCommand = &initCmd{simpleCommand: newSimpleCommand(
 
 type initCmd struct {
 	simpleCommand
+	databaseOpts
 }
 
 func (c *initCmd) Execute(args []string) error {
-	db, err := database.Default()
+	db, err := c.openDatabase()
 	if err != nil {
 		return fmt.Errorf("unable to get database: %s", err)
 	}
