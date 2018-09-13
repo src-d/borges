@@ -4,28 +4,21 @@ import (
 	"fmt"
 
 	"gopkg.in/src-d/core-retrieval.v0/schema"
-	"gopkg.in/src-d/framework.v0/database"
+	"gopkg.in/src-d/go-cli.v0"
 	"gopkg.in/src-d/go-log.v1"
 )
 
-const (
-	initCmdName      = "init"
-	initCmdShortDesc = "initialize the database schema"
-	initCmdLongDesc  = ""
-)
-
-var initCommand = &initCmd{simpleCommand: newSimpleCommand(
-	initCmdName,
-	initCmdShortDesc,
-	initCmdLongDesc,
-)}
+func init() {
+	app.AddCommand(&initCmd{})
+}
 
 type initCmd struct {
-	simpleCommand
+	cli.Command `name:"init" short-description:"initialize the database schema" long-description:"Connects to the database and initializes the schema."`
+	databaseOpts
 }
 
 func (c *initCmd) Execute(args []string) error {
-	db, err := database.Default()
+	db, err := c.openDatabase()
 	if err != nil {
 		return fmt.Errorf("unable to get database: %s", err)
 	}
@@ -36,16 +29,4 @@ func (c *initCmd) Execute(args []string) error {
 
 	log.Infof("database was successfully initialized")
 	return nil
-}
-
-func init() {
-	_, err := parser.AddCommand(
-		initCommand.Name(),
-		initCommand.ShortDescription(),
-		initCommand.LongDescription(),
-		initCommand)
-
-	if err != nil {
-		panic(err)
-	}
 }

@@ -4,31 +4,24 @@ import (
 	"github.com/src-d/borges"
 	"github.com/src-d/borges/storage"
 
-	"gopkg.in/src-d/core-retrieval.v0"
+	"gopkg.in/src-d/go-cli.v0"
 )
 
-const (
-	mentionsCmdName      = "mentions"
-	mentionsCmdShortDesc = "produce jobs from mentions"
-	mentionsCmdLongDesc  = ""
-)
-
-var mentionsCommand = &mentionsCmd{producerSubcmd: newProducerSubcmd(
-	mentionsCmdName,
-	mentionsCmdShortDesc,
-	mentionsCmdLongDesc,
-)}
+func init() {
+	producerCommandAdder.AddCommand(&mentionsCmd{}, setPrioritySettings)
+}
 
 // mentionsCommand is a producer subcommand.
 type mentionsCmd struct {
-	producerSubcmd
+	cli.Command `name:"mentions" short-description:"produce jobs from mentions" long-description:"This producer reads from a queue with repository mentions. Mentions can be generated with the rovers project. For each one of them, it generates a job and queues it."`
+	producerOpts
 
-	MentionsQueue   string `long:"mentions-queue" default:"rovers" description:"queue name used to obtain mentions if the source type is 'mentions'"`
-	RepublishBuried bool   `long:"republish-buried" description:"republishes again all buried jobs before starting to listen for mentions, used with --source=mentions"`
+	QueueMentions   string `long:"queue-mentions" env:"BORGES_QUEUE_MENTIONS" default:"rovers" description:"queue name used to obtain mentions if the source type is 'mentions'"`
+	RepublishBuried bool   `long:"republish-buried" env:"BORGES_REPUBLISH_BURIED" description:"republishes again all buried jobs before starting to listen for mentions, used with --source=mentions"`
 }
 
 func (c *mentionsCmd) Execute(args []string) error {
-	if err := c.producerSubcmd.init(); err != nil {
+	if err := c.producerOpts.init(); err != nil {
 		return err
 	}
 	defer c.broker.Close()
@@ -37,8 +30,8 @@ func (c *mentionsCmd) Execute(args []string) error {
 }
 
 func (c *mentionsCmd) jobIter() (borges.JobIter, error) {
-	storer := storage.FromDatabase(core.Database())
-	q, err := c.broker.Queue(c.MentionsQueue)
+	storer := storage.FromDatabase(c.database)
+	q, err := c.broker.Queue(c.QueueMentions)
 	if err != nil {
 		return nil, err
 	}

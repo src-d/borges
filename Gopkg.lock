@@ -70,14 +70,6 @@
   version = "v1.9.0"
 
 [[projects]]
-  digest = "1:c4a2528ccbcabf90f9f3c464a5fc9e302d592861bbfd0b7135a7de8a943d0406"
-  name = "github.com/go-stack/stack"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "259ab82a6cad3992b4e21ff5cac294ccb06474bc"
-  version = "v1.7.0"
-
-[[projects]]
   digest = "1:8f13f978d35181fada0ea713c14a224f2b329fa91c13438b2811331ecd8b16e1"
   name = "github.com/gogo/protobuf"
   packages = [
@@ -459,39 +451,27 @@
   revision = "20d25e2804050c1cd24a7eea1e7a6447dd0e74ec"
 
 [[projects]]
-  digest = "1:dacb152d24b21683403e82e4e397e973cdc218befff03b0eba8f7fbffcef325c"
-  name = "gopkg.in/inconshreveable/log15.v2"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "0decfc6c20d9ca0ad143b0e89dcaa20f810b4fb3"
-  version = "v2.13"
-
-[[projects]]
-  digest = "1:f735d431ead3fb571082d3738528532d65edcfc0e6223751dbb564cca03f39f5"
+  digest = "1:db14b97a08ebfe2c5c29487a66cb815b8db0c2babb9853f695c1450f89692c43"
   name = "gopkg.in/src-d/core-retrieval.v0"
   packages = [
-    ".",
     "model",
     "repository",
     "schema",
     "test",
   ]
   pruneopts = "UT"
-  revision = "66bc47b361f027ec9666d9cffbf2e8acdc6d4f1f"
+  revision = "5252fe35bfba3e0635a06ff5633758b53127c588"
   source = "https://github.com/src-d/core-retrieval.git"
 
 [[projects]]
-  digest = "1:7a1956fbe61a901d5a7158a12e2b9c7064789c171cf8af18438fca19f43b4751"
+  digest = "1:21c039677cb3fb35c18e80941ddf24c2fc64333eef492dc90dc7a022ed835780"
   name = "gopkg.in/src-d/framework.v0"
   packages = [
     "configurable",
     "database",
-    "lock",
-    "queue",
   ]
   pruneopts = "UT"
   revision = "bed6b25004fcbc1b034608f01d478aca4135b865"
-  source = "https://github.com/src-d/framework.git"
 
 [[projects]]
   digest = "1:c057dcdb0f2891f49cc48a6faa3d39efee510b040c6aaa6341e71a79a759ea12"
@@ -517,6 +497,14 @@
   revision = "83cf655d40b15b427014d7875d10850f96edba14"
   source = "https://github.com/src-d/go-billy.git"
   version = "v4.2.0"
+
+[[projects]]
+  branch = "master"
+  digest = "1:e06647f941a9fcafa387ac94bc7fd4d9a6e505fea1bde382364bdd72c83a1900"
+  name = "gopkg.in/src-d/go-cli.v0"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "abb24f09af07b8cf9da4650357895b71e945da50"
 
 [[projects]]
   digest = "1:2d25bb0c1949e33cd719974f48ccd93e8b4f859417d1c7a69fee437c141cf01f"
@@ -657,21 +645,21 @@
     "github.com/coreos/etcd/clientv3/concurrency",
     "github.com/jessevdk/go-flags",
     "github.com/jpillora/backoff",
+    "github.com/lib/pq",
     "github.com/satori/go.uuid",
     "github.com/stretchr/testify/assert",
     "github.com/stretchr/testify/require",
     "github.com/stretchr/testify/suite",
     "golang.org/x/net/context",
-    "gopkg.in/src-d/core-retrieval.v0",
     "gopkg.in/src-d/core-retrieval.v0/model",
     "gopkg.in/src-d/core-retrieval.v0/repository",
     "gopkg.in/src-d/core-retrieval.v0/schema",
     "gopkg.in/src-d/core-retrieval.v0/test",
-    "gopkg.in/src-d/framework.v0/database",
     "gopkg.in/src-d/go-billy.v4",
     "gopkg.in/src-d/go-billy.v4/memfs",
     "gopkg.in/src-d/go-billy.v4/osfs",
     "gopkg.in/src-d/go-billy.v4/util",
+    "gopkg.in/src-d/go-cli.v0",
     "gopkg.in/src-d/go-errors.v1",
     "gopkg.in/src-d/go-git-fixtures.v3",
     "gopkg.in/src-d/go-git.v4",

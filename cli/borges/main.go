@@ -1,9 +1,7 @@
 package main
 
 import (
-	"os"
-
-	"github.com/jessevdk/go-flags"
+	"gopkg.in/src-d/go-cli.v0"
 )
 
 const (
@@ -16,23 +14,8 @@ var (
 	build   string
 )
 
-var parser = flags.NewParser(nil, flags.Default)
-
-func init() {
-	parser.LongDescription = borgesDescription
-}
+var app = cli.New(borgesName, version, build, borgesDescription)
 
 func main() {
-	if _, err := parser.Parse(); err != nil {
-		if err, ok := err.(*flags.Error); ok {
-			if err.Type == flags.ErrHelp {
-				os.Exit(0)
-			}
-
-			parser.WriteHelp(os.Stdout)
-		}
-
-		os.Exit(1)
-	}
-
+	app.RunMain()
 }

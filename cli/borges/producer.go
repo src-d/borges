@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"strconv"
 	"strings"
@@ -8,48 +9,32 @@ import (
 	"github.com/src-d/borges"
 
 	"github.com/jessevdk/go-flags"
+	"gopkg.in/src-d/go-cli.v0"
 	"gopkg.in/src-d/go-git.v4/utils/ioutil"
 	"gopkg.in/src-d/go-queue.v1"
 	_ "gopkg.in/src-d/go-queue.v1/amqp"
 )
 
-const (
-	producerCmdName      = "producer"
-	producerCmdShortDesc = "create new jobs and put them into the queue"
-	producerCmdLongDesc  = ""
-)
-
-var producerCommand = &producerCmd{simpleCommand: newSimpleCommand(
-	producerCmdName,
-	producerCmdShortDesc,
-	producerCmdLongDesc,
-)}
+var producerCommandAdder = app.AddCommand(&producerCmd{})
 
 type producerCmd struct {
-	simpleCommand
+	cli.Command `name:"producer" short-description:"create new jobs and put them into the queue" long-description:""`
 }
 
-type producerSubcmd struct {
-	command
-	broker queue.Broker
-	queue  queue.Queue
+type producerOpts struct {
+	queueOpts
+	databaseOpts
 
-	Priority    uint8 `long:"priority" default:"4" description:"priority used to enqueue jobs, goes from 0 (lowest) to :MAX: (highest)"`
-	JobsRetries int   `long:"job-retries" default:"5" description:"number of times a falied job should be processed again before reject it"`
+	database *sql.DB
+	broker   queue.Broker
+	queue    queue.Queue
+
+	QueuePriority uint8 `long:"queue-priority" env:"BORGES_QUEUE_PRIORITY" default:"4" description:"priority used to enqueue jobs, goes from 0 (lowest) to :MAX: (highest)"`
+	JobsRetries   int   `long:"job-retries" env:"BORGES_JOB_RETRIES" default:"5" description:"number of times a falied job should be processed again before reject it"`
 }
 
-func newProducerSubcmd(name, short, long string) producerSubcmd {
-	return producerSubcmd{command: newCommand(
-		name,
-		short,
-		long,
-	)}
-}
-
-func (c *producerSubcmd) init() error {
-	c.command.init()
-
-	err := checkPriority(c.Priority)
+func (c *producerOpts) init() error {
+	err := checkPriority(c.QueuePriority)
 	if err != nil {
 		return err
 	}
@@ -64,19 +49,24 @@ func (c *producerSubcmd) init() error {
 		return err
 	}
 
+	c.database, err = c.openDatabase()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
 type getIterFunc func() (borges.JobIter, error)
 
-func (c *producerSubcmd) generateJobs(getIter getIterFunc) error {
+func (c *producerOpts) generateJobs(getIter getIterFunc) error {
 	ji, err := getIter()
 	if err != nil {
 		return err
 	}
 	defer ioutil.CheckClose(ji, &err)
 
-	p := borges.NewProducer(ji, c.queue, queue.Priority(c.Priority), c.JobsRetries)
+	p := borges.NewProducer(ji, c.queue, queue.Priority(c.QueuePriority), c.JobsRetries)
 
 	p.Start()
 
@@ -103,37 +93,4 @@ func checkPriority(prio uint8) error {
 	}
 
 	return nil
-}
-
-var producerSubcommands = []ExecutableCommand{
-	mentionsCommand,
-	fileCommand,
-	republishCommand,
-}
-
-func init() {
-	c, err := parser.AddCommand(
-		producerCommand.name,
-		producerCommand.shortDescription,
-		producerCommand.longDescription,
-		producerCommand)
-
-	if err != nil {
-		panic(err)
-	}
-
-	for _, subcommand := range producerSubcommands {
-		s, err := c.AddCommand(
-			subcommand.Name(),
-			subcommand.ShortDescription(),
-			subcommand.LongDescription(),
-			subcommand,
-		)
-
-		if err != nil {
-			panic(err)
-		}
-
-		setPrioritySettings(s)
-	}
 }

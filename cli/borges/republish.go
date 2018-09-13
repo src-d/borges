@@ -5,41 +5,34 @@ import (
 
 	"github.com/src-d/borges"
 
+	"gopkg.in/src-d/go-cli.v0"
 	"gopkg.in/src-d/go-log.v1"
 	"gopkg.in/src-d/go-queue.v1"
 )
 
-const (
-	republishCmdName      = "republish"
-	republishCmdShortDesc = "requeue jobs from buried queues"
-	republishCmdLongDesc  = ""
-)
-
-// republishCommand is a producer subcommand.
-var republishCommand = &republishCmd{producerSubcmd: newProducerSubcmd(
-	republishCmdName,
-	republishCmdShortDesc,
-	republishCmdLongDesc,
-)}
+func init() {
+	producerCommandAdder.AddCommand(&republishCmd{}, setPrioritySettings)
+}
 
 type republishCmd struct {
-	producerSubcmd
+	cli.Command `name:"republish" short-description:"requeue jobs from buried queues" long-description:"This producer is used to reprocess failed jobs. It reads from buried queues, generates a job and queues it."`
+	producerOpts
 
-	Time string `long:"time" short:"t" default:"0" description:"elapsed time between republish triggers"`
+	Interval string `long:"interval" env:"BORGES_REPUBLISH_INTERVAL" short:"t" default:"0" description:"elapsed time between republish triggers"`
 }
 
 func (c *republishCmd) Execute(args []string) error {
-	lapse, err := time.ParseDuration(c.Time)
+	lapse, err := time.ParseDuration(c.Interval)
 	if err != nil {
 		return err
 	}
 
-	if err := c.producerSubcmd.init(); err != nil {
+	if err := c.producerOpts.init(); err != nil {
 		return err
 	}
 	defer c.broker.Close()
 
-	log.With(log.Fields{"time": c.Time}).Infof("starting republishing jobs...")
+	log.With(log.Fields{"interval": c.Interval}).Infof("starting republishing jobs...")
 
 	log.Debugf("republish task triggered ")
 	if err := c.queue.RepublishBuried(republishCondition); err != nil {

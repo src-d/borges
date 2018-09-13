@@ -8,13 +8,12 @@
 
 [[constraint]]
   name = "gopkg.in/src-d/core-retrieval.v0"
-  revision = "66bc47b361f027ec9666d9cffbf2e8acdc6d4f1f"
+  revision = "5252fe35bfba3e0635a06ff5633758b53127c588"
   source = "https://github.com/src-d/core-retrieval.git"
 
 [[constraint]]
-  name = "gopkg.in/src-d/framework.v0"
-  revision = "bed6b25004fcbc1b034608f01d478aca4135b865"
-  source = "https://github.com/src-d/framework.git"
+  name = "gopkg.in/src-d/go-cli.v0"
+  branch = "master"
 
 [[constraint]]
   name = "gopkg.in/src-d/go-billy.v4"
@@ -37,6 +36,10 @@
 [[constraint]]
   name = "gopkg.in/src-d/go-queue.v1"
   version = "~1.0.2"
+
+[[constraint]]
+  name = "github.com/lib/pq"
+  branch = "master"
 
 [[override]]
   name = "gopkg.in/src-d/go-billy-siva.v4"
