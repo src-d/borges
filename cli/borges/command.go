@@ -7,12 +7,11 @@ import (
 )
 
 type databaseOpts struct {
-	DatabaseDriver string `long:"database-driver" env:"BORGES_DATABASE_DRIVER" default:"postgres" description:"database driver"`
-	Database       string `long:"database" env:"BORGES_DATABASE" default:"postgres://testing:testing@0.0.0.0:5432/testing?application_name=borges&sslmode=disable&connect_timeout=30" description:"database connection string"`
+	Database string `long:"database" env:"BORGES_DATABASE" default:"postgres://testing:testing@0.0.0.0:5432/testing?application_name=borges&sslmode=disable&connect_timeout=30" description:"database connection string"`
 }
 
 func (c *databaseOpts) openDatabase() (*sql.DB, error) {
-	return sql.Open(c.DatabaseDriver, c.Database)
+	return sql.Open("postgres", c.Database)
 }
 
 type queueOpts struct {
