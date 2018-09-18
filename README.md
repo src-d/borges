@@ -55,29 +55,33 @@ see `borges --help` to get details about the main commands and their options.
 
 ## Setting up borges
 
-Borges needs a database and a message broker to do its job.
-It works with a PostgreSQL database by default and uses RabbitMQ.
-You can use the following environment variables to configure those:
-* `CONFIG_DBUSER`, by default: `testing`
-* `CONFIG_DBPASS`, by default: `testing`
-* `CONFIG_DBHOST`, by default: `0.0.0.0`
-* `CONFIG_DBPORT`, by default: `5432`
-* `CONFIG_DBNAME`, by default: `testing`
-* `CONFIG_DBSSLMODE`, by default: `disable`
-* `CONFIG_DBAPPNAME`, by default: ``
-* `CONFIG_DBTIMEOUT`, by default: `30s`
+Borges needs a PostgreSQL database and RabbitMQ as a message broker to do its job.
+You can configure the database parameters setting a connection string with parameter `--database` or with environment variable `BORGES_DATABASE`. By default this connection string is `postgres://testing:testing@0.0.0.0:5432/testing?application_name=borges&sslmode=disable&connect_timeout=30`:
 
-Other important settings are:
-* `CONFIG_TEMP_DIR`: Local path to store temporal files needed by the Borges consumer, by default: `/tmp/sourced`
-* `CONFIG_CLEAN_TEMP_DIR`: Delete temporay directory before starting, by default: `false`
-* `CONFIG_BROKER`: by default: `amqp://localhost:5672`
-* `CONFIG_ROOT_REPOSITORIES_DIR`: .siva file storage. If no HDFS connection url is provided, this will be a path in local filesystem. Otherwise, it will be an HDFS directory, by default: `/tmp/root-repositories`
-* `CONFIG_ROOT_REPOSITORIES_TEMP_DIR`: where `siva.copy` files are temporary placed. Only needed for HDFS.
-* `CONFIG_LOCKING`, by default: `local:`, other options: `etcd:`
-* `CONFIG_HDFS`: (host:port) If this property is not provided, all root repositories will be stored into the local filesystem, by default: `""`
-* `CONFIG_BUCKETSIZE`, by default: `0`, number of characters used from the siva file name to create bucket directories. The value `0` means that all files will be saved at the same level.
-* `LOG_LEVEL`: Minimum log level that is printed, by default: `info`.
-* `LOG_FORMAT`: Format to print logs (`text` or `json`), by default: `text`.
+* user: `testing`
+* password: `testing`
+* host: `0.0.0.0`
+* port: `5432`
+* name: `testing`
+* application name: `borges`
+* ssl mode: `disable`
+* timeout in seconds: `30`
+
+Other important settings are (`--parameter`/`ENVIRONMENT_VARIABLE`):
+
+* `--queue`/`BORGES_QUEUE`: AMQP queue name, by default: `borges`.
+* `--broker`/`BORGES_BROKER`: Broker service URI, by default: `amqp://localhost:5672`.
+* `--locking`/`BORGES_LOCKING`: Locking service configuration, by default: `local:`, other option: `etcd:<connection string>`.
+* `--workers`/`BORGES_WORKERS`: Number of workers, by default: `1`, `0` means the same number as processors.
+* `--timeout`/`BORGES_TIMEOUT`: Deadline to process a job, by default: `10h`.
+* `--root-repositories-dir`/`BORGES_ROOT_REPOSITORIES_DIR`: Path to the directory storing rooted repositories (can be local path or `hdfs://`), by default: `/tmp/root-repositories`.
+* `--bucket-size`/`BORGES_BUCKETSIZE`: Number of characters used from the siva file name to create bucket directories. The value `0` means that all files will be saved at the same level, by default: `0`.
+* `--temp-dir`/`BORGES_TEMP_DIR`: Local path to store temporal files needed by the Borges consumer, by default: `/tmp/sourced`.
+* `--temp-dir-clean`/`BORGES_TEMP_DIR_CLEAN`: Delete temporary directory before starting, by default: `false`
+* `--log-level`/`LOG_LEVEL`: Minimum log level that is printed, by default: `info`.
+* `--log-format`/`LOG_FORMAT`: Format to print logs (`text` or `json`), by default: `text` on a terminal or `json` otherwise.
+* `--log-fields`/`LOG_FIELDS`: Default fields for the logger specified in json.
+* `--log-force-format`/`LOG_FORCE_FORMAT`: Ignore if it is running on a terminal or not.
 
 **Note:** This version is only compatible with rovers >= 2.6.2. It will also have problems with RabbitMQ queues created by previous versions.
 
@@ -103,9 +107,9 @@ http://github.com/c/repo3
 http://github.com/d/repo4.git
 ```
 
-You can change the priority of jobs produced with `--priority` option. It is a number from 0 to 8 where 0 is the lowest priority:
+You can change the priority of jobs produced with `--queue-priority` option. It is a number from 0 to 8 where 0 is the lowest priority:
 
-    borges producer file --priority 8 /path/to/file
+    borges producer file --queue-priority 8 /path/to/file
 
 When jobs fail they're sent to the buried queue. If you want to requeue them, you can pass the `--republish-buried` flag (this only works for the `mentions` source). For example:
 
@@ -116,10 +120,7 @@ borges producer --republish-buried
 So a possible command to launch the producer could be:
 
 ```bash
-$ CONFIG_DBUSER="user" \
-CONFIG_DBPASS="pass" \
-CONFIG_DBHOST="postgres" \
-CONFIG_DBNAME="borges-db"  \
+$ CONFIG_DATABASE="postgres://user:password@localhost/borges-db" \
 CONFIG_BROKER="amqp://guest:guest@rabbitmq:5672" \
 LOG_LEVEL=debug \
 borges producer mentions
@@ -176,12 +177,12 @@ If no protocol is specified it will be treated as an absolute path to a reposito
 
 You can pack the previous repos running this command:
 ```
-borges pack --file=repos.txt --to=/home/me/packed-repos
+borges pack --root-repositories-dir=/home/me/packed-repos repos.txt
 ```
 
-With the `--to` argument you can specify where you want the siva files stored. If the directory does not exist it will be created. If you omit this argument siva files will be stored in `$PWD/repositories` by default.
+With the `--root-repositories-dir` argument you can specify where you want the siva files stored. If the directory does not exist it will be created. If you omit this argument siva files will be stored in `$PWD/repositories` by default.
 
-For more detauls, use `borges pack -h`
+For more defaults, use `borges pack -h`
 
 
 ## Administration Notes
@@ -243,7 +244,7 @@ docker run --name borges_producer_file --link rabbitmq --link postgres \
 
 Congratulations, now you have a fully working repository processing pipeline!
 
-**Note:** remember you can configure borges using environment variables as described in previous sections by using the `-e` flag of docker, e.g `-e CONFIG_DBHOST=foo`.
+**Note:** remember you can configure borges using environment variables as described in previous sections by using the `-e` flag of docker, e.g `-e BORGES_DATABASE=postgres://testing:testing@localhost/testing`.
 
 # Running Borges in Kubernetes
 
