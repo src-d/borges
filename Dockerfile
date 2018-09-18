@@ -1,9 +1,9 @@
 FROM alpine:3.6
 MAINTAINER source{d}
 
-ENV CONFIG_DBHOST=postgres
-ENV CONFIG_BROKER=amqp://guest:guest@rabbitmq:5672/
-ENV CONFIG_ROOT_REPOSITORIES_DIR=/var/root-repositories
+ENV BORGES_DATABASE=postgres://testing:testing@postgres/testing?application_name=borges&sslmode=disable&connect_timeout=30
+ENV BORGES_BROKER=amqp://guest:guest@rabbitmq:5672/
+ENV BORGES_ROOT_REPOSITORIES_DIR=/var/root-repositories
 
 RUN mkdir -p /var/root-repositories
 
