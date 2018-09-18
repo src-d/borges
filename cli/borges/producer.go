@@ -79,7 +79,7 @@ func setPrioritySettings(c *flags.Command) {
 	options := c.Options()
 
 	for _, o := range options {
-		if o.LongName == "priority" {
+		if o.LongName == "queue-priority" {
 			o.Default[0] = strconv.Itoa((int(queue.PriorityNormal)))
 			o.Description = strings.Replace(
 				o.Description, ":MAX:", strconv.Itoa(int(queue.PriorityUrgent)), 1)
