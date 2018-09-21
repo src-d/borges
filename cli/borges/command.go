@@ -2,8 +2,11 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 
 	_ "github.com/lib/pq"
+	"github.com/src-d/borges/metrics"
+	log "gopkg.in/src-d/go-log.v1"
 )
 
 type databaseOpts struct {
@@ -17,4 +20,24 @@ func (c *databaseOpts) openDatabase() (*sql.DB, error) {
 type queueOpts struct {
 	Queue  string `long:"queue" env:"BORGES_QUEUE" default:"borges" description:"queue name"`
 	Broker string `long:"broker" env:"BORGES_BROKER" default:"amqp://localhost:5672" description:"broker service URI"`
+}
+
+type metricsOpts struct {
+	Metrics     bool `long:"metrics" env:"BORGES_METRICS" description:"expose a metrics endpoint using an HTTP server"`
+	MetricsPort int  `long:"metrics-port" env:"BORGES_METRICS_PORT" description:"port to bind metrics to" default:"6062"`
+}
+
+func (c *metricsOpts) maybeStartMetrics() {
+	if c.Metrics {
+		addr := fmt.Sprintf("0.0.0.0:%d", c.MetricsPort)
+		go func() {
+			logger := log.New(log.Fields{"address": addr})
+			logger.Debugf("started metrics service")
+			if err := metrics.Start(addr); err != nil {
+				logger.With(log.Fields{
+					"error": err,
+				}).Warningf("metrics service stopped")
+			}
+		}()
+	}
 }
