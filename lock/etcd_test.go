@@ -1,6 +1,7 @@
 package lock
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -96,16 +97,58 @@ func (s *EtcdLockSuite) TearDownTest() {
 	assert.NoError(err)
 }
 
-func (s *EtcdLockSuite) TestUnavailableEtcd() {
+func (s *EtcdLockSuite) TestUnavailableEtcdWithTimeout() {
+	const connstr = "etcd:https://localhost:19191?dial-timeout=2s"
+	const timeout = 3 * time.Second
+	ctx, _ := context.WithTimeout(context.Background(), timeout)
+	done := make(chan struct{})
+
 	assert := s.Assert()
 
-	service, err := New("etcd:https://localhost:19191?dial-timeout=2s")
+	service, err := New(connstr)
 	assert.NoError(err)
 
-	_, err = service.NewSession(&SessionConfig{})
-	assert.Error(err)
-	err = service.Close()
+	go func() {
+		defer close(done)
+		_, err = service.NewSession(&SessionConfig{})
+		assert.Error(err)
+
+		err = service.Close()
+		assert.NoError(err)
+	}()
+
+	select {
+	case <-ctx.Done():
+		assert.NoError(ctx.Err())
+	case <-done:
+	}
+}
+
+func (s *EtcdLockSuite) TestUnavailableEtcdWithoutTimeout() {
+	const connstr = "etcd:https://localhost:19191"
+	const timeout = 5 * time.Second
+	ctx, _ := context.WithTimeout(context.Background(), timeout)
+	done := make(chan struct{})
+
+	assert := s.Assert()
+
+	service, err := New(connstr)
 	assert.NoError(err)
+
+	go func() {
+		defer close(done)
+		_, err = service.NewSession(&SessionConfig{})
+		assert.Error(err)
+
+		err = service.Close()
+		assert.NoError(err)
+	}()
+
+	select {
+	case <-ctx.Done():
+		assert.NoError(ctx.Err())
+	case <-done:
+	}
 }
 
 func (s *EtcdLockSuite) TestSmallTimeout() {

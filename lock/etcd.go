@@ -14,7 +14,13 @@ import (
 	"golang.org/x/net/context"
 )
 
-const ServiceEtcd = "etcd"
+const (
+	// ServiceEtcd stands for service name.
+	ServiceEtcd = "etcd"
+
+	// DefaultDialTimeoutEtcd is the timeout for failing to establish a connection.
+	DefaultDialTimeoutEtcd = 3 * time.Second
+)
 
 func init() {
 	Services[ServiceEtcd] = NewEtcd
@@ -45,6 +51,10 @@ func NewEtcd(connstr string) (Service, error) {
 	cfg, err := parseEtcdConnectionstring(connstr)
 	if err != nil {
 		return nil, err
+	}
+
+	if cfg.DialTimeout == 0 {
+		cfg.DialTimeout = DefaultDialTimeoutEtcd
 	}
 
 	return &etcdSrv{
