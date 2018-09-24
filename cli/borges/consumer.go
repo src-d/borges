@@ -34,6 +34,8 @@ type consumerCmd struct {
 }
 
 func (c *consumerCmd) Execute(args []string) error {
+	c.maybeStartMetrics()
+
 	db, err := c.openDatabase()
 	if err != nil {
 		return err
@@ -102,6 +104,7 @@ func (c *consumerCmd) Execute(args []string) error {
 
 type consumerOpts struct {
 	queueOpts
+	metricsOpts
 
 	Locking string `long:"locking" env:"BORGES_LOCKING" default:"local:" description:"locking service configuration"`
 	Workers int    `long:"workers" env:"BORGES_WORKERS" default:"1" description:"number of workers, 0 means the same number as processors"`

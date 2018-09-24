@@ -24,6 +24,7 @@ type producerCmd struct {
 type producerOpts struct {
 	queueOpts
 	databaseOpts
+	metricsOpts
 
 	database *sql.DB
 	broker   queue.Broker
@@ -53,6 +54,8 @@ func (c *producerOpts) init() error {
 	if err != nil {
 		return err
 	}
+
+	c.metricsOpts.maybeStartMetrics()
 
 	return nil
 }
