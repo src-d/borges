@@ -1,0 +1,43 @@
+strict digraph {
+    {
+        node [style="filled" fillcolor="#EAC97C"]
+        github [shape="doublecircle"]
+        bitbucket [shape="doublecircle"]
+        cgit [shape="doublecircle"]
+    }
+
+    rovers [shape="polygon" style="filled" fillcolor="#8888ff"]
+
+    {
+        node [shape="polygon" style="filled" fillcolor="#93C8C3"]
+        producer
+        consumer
+        republish
+    }
+
+    database [shape="cylinder" style="filled" fillcolor="#E1EBEA"]
+
+    {
+        node [style="filled" fillcolor="#E1EBEA"]
+        mentions [shape="circle"]
+        queue [label="jobs" shape="circle"]
+        buried [label="buried jobs" shape="circle"]
+    }
+
+    github -> rovers
+    bitbucket -> rovers
+    cgit -> rovers
+    rovers -> mentions
+
+    mentions -> producer
+    producer -> queue
+    producer -> database [label="create" style="dashed"]
+
+    queue -> consumer
+    consumer ->  buried [label="failed"]
+    consumer -> database [label="update" style="dashed"]
+
+    buried -> republish
+    republish -> queue
+    republish -> database [label="update" style="dashed"]
+}

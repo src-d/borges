@@ -5,6 +5,7 @@
 ### Using borges
 
 * [Key concepts](using-borges/key-concepts.md)
+* [Workflow](using-borges/workflow.md)
 * [Getting started](using-borges/getting-started.md)
 * [Configuration](using-borges/configuration.md)
 * [Development](using-borges/development.md)
