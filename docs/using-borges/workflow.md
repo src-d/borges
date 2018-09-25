@@ -2,7 +2,11 @@
 
 ## All components working together
 
-This is an example of several components working together. It's using a producer that generates jobs from the [rovers](https://github.com/src-d/rovers) mentions queue, a consumer that processes those jobs and a republish producer that moves back jobs with errors from buried queue to jobs queue.
+This is an example of several components working together:
+
+* producer that generates jobs from the [rovers](https://github.com/src-d/rovers) mentions queue
+* consumer that processes those jobs
+* republish producer that moves back jobs with errors from buried queue to jobs queue
 
 ![big picture](../../assets/big_picture.png)
 
