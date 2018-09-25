@@ -1,0 +1,95 @@
+digraph G {
+/* states
+
+* not_found
+* fetched
+* pending
+* fetching
+* auth_req
+
+*/
+
+    node [fontname="ubuntu" style="filled" fillcolor="#E1EBEA"]
+    edge [fontname="ubuntu" style="filled"]
+
+    {
+        node [shape="cylinder" style="filled"]
+        queue [fillcolor="#8888ff"]
+        buried [fillcolor="#EAD99C"]
+    }
+
+    {
+        node [shape="polygon" style="filled" fillcolor="#ff6961"]
+        err_decode
+        err_already_fetching
+        err_repo_not_found
+        err_auth_required
+        err_upload_pack
+        err_push
+        panic
+    }
+
+    subgraph archiver {
+        {
+            clone
+            push
+        }
+        {
+            rank=same
+            node [shape="polygon" style="filled" fillcolor="#ff0000"]
+            err_already_fetching
+            err_upload_pack
+            err_auth_required
+            err_push
+            err_repo_not_found
+            err_decode
+        }
+        end [shape="doublecircle" fillcolor="#93C8C3"]
+    }
+
+    {
+        rank=same
+        tries [label="tries" shape="diamond"]
+        buried
+    }
+
+    decrease_tries [shape="polygon" style="filled,dashed" fillcolor="#EAC97C"]
+
+    subgraph queue {
+        queue -> err_decode
+        queue -> clone [label=fetching penwidth=3]
+        queue -> err_already_fetching
+
+        err_decode -> buried
+
+        buried -> queue [label="republish"]
+
+        start [shape="circle" fillcolor="#93C8C3"]
+        start -> queue [penwidth=3]
+        err_already_fetching
+    }
+
+    // Archiver.doClone
+    err_already_fetching -> tries [label=pending weight=10]
+    clone -> err_repo_not_found
+    err_repo_not_found -> tries [label=not_found weight=10]
+    clone -> err_auth_required
+    err_auth_required -> tries [label=auth_req weight=10]
+    clone -> err_upload_pack
+    err_upload_pack -> tries [label="pending" weight=10]
+
+    clone -> push [penwidth=3]
+    push -> err_push
+    err_push -> tries [label=pending weight=10]
+    push -> end [label=fetched penwidth=3]
+
+
+    clone -> panic
+    push -> panic
+    panic -> buried
+
+    // borges.Worker.Start
+    tries:e -> buried [label="== 0" weight=2]
+    tries:s -> decrease_tries [label="> 0"]
+    decrease_tries -> queue
+}
