@@ -19,4 +19,4 @@ Also, is recommended to know borges [key concepts](/docs/using-borges/key-concep
 
 ## License
 
-GPLv3, see [LICENSE](LICENSE)
+GPLv3, see [LICENSE](/LICENSE)
