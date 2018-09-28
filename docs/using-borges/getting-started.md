@@ -19,7 +19,7 @@ docker pull rabbitmq:3-management
 
 ### Running everything
 
-Start RabbitMQ and PostgreSQL (you can skip this step if you already have that setup for [rovers](https://github.com/src-d/rovers).
+Start RabbitMQ and PostgreSQL (you can skip this step if you already have that setup for [rovers](https://github.com/src-d/rovers)).
 
 ```
 docker run -d --name postgres -e POSTGRES_PASSWORD=testing -p 5432:5432 -e POSTGRES_USER=testing postgres
