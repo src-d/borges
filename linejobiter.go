@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/url"
 	"os"
+	"strings"
 	"path"
 	"path/filepath"
 )
@@ -35,7 +36,7 @@ func (i *lineJobIter) Next() (*Job, error) {
 		return nil, io.EOF
 	}
 
-	line := string(i.Bytes())
+	line := strings.TrimSpace(string(i.Bytes()))
 	// check if the line is an absolute path to a directory.
 	// If the path is a directory we can look for the .git directory to try
 	// to guess if it's a git repo or a bare repo.
