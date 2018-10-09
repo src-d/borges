@@ -8,4 +8,5 @@
 * [Workflow](using-borges/workflow.md)
 * [Getting started](using-borges/getting-started.md)
 * [Configuration](using-borges/configuration.md)
+* [Dashboard](using-borges/dashboard.md)
 * [Development](using-borges/development.md)
