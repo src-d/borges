@@ -47,7 +47,7 @@ However, you can also process just a specific list of repositories without havin
 
 ```
 docker run --name borges_producer_file --link rabbitmq --link postgres \
-        -e $(pwd):/opt/borges
+        -v $(pwd):/opt/borges \
         srcd/borges borges producer file /opt/borges/repos.txt
 ```
 
