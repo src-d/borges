@@ -9,6 +9,8 @@ import (
 	"github.com/jessevdk/go-flags"
 )
 
+type DeferFunc func()
+
 // App defines the CLI application that will be run.
 type App struct {
 	Parser *flags.Parser
@@ -16,6 +18,9 @@ type App struct {
 	// DebugServeMux is serves debug endpoints. It used to attach the http/pprof
 	// endpoint if enabled, and can be used to handle other debug endpoints.
 	DebugServeMux *http.ServeMux
+
+	// deferFuncs holds the functions to be called when the command finishes.
+	deferFuncs []DeferFunc
 }
 
 // New creates a new App, including default values.
@@ -41,6 +46,8 @@ func New(name, version, build, description string) *App {
 // Run runs the app with the given command line arguments. In order to reduce
 // boilerplate, RunMain should be used instead.
 func (a *App) Run(args []string) error {
+	defer a.callDefer()
+
 	if _, err := a.Parser.ParseArgs(args[1:]); err != nil {
 		if err, ok := err.(*flags.Error); ok {
 			if err.Type == flags.ErrHelp {
@@ -64,9 +71,24 @@ func (a *App) RunMain() {
 	}
 }
 
+// Defer adds a function to be called after the command is executed. The
+// functions added are called in reverse order.
+func (a *App) Defer(d DeferFunc) {
+	a.deferFuncs = append(a.deferFuncs, d)
+}
+
+func (a *App) callDefer() {
+	for i := len(a.deferFuncs) - 1; i >= 0; i-- {
+		f := a.deferFuncs[i]
+		if f != nil {
+			f()
+		}
+	}
+}
+
 func (a *App) commandHandler(cmd flags.Commander, args []string) error {
-	if v, ok := cmd.(initializer); ok {
-		if err := v.init(a); err != nil {
+	if v, ok := cmd.(Initializer); ok {
+		if err := v.Init(a); err != nil {
 			return err
 		}
 	}
@@ -97,14 +119,17 @@ func getStructType(data interface{}) (reflect.Type, error) {
 	return typ, nil
 }
 
-type initializer interface {
-	init(*App) error
+// Initializer interface provides an Init function.
+type Initializer interface {
+	// Init initializes the command.
+	Init(*App) error
 }
 
 // PlainCommand should be embedded in a struct to indicate that it implements a
 // command. See package documentation for its usage.
 type PlainCommand struct{}
 
+// Execute is a placeholder for the function that runs the command.
 func (c PlainCommand) Execute(args []string) error {
 	return nil
 }
@@ -118,13 +143,13 @@ type Command struct {
 	ProfilerOptions `group:"Profiler Options"`
 }
 
-// Init initializes the command.
-func (c Command) init(a *App) error {
-	if err := c.LogOptions.init(a); err != nil {
+// Init implements initializer interface.
+func (c Command) Init(a *App) error {
+	if err := c.LogOptions.Init(a); err != nil {
 		return err
 	}
 
-	if err := c.ProfilerOptions.init(a); err != nil {
+	if err := c.ProfilerOptions.Init(a); err != nil {
 		return err
 	}
 
