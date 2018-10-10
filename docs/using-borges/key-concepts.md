@@ -6,7 +6,7 @@ A standalone process that reads repository URLs (from RabbitMQ or file) and sche
 
 ## Borges consumer
 
-A standalone process that takes URLs from RabbitMQ, clones remote repository and pushes it to the appropriate *Rooted Repository* in the storage (local filesystem or HDFS).
+A standalone process that takes URLs from RabbitMQ, clones remote repository and pushes it to the appropriate *Rooted Repository* in the storage (local filesystem or HDFS). Downloaded repositories will be packed into siva files so you don't need to run Borges packer (described below) on them.
 
 ## Borges packer
 
