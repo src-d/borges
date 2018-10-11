@@ -500,11 +500,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:e06647f941a9fcafa387ac94bc7fd4d9a6e505fea1bde382364bdd72c83a1900"
+  digest = "1:70720cb572c1d2597824788ada5d1c912c492085da4fa0ea89219aabfd2d15ee"
   name = "gopkg.in/src-d/go-cli.v0"
   packages = ["."]
   pruneopts = "UT"
-  revision = "abb24f09af07b8cf9da4650357895b71e945da50"
+  revision = "af27c1c1917553e2b9fd8fb7c822345df6615d34"
 
 [[projects]]
   digest = "1:2d25bb0c1949e33cd719974f48ccd93e8b4f859417d1c7a69fee437c141cf01f"

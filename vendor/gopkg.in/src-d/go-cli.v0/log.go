@@ -14,7 +14,7 @@ type LogOptions struct {
 }
 
 // Init initializes the default logger factory.
-func (c LogOptions) init(a *App) error {
+func (c LogOptions) Init(a *App) error {
 	log.DefaultFactory = &log.LoggerFactory{
 		Level:       c.LogLevel,
 		Format:      c.LogFormat,
