@@ -18,7 +18,7 @@ import (
 var producerCommandAdder = app.AddCommand(&producerCmd{})
 
 type producerCmd struct {
-	cli.Command `name:"producer" short-description:"create new jobs and put them into the queue" long-description:""`
+	cli.PlainCommand `name:"producer" short-description:"create new jobs and put them into the queue" long-description:""`
 }
 
 type producerOpts struct {
