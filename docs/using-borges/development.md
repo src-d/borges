@@ -24,7 +24,7 @@ Borges has 2 runtime dependencies and has tests that depend on them:
 
     Consumers and Producers interact through a Queue. You can run one in Docker with the following command:
     ```
-    docker run -d --hostname rabbit --name rabbit -p 8080:15672 -p 5672:5672 rabbitmq:3-management
+    docker run -d --hostname rabbitmq --name rabbitmq -p 15672:15672 -p 5672:5672 rabbitmq:3-management
     ```
     Note: a hostname needs to be provided, due to the fact that RabbitMQ stores data according to the host name
 
