@@ -113,7 +113,7 @@ type consumerOpts struct {
 	metricsOpts
 
 	Locking        string `long:"locking" env:"BORGES_LOCKING" default:"local:" description:"locking service configuration"`
-	LockingTimeout string `long:"locking-timeout" env:"BORGES_LOCKING_TIMEOUT" default:"0" description:"timeout to acquire lock, 0 means no timeout"`
+	LockingTimeout string `long:"locking-timeout" env:"BORGES_LOCKING_TIMEOUT" default:"0" description:"timeout to acquire lock, units can be specified (s, m, h) like 10s or 10h, 0 means no timeout"`
 	Workers        int    `long:"workers" env:"BORGES_WORKERS" default:"1" description:"number of workers, 0 means the same number as processors"`
 	Timeout        string `long:"timeout" env:"BORGES_TIMEOUT" default:"10h" description:"deadline to process a job"`
 
