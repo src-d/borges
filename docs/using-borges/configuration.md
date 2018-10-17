@@ -72,8 +72,8 @@ borges producer --republish-buried
 So a possible command to launch the producer could be:
 
 ```bash
-$ CONFIG_DATABASE="postgres://user:password@localhost/borges-db" \
-CONFIG_BROKER="amqp://guest:guest@rabbitmq:5672" \
+$ BORGES_DATABASE="postgres://user:password@localhost/borges-db" \
+BORGES_BROKER="amqp://guest:guest@rabbitmq:5672" \
 LOG_LEVEL=debug \
 borges producer mentions
 ```
@@ -103,8 +103,8 @@ You can select the number of workers to use, by default it uses 1:
 A command you could use to run it could be:
 
 ```bash
-$ CONFIG_TEMP_DIR="/borges/tmp"  \
-CONFIG_ROOT_REPOSITORIES_DIR="/borges/root-repositories"  \
+$ BORGES_TEMP_DIR="/borges/tmp"  \
+BORGES_ROOT_REPOSITORIES_DIR="/borges/root-repositories"  \
 LOG_LEVEL=debug \
 borges consumer --workers=4
 ```

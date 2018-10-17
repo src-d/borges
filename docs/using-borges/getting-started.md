@@ -23,7 +23,7 @@ Start RabbitMQ and PostgreSQL (you can skip this step if you already have that s
 
 ```
 docker run -d --name postgres -e POSTGRES_PASSWORD=testing -p 5432:5432 -e POSTGRES_USER=testing postgres:9.6-alpine
-docker run -d --hostname rabbitmq --name rabbitmq -p 8081:15672 -p 5672:5672 rabbitmq:3-management
+docker run -d --hostname rabbitmq --name rabbitmq -p 15672:15672 -p 5672:5672 rabbitmq:3-management
 ```
 
 Now, you can start the borges consumer, the component that will be listening for jobs and processing repositories.
