@@ -60,6 +60,7 @@ func (c *packerCmd) Execute(args []string) error {
 		borges.NewTemporaryCloner(tmp),
 		locking,
 		timeout,
+		0,
 	)
 
 	if c.Workers <= 0 {
