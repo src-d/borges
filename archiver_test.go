@@ -121,6 +121,44 @@ func (s *ArchiverSuite) TestCheckTimeout() {
 	}
 }
 
+func (s *ArchiverSuite) TestLockTimeout() {
+	assert := s.Assert()
+
+	l, err := lock.New("local:")
+	assert.NoError(err)
+
+	cfg := &lock.SessionConfig{
+		Timeout: time.Second,
+	}
+	id := "borges/b029517f6300c2da0f4b651b8642506cd6aaf45d"
+
+	session, err := l.NewSession(cfg)
+	assert.NoError(err)
+	locker := session.NewLocker(id)
+
+	_, err = locker.Lock()
+	assert.NoError(err)
+
+	repo := fixtures.ByTag("worktree").One()
+	path := repo.Worktree().Root()
+	repoUUID := s.newRepositoryModel(path)
+
+	start := time.Now()
+
+	job := &Job{RepositoryID: uuid.UUID(repoUUID)}
+	a := NewArchiver(s.store, s.tx, NewTemporaryCloner(s.tmpFs), session, 10*time.Second)
+
+	ctx := context.TODO()
+	err = a.Do(ctx, job)
+	assert.Error(err)
+
+	// I'm not able to get the reason why the job failed from the error so here
+	// is checked that it waits at least 1 second that is trying to acquire
+	// the lock but less than 10 seconds that is the job timeout.
+	assert.True(time.Since(start) > time.Second)
+	assert.True(time.Since(start) < 10*time.Second)
+}
+
 func (s *ArchiverSuite) TestReferenceUpdate() {
 	for _, ct := range ChangesFixtures {
 		s.T().Run(ct.TestName, func(t *testing.T) {
