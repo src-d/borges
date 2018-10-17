@@ -611,10 +611,14 @@ func NewArchiverWorkerPool(
 	tc TemporaryCloner,
 	ls lock.Service,
 	timeout time.Duration,
+	lockingTimeout time.Duration,
 ) *WorkerPool {
 
 	do := func(ctx context.Context, logger log.Logger, j *Job) error {
-		lsess, err := ls.NewSession(&lock.SessionConfig{TTL: 10 * time.Second})
+		lsess, err := ls.NewSession(&lock.SessionConfig{
+			TTL:     10 * time.Second,
+			Timeout: lockingTimeout,
+		})
 		if err != nil {
 			return err
 		}

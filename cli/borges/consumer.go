@@ -72,12 +72,18 @@ func (c *consumerCmd) Execute(args []string) error {
 		return err
 	}
 
+	lockingTimeout, err := time.ParseDuration(c.LockingTimeout)
+	if err != nil {
+		return err
+	}
+
 	wp := borges.NewArchiverWorkerPool(
 		storage.FromDatabase(db),
 		txer,
 		borges.NewTemporaryCloner(tmp),
 		locking,
 		timeout,
+		lockingTimeout,
 	)
 	wp.SetWorkerCount(c.Workers)
 
@@ -106,9 +112,10 @@ type consumerOpts struct {
 	queueOpts
 	metricsOpts
 
-	Locking string `long:"locking" env:"BORGES_LOCKING" default:"local:" description:"locking service configuration"`
-	Workers int    `long:"workers" env:"BORGES_WORKERS" default:"1" description:"number of workers, 0 means the same number as processors"`
-	Timeout string `long:"timeout" env:"BORGES_TIMEOUT" default:"10h" description:"deadline to process a job"`
+	Locking        string `long:"locking" env:"BORGES_LOCKING" default:"local:" description:"locking service configuration"`
+	LockingTimeout string `long:"locking-timeout" env:"BORGES_LOCKING_TIMEOUT" default:"0" description:"timeout to acquire lock, units can be specified (s, m, h) like 10s or 10h, 0 means no timeout"`
+	Workers        int    `long:"workers" env:"BORGES_WORKERS" default:"1" description:"number of workers, 0 means the same number as processors"`
+	Timeout        string `long:"timeout" env:"BORGES_TIMEOUT" default:"10h" description:"deadline to process a job"`
 
 	RootRepositoriesDir string `long:"root-repositories-dir" env:"BORGES_ROOT_REPOSITORIES_DIR" default:"/tmp/root-repositories" description:"path to the directory storing rooted repositories (can be local path or hdfs://)"`
 	BucketSize          int    `long:"bucket-size" env:"BORGES_BUCKET_SIZE" default:"0" description:"if higher than zero, repositories are stored in bucket directories with a prefix of the given amount of characters from its root hash"`
