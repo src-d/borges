@@ -178,6 +178,85 @@ func (s *DatabaseSuite) TestUpdateWithRefsChanged() {
 	require.Equal(model.Fetched, r.Status)
 }
 
+func (s *DatabaseSuite) TestGetByInitCommit() {
+	require := s.Require()
+
+	h0 := model.NewSHA1("1000")
+	h1 := model.NewSHA1("1001")
+	h2 := model.NewSHA1("1002")
+	h3 := model.NewSHA1("1003")
+
+	r1 := s.createRepo(model.Fetching, "0,1")
+	refs := []*model.Reference{
+		model.NewReference(),
+		model.NewReference(),
+	}
+
+	refs[0].Init = h0
+	refs[1].Init = h1
+	r1.References = refs
+
+	_, err := s.store.Save(r1)
+	require.NoError(err)
+
+	r2 := s.createRepo(model.Fetching, "1,2")
+	refs = []*model.Reference{
+		model.NewReference(),
+		model.NewReference(),
+	}
+
+	refs[0].Init = h1
+	refs[1].Init = h2
+	r2.References = refs
+
+	_, err = s.store.Save(r2)
+	require.NoError(err)
+
+	// check h0, in r1
+
+	r, err := s.store.GetRefsByInit(h0)
+	require.NoError(err)
+	require.Len(r, 1)
+	require.Equal(r1.ID, r[0].Repository.ID)
+
+	ok, err := s.store.InitHasRefs(h0)
+	require.NoError(err)
+	require.True(ok)
+
+	// check h1, in r1 and r2
+
+	r, err = s.store.GetRefsByInit(h1)
+	require.NoError(err)
+	require.Len(r, 2)
+	require.Equal(r1.ID, r[0].Repository.ID)
+	require.Equal(r2.ID, r[1].Repository.ID)
+
+	ok, err = s.store.InitHasRefs(h1)
+	require.NoError(err)
+	require.True(ok)
+
+	// check h2, in r2
+
+	r, err = s.store.GetRefsByInit(h2)
+	require.NoError(err)
+	require.Len(r, 1)
+	require.Equal(r2.ID, r[0].Repository.ID)
+
+	ok, err = s.store.InitHasRefs(h2)
+	require.NoError(err)
+	require.True(ok)
+
+	// check h3
+
+	r, err = s.store.GetRefsByInit(h3)
+	require.NoError(err)
+	require.Len(r, 0)
+
+	ok, err = s.store.InitHasRefs(h3)
+	require.NoError(err)
+	require.False(ok)
+}
+
 func (s *DatabaseSuite) createRepo(status model.FetchStatus, remotes ...string) *model.Repository {
 	repo := model.NewRepository()
 	repo.Status = status

@@ -45,9 +45,9 @@ func (s *LocalSuite) TestGetByEndpoints() {
 		ids = append(ids, kallax.NewULID())
 	}
 	repos := []*localRepository{
-		{ids[0], "foo", model.Pending},
-		{ids[1], "bar", model.Pending},
-		{ids[2], "baz", model.Pending},
+		{ids[0], "foo", model.Pending, nil},
+		{ids[1], "bar", model.Pending, nil},
+		{ids[2], "baz", model.Pending, nil},
 	}
 
 	for i, id := range ids {
@@ -138,6 +138,85 @@ func (s *LocalSuite) TestUpdateFetched() {
 	require.Equal(&time, modelRepo.FetchedAt)
 	require.Equal(model.Fetched, modelRepo.Status)
 	require.Equal(model.Fetched, s.store.repos[repo.ID].Status)
+}
+
+func localRefsFromInits(inits ...model.SHA1) []*localReference {
+	var refs []*localReference
+	for _, init := range inits {
+		refs = append(refs, &localReference{Init: init})
+	}
+
+	return refs
+}
+
+func (s *LocalSuite) TestGetByInitCommit() {
+	require := s.Require()
+
+	h0 := model.NewSHA1("1000")
+	h1 := model.NewSHA1("1001")
+	h2 := model.NewSHA1("1002")
+	h3 := model.NewSHA1("1003")
+
+	r1 := &localRepository{
+		ID:         kallax.NewULID(),
+		Endpoint:   "foo",
+		Status:     model.Pending,
+		References: localRefsFromInits(h0, h1),
+	}
+
+	r2 := &localRepository{
+		ID:         kallax.NewULID(),
+		Endpoint:   "bar",
+		Status:     model.Pending,
+		References: localRefsFromInits(h1, h2),
+	}
+
+	s.store.repos[r1.ID] = r1
+	s.store.repos[r2.ID] = r2
+
+	// check h0, in r1
+
+	r, err := s.store.GetRefsByInit(h0)
+	require.NoError(err)
+	require.Len(r, 1)
+	require.Equal(r1.ID, r[0].Repository.ID)
+
+	ok, err := s.store.InitHasRefs(h0)
+	require.NoError(err)
+	require.True(ok)
+
+	// check h1, in r1 and r2
+
+	r, err = s.store.GetRefsByInit(h1)
+	require.NoError(err)
+	require.Len(r, 2)
+	require.Equal(r1.ID, r[0].Repository.ID)
+	require.Equal(r2.ID, r[1].Repository.ID)
+
+	ok, err = s.store.InitHasRefs(h1)
+	require.NoError(err)
+	require.True(ok)
+
+	// check h2, in r2
+
+	r, err = s.store.GetRefsByInit(h2)
+	require.NoError(err)
+	require.Len(r, 1)
+	require.Equal(r2.ID, r[0].Repository.ID)
+
+	ok, err = s.store.InitHasRefs(h2)
+	require.NoError(err)
+	require.True(ok)
+
+	// check h3
+
+	r, err = s.store.GetRefsByInit(h3)
+	require.NoError(err)
+	require.Len(r, 0)
+
+	ok, err = s.store.InitHasRefs(h3)
+	require.NoError(err)
+	require.False(ok)
 }
 
 func TestLocal(t *testing.T) {
