@@ -24,6 +24,7 @@ before_script:
 
 script:
   - make test-coverage
+  - make codecov
   - make godep no-changes-in-commit
 
 before_deploy:

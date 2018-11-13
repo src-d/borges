@@ -24,6 +24,7 @@ import (
 	"gopkg.in/src-d/go-billy.v4/osfs"
 	"gopkg.in/src-d/go-git-fixtures.v3"
 	"gopkg.in/src-d/go-git.v4"
+	"gopkg.in/src-d/go-git.v4/plumbing/object"
 	"gopkg.in/src-d/go-git.v4/storage/memory"
 	"gopkg.in/src-d/go-kallax.v1"
 )
@@ -392,9 +393,12 @@ func (s *ArchiverSuite) TestIsProcessableRepository() {
 	s.Assertions.True(modelRepo.Status == model.Pending)
 }
 
-func TestDeleteTmpOnError(t *testing.T) {
+func customArchiver(
+	t *testing.T,
+	rootedFs, txFs, tmpFs billy.Filesystem,
+) (*model.Repository, *Archiver, RepositoryStore) {
+	t.Helper()
 	require := require.New(t)
-	fixtures.Init()
 
 	var suite test.Suite
 	suite.SetT(t)
@@ -402,6 +406,40 @@ func TestDeleteTmpOnError(t *testing.T) {
 
 	rawStore := model.NewRepositoryStore(suite.DB)
 	store := storage.FromDatabase(suite.DB)
+
+	bucket := 0
+
+	// This copier uses a rooted fs that fails writing.
+	copier := repository.NewCopier(
+		txFs,
+		repository.NewLocalFs(rootedFs),
+		bucket)
+	tx := repository.NewSivaRootedTransactioner(copier)
+
+	ls, err := lock.NewLocal().NewSession(&lock.SessionConfig{
+		Timeout: defaultTimeout,
+	})
+	require.NoError(err)
+
+	a := NewArchiver(store, tx, NewTemporaryCloner(tmpFs), ls, defaultTimeout)
+
+	repoFixture := fixtures.ByTag("worktree").One()
+	repoPath := repoFixture.Worktree().Root()
+	repoURL := fmt.Sprintf("file://%s", repoPath)
+
+	mr := model.NewRepository()
+	mr.Endpoints = append(mr.Endpoints, repoURL)
+	updated, err := rawStore.Save(mr)
+	require.NoError(err)
+	require.False(updated)
+
+	return mr, a, store
+}
+
+func TestDeleteTmpOnError(t *testing.T) {
+	require := require.New(t)
+	fixtures.Init()
+	defer fixtures.Clean()
 
 	tmpPath, err := ioutil.TempDir(os.TempDir(),
 		fmt.Sprintf("borges-tests%d", rand.Uint32()))
@@ -418,40 +456,103 @@ func TestDeleteTmpOnError(t *testing.T) {
 	tmpFs, err := fs.Chroot("tmp")
 	require.NoError(err)
 
-	bucket := 0
+	r, a, _ := customArchiver(t, rootedFs, NewBrokenFS(txFs), tmpFs)
 
-	// This copier uses a rooted fs that fails writing.
-	copier := repository.NewCopier(
-		NewBrokenFS(txFs),
-		repository.NewLocalFs(rootedFs),
-		bucket)
-	tx := repository.NewSivaRootedTransactioner(copier)
-
-	ls, err := lock.NewLocal().NewSession(&lock.SessionConfig{
-		Timeout: defaultTimeout,
-	})
-	require.NoError(err)
-
-	a := NewArchiver(store, tx, NewTemporaryCloner(tmpFs), ls, defaultTimeout)
-
-	repoFixture := fixtures.ByTag("worktree").One()
-	repoPath := repoFixture.Worktree().Root()
-	repoURL := fmt.Sprintf("file://%s", repoPath)
-	defer fixtures.Clean()
-
-	mr := model.NewRepository()
-	mr.Endpoints = append(mr.Endpoints, repoURL)
-	updated, err := rawStore.Save(mr)
-	require.NoError(err)
-	require.False(updated)
-
-	err = a.Do(context.TODO(), &Job{RepositoryID: uuid.UUID(mr.ID)})
+	err = a.Do(context.TODO(), &Job{RepositoryID: uuid.UUID(r.ID)})
 	require.Error(err)
 
 	// After an error the temporary repository should be deleted.
 	files, err := tmpFs.ReadDir("/local_repos")
 	require.NoError(err)
 	require.Len(files, 0)
+}
+
+func TestMissingSivaFile(t *testing.T) {
+	require := require.New(t)
+	fixtures.Init()
+	defer fixtures.Clean()
+
+	tmpPath, err := ioutil.TempDir(os.TempDir(),
+		fmt.Sprintf("borges-tests%d", rand.Uint32()))
+	require.NoError(err)
+
+	defer os.RemoveAll(tmpPath)
+
+	fs := osfs.New(tmpPath)
+
+	rootedFs, err := fs.Chroot("rooted")
+	require.NoError(err)
+	txFs, err := fs.Chroot("tx")
+	require.NoError(err)
+	tmpFs, err := fs.Chroot("tmp")
+	require.NoError(err)
+
+	r, a, store := customArchiver(t, rootedFs, txFs, tmpFs)
+
+	err = a.Do(context.TODO(), &Job{RepositoryID: uuid.UUID(r.ID)})
+	require.NoError(err)
+
+	// rename siva file to *.tmp so copier is not able to find it
+	d, err := rootedFs.ReadDir(".")
+	require.NoError(err)
+	for _, f := range d {
+		rootedFs.Rename(f.Name(), fmt.Sprintf("%s.tmp", f.Name()))
+	}
+
+	// add reference with its init commit
+	ref := model.NewReference()
+	ref.Init = model.NewSHA1("b029517f6300c2da0f4b651b8642506cd6aaf45d")
+	r.References = []*model.Reference{ref}
+	err = store.UpdateFetched(r, time.Now())
+	require.NoError(err)
+
+	err = a.Do(context.TODO(), &Job{RepositoryID: uuid.UUID(r.ID)})
+	require.Error(err)
+
+	// the error that caused the job to fail is lost in
+	// pushChangesToRootedRepositories so it is not possible to check for
+	// ErrEmptySiva. We restore again the siva file to make sure that the
+	// missing siva file was the problem. We also add a new commit
+	// so push does not fail because there are no changes.
+
+	d, err = rootedFs.ReadDir(".")
+	require.NoError(err)
+	for _, f := range d {
+		n := strings.TrimSuffix(f.Name(), ".tmp")
+		if f.Name() != n {
+			rootedFs.Rename(f.Name(), n)
+		}
+	}
+
+	url := r.Endpoints[0]
+	url = strings.TrimPrefix(url, "file://")
+	g, err := git.PlainOpen(url)
+	require.NoError(err)
+
+	wt, err := g.Worktree()
+	require.NoError(err)
+
+	testFile := "test_file"
+	wtFs := wt.Filesystem
+	f, err := wtFs.Create(testFile)
+	require.NoError(err)
+	_, err = f.Write([]byte("test data"))
+	require.NoError(err)
+	require.NoError(f.Close())
+
+	_, err = wt.Add(testFile)
+	require.NoError(err)
+	_, err = wt.Commit("test commit", &git.CommitOptions{
+		Author: &object.Signature{
+			Name:  "name",
+			Email: "name@example.com",
+			When:  time.Now(),
+		},
+	})
+	require.NoError(err)
+
+	err = a.Do(context.TODO(), &Job{RepositoryID: uuid.UUID(r.ID)})
+	require.NoError(err)
 }
 
 func NewBrokenFS(fs billy.Filesystem) billy.Filesystem {

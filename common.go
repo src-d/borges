@@ -30,6 +30,11 @@ type RepositoryStore interface {
 	// GetByEndpoints returns the Repositories that have common endpoints with the
 	// list of endpoints passed.
 	GetByEndpoints(endpoints ...string) ([]*model.Repository, error)
+	// GetRefsByInit returns the References that have the provided Init commit.
+	GetRefsByInit(init model.SHA1) ([]*model.Reference, error)
+	// InitHasRefs returns true if there is at least one reference with
+	// the provided initial commit.
+	InitHasRefs(init model.SHA1) (bool, error)
 	// SetStatus changes the status of the given repository.
 	SetStatus(repo *model.Repository, status model.FetchStatus) error
 	// SetEndpoints updates the endpoints of the repository.

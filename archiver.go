@@ -3,6 +3,7 @@ package borges
 import (
 	"context"
 	"fmt"
+	"io"
 	"runtime/debug"
 	"strings"
 	"time"
@@ -36,6 +37,7 @@ var (
 	ErrFatal                   = errors.NewKind("fatal, %v: stacktrace: %s")
 	ErrCannotProcessRepository = errors.NewKind("cannot process repository")
 	ErrProcessedWithErrors     = errors.NewKind("repository processed with errors")
+	ErrEmptySiva               = errors.NewKind("unexpected empty siva file found")
 
 	// StrRemoveTmpFiles is the string used to log when tmp files could not
 	// be deleted.
@@ -392,6 +394,41 @@ func (a *Archiver) pushChangesToRootedRepositories(
 	return checkFailedInits(changes, failedInits)
 }
 
+// checkEmptySiva check if the siva file contains references if it is
+// mentioned in a reference from the database.
+func (a *Archiver) checkEmptySiva(
+	logger log.Logger,
+	r *git.Repository,
+	ic model.SHA1,
+) error {
+	ok, err := a.Store.InitHasRefs(ic)
+	if err != nil {
+		return err
+	}
+
+	if ok {
+		refs, err := r.CommitObjects()
+		if err != nil {
+			return err
+		}
+		defer refs.Close()
+
+		_, err = refs.Next()
+		if err == io.EOF {
+			logger.With(log.Fields{
+				"cause": "empty-siva",
+			}).Errorf(err, "siva file not found")
+			return ErrEmptySiva.New()
+		}
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (a *Archiver) pushChangesToRootedRepository(ctx context.Context, logger log.Logger, r *model.Repository, tr TemporaryRepository, ic model.SHA1, changes []*Command) error {
 	var rootedRepoCpStart = time.Now()
 	tx, err := a.beginTxWithRetries(ctx, logger, plumbing.Hash(ic), maxRetries)
@@ -414,6 +451,11 @@ func (a *Archiver) pushChangesToRootedRepository(ctx context.Context, logger log
 		if e := tx.Rollback(); e != nil {
 			logger.Errorf(e, StrRemoveTmpFiles)
 		}
+		return err
+	}
+
+	err = a.checkEmptySiva(logger, rr, ic)
+	if err != nil {
 		return err
 	}
 

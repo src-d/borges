@@ -99,6 +99,68 @@ func (s *DatabaseStore) GetByEndpoints(
 	return repositories, nil
 }
 
+// GetRefsByInit honors the borges.RepositoryStore interface.
+func (s *DatabaseStore) GetRefsByInit(
+	init model.SHA1,
+) ([]*model.Reference, error) {
+	start := time.Now()
+
+	var refStore model.ReferenceStore
+	kallax.StoreFrom(&refStore, s.RepositoryStore)
+
+	rs, err := refStore.Find(
+		model.NewReferenceQuery().
+			WithRepository().
+			Where(kallax.Eq(model.Schema.Reference.Init, init)),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	refs, err := rs.All()
+
+	logger := log.With(log.Fields{
+		"duration": time.Since(start),
+		"init":     init,
+	})
+
+	if err != nil {
+		logger.Errorf(err, "could not get repository by init")
+		return nil, err
+	}
+
+	logger.Debugf("get repository by init finished")
+	return refs, nil
+}
+
+// InitHasRefs honors the borges.RepositoryStore interface.
+func (s *DatabaseStore) InitHasRefs(
+	init model.SHA1,
+) (bool, error) {
+	start := time.Now()
+
+	var refStore model.ReferenceStore
+	kallax.StoreFrom(&refStore, s.RepositoryStore)
+
+	_, err := refStore.FindOne(
+		model.NewReferenceQuery().
+			Where(kallax.Eq(model.Schema.Reference.Init, init)),
+	)
+
+	logger := log.With(log.Fields{
+		"duration": time.Since(start),
+		"init":     init,
+	})
+
+	if err != nil && err != kallax.ErrNotFound {
+		logger.Errorf(err, "could check if init has references")
+		return false, err
+	}
+
+	logger.Debugf("init has refs finished")
+	return err != kallax.ErrNotFound, nil
+}
+
 // SetStatus honors the borges.RepositoryStore interface.
 func (s *DatabaseStore) SetStatus(repo *model.Repository, status model.FetchStatus) error {
 	repo.Status = status
