@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/src-d/borges"
+	bcli "github.com/src-d/borges/cli"
 	"github.com/src-d/borges/lock"
 	"github.com/src-d/borges/storage"
 
@@ -30,13 +31,13 @@ type consumerCmd struct {
 	cli.Command `name:"consumer" short-description:"process jobs" long-description:"This consumer fetches, packs and stores repositories. It reads one job per repository. Jobs should be produced witht he producer command."`
 
 	consumerOpts
-	databaseOpts
+	bcli.DatabaseOpts
 }
 
 func (c *consumerCmd) Execute(args []string) error {
-	c.maybeStartMetrics()
+	c.MaybeStartMetrics()
 
-	db, err := c.openDatabase()
+	db, err := c.OpenDatabase()
 	if err != nil {
 		return err
 	}
@@ -109,8 +110,8 @@ func (c *consumerCmd) Execute(args []string) error {
 }
 
 type consumerOpts struct {
-	queueOpts
-	metricsOpts
+	bcli.QueueOpts
+	bcli.MetricsOpts
 
 	Locking        string `long:"locking" env:"BORGES_LOCKING" default:"local:" description:"locking service configuration"`
 	LockingTimeout string `long:"locking-timeout" env:"BORGES_LOCKING_TIMEOUT" default:"0" description:"timeout to acquire lock, units can be specified (s, m, h) like 10s or 10h, 0 means no timeout"`

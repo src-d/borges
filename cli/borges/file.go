@@ -32,7 +32,7 @@ func (c *fileCmd) Execute(args []string) error {
 }
 
 func (c *fileCmd) jobIter() (borges.JobIter, error) {
-	db, err := c.openDatabase()
+	db, err := c.OpenDatabase()
 	if err != nil {
 		return nil, err
 	}
