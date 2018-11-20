@@ -1,25 +1,45 @@
 package tool
 
 import (
+	"context"
 	"database/sql"
 	"runtime"
 	"sort"
 	"time"
 
+	"github.com/src-d/borges/storage"
+
+	"gopkg.in/src-d/core-retrieval.v0/model"
 	"gopkg.in/src-d/go-log.v1"
 )
 
 const (
-	logCount        = 1000000
-	databaseSivaSQL = "select init from repository_references"
+	logCount = 1000000
+
+	dbSivaSQL      = "select init from repository_references"
+	dbRefRemoveSQL = "delete from repository_references where init = ?"
 )
 
+type Database struct {
+	db    *sql.DB
+	store *storage.DatabaseStore
+}
+
+func NewDatabase(db *sql.DB) *Database {
+	d := &Database{
+		db:    db,
+		store: storage.FromDatabase(db),
+	}
+
+	return d
+}
+
 // DatabaseSiva returns all siva files used by references.
-func DatabaseSiva(db *sql.DB) ([]string, error) {
+func (d *Database) Siva() ([]string, error) {
 	log.Infof("querying database")
 	start := time.Now()
 
-	rows, err := db.Query(databaseSivaSQL)
+	rows, err := d.db.Query(dbSivaSQL)
 	if err != nil {
 		return nil, err
 	}
@@ -42,8 +62,7 @@ func DatabaseSiva(db *sql.DB) ([]string, error) {
 
 		m[init] = struct{}{}
 
-		counter++
-		if counter%logCount == 0 {
+		if counter != 0 && counter%logCount == 0 {
 			log.With(log.Fields{
 				"counter":  counter,
 				"duration": time.Since(start),
@@ -53,6 +72,7 @@ func DatabaseSiva(db *sql.DB) ([]string, error) {
 
 			partial = time.Now()
 		}
+		counter++
 	}
 
 	var mem runtime.MemStats
@@ -85,4 +105,33 @@ func DatabaseSiva(db *sql.DB) ([]string, error) {
 	}).Infof("finished preparing siva list")
 
 	return list, nil
+}
+
+func (d *Database) ReferencesWithInit(init string) ([]*model.Reference, error) {
+	sha1 := model.NewSHA1(init)
+	return d.store.GetRefsByInit(sha1)
+}
+
+func (d *Database) RepositoriesWithInit(init string) ([]string, error) {
+	sha1 := model.NewSHA1(init)
+	refs, err := d.store.GetRefsByInit(sha1)
+	if err != nil {
+		return nil, err
+	}
+
+	set := NewSet(false)
+	for _, r := range refs {
+		set.Add(r.Repository.ID.String())
+	}
+
+	return set.List(), nil
+}
+
+func (d *Database) DeleteReferences(ctx context.Context, init string) error {
+	_, err := d.db.ExecContext(ctx, dbRefRemoveSQL, init)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

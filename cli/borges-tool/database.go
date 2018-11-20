@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
 
 	bcli "github.com/src-d/borges/cli"
@@ -19,15 +18,16 @@ type databaseCmd struct {
 	cli.Command `name:"database" short-description:"retrieve database data"`
 	bcli.DatabaseOpts
 
-	database *sql.DB
+	db *tool.Database
 }
 
 func (d *databaseCmd) init() error {
-	var err error
-	d.database, err = d.OpenDatabase()
+	db, err := d.OpenDatabase()
 	if err != nil {
 		return err
 	}
+
+	d.db = tool.NewDatabase(db)
 
 	return nil
 }
@@ -38,7 +38,7 @@ func (d *databaseCmd) Execute(args []string) error {
 		return err
 	}
 
-	list, err := tool.DatabaseSiva(d.database)
+	list, err := d.db.Siva()
 	if err != nil {
 		return err
 	}

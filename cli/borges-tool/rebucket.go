@@ -17,6 +17,8 @@ type rebucketCmd struct {
 	fs          billy.Basic
 	list        []string
 
+	Dry bool `long:"dry" description:"do not perform modifications in database or filesystem"`
+
 	rebucketArgs `positional-args:"true" required:"yes"`
 }
 
@@ -44,7 +46,7 @@ func (d *rebucketCmd) Execute(args []string) error {
 		return err
 	}
 
-	err = tool.Rebucket(d.fs, d.list, d.From, d.To)
+	err = tool.Rebucket(d.fs, d.list, d.From, d.To, d.Dry)
 	if err != nil {
 		return err
 	}
