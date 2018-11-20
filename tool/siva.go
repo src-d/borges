@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"sync"
 
 	"gopkg.in/src-d/go-billy.v4"
 	"gopkg.in/src-d/go-log.v1"
@@ -14,19 +13,17 @@ const (
 	logDeleteCount = 100000
 )
 
+// Siva deals with siva files and its database usage.
 type Siva struct {
+	worker
+
 	db        *Database
 	fs        billy.Basic
 	bucket    int
 	queueChan chan string
-	errorChan chan error
-	workers   int
-	cancel    context.CancelFunc
-
-	skipErrors bool
-	dry        bool
 }
 
+// NewSiva creates and initializes a new Siva struct.
 func NewSiva(db *Database, fs billy.Basic) *Siva {
 	return &Siva{
 		db: db,
@@ -34,99 +31,51 @@ func NewSiva(db *Database, fs billy.Basic) *Siva {
 	}
 }
 
-func (s *Siva) Bucket(b int) *Siva {
+// Bucket sets the bucket size for siva files.
+func (s *Siva) Bucket(b int) {
 	s.bucket = b
-	return s
 }
 
-func (s *Siva) Queue(req func(string) error) *Siva {
+// Queue sets the function used to queue repositories.
+func (s *Siva) Queue(req func(string) error) {
 	chn := make(chan string)
 	go func() {
 		for r := range chn {
 			err := req(r)
 			if err != nil {
-				s.errorChan <- err
+				s.error(err)
 			}
 		}
 	}()
 
 	s.queueChan = chn
-	return s
 }
 
-func (s *Siva) WriteQueue(writer io.Writer) *Siva {
-	return s.Queue(func(s string) error {
+// WriteQueue sets a default function that writes to writer each repository
+// id that has to be queued.
+func (s *Siva) WriteQueue(writer io.Writer) {
+	s.Queue(func(s string) error {
 		_, err := fmt.Fprintln(writer, s)
 		return err
 	})
 }
 
-func (s *Siva) Errors(f func(error)) *Siva {
-	chn := make(chan error)
-	go func() {
-		for r := range chn {
-			f(r)
-		}
-	}()
-
-	s.errorChan = chn
-	return s
-}
-
-func (s *Siva) DefaultErrors(msg string, skipErrors bool) *Siva {
-	return s.Errors(func(err error) {
-		log.Errorf(err, msg)
-		if !skipErrors {
-			s.Cancel()
-		}
-	})
-}
-
-func (s *Siva) Dry(d bool) *Siva {
-	s.dry = d
-	return s
-}
-
-func (s *Siva) SkipErrors(e bool) *Siva {
-	s.skipErrors = e
-	return s
-}
-
-func (s *Siva) Workers(w int) *Siva {
-	s.workers = w
-	return s
-}
-
-func (s *Siva) Cancel() {
-	if s.cancel != nil {
-		s.cancel()
-	}
-}
-
 func (s *Siva) deleteWorker(ctx context.Context, c chan string) {
 	for init := range c {
-		s.DeleteSiva(ctx, init)
+		err := s.DeleteOne(ctx, init)
+		if err != nil {
+			s.error(err)
+		}
 	}
 }
 
+// Delete removes all references to the siva files in a list, deletes its
+// siva file and calls queue function for its repositories.
 func (s *Siva) Delete(ctx context.Context, list []string) error {
-	w := s.workers
-	if w < 1 {
-		w = 1
-	}
-
-	ctx, s.cancel = context.WithCancel(ctx)
-
-	var wg sync.WaitGroup
 	chn := make(chan string)
-	wg.Add(w)
-
-	for i := 0; i < w; i++ {
-		go func() {
-			s.deleteWorker(ctx, chn)
-			wg.Done()
-		}()
-	}
+	wctx := s.setupWorker(ctx, func(c context.Context) {
+		s.deleteWorker(c, chn)
+	})
 
 	for i, h := range list {
 		if i != 0 && i%logDeleteCount == 0 {
@@ -134,33 +83,37 @@ func (s *Siva) Delete(ctx context.Context, list []string) error {
 		}
 
 		select {
-		case <-ctx.Done():
-			return ctx.Err()
+		case <-wctx.Done():
+			return wctx.Err()
 		default:
 			chn <- h
 		}
 	}
 
 	close(chn)
-	wg.Wait()
+	s.wait()
 
 	return nil
 }
 
-func (s *Siva) DeleteSiva(ctx context.Context, init string) {
+// DeleteOne deletes one siva file, its references and calls queue function
+// for the related repositories.
+func (s *Siva) DeleteOne(ctx context.Context, init string) error {
 	if s.db != nil {
 		err := s.deleteDatabase(ctx, init)
 		if err != nil {
-			s.error(err)
+			return err
 		}
 	}
 
 	if s.fs != nil {
 		err := s.deleteFilesystem(ctx, init)
 		if err != nil {
-			s.error(err)
+			return err
 		}
 	}
+
+	return nil
 }
 
 func (s *Siva) deleteDatabase(ctx context.Context, init string) error {
@@ -203,11 +156,5 @@ func (s *Siva) deleteFilesystem(ctx context.Context, init string) error {
 func (s *Siva) queue(repo string) {
 	if s.queueChan != nil {
 		s.queueChan <- repo
-	}
-}
-
-func (s *Siva) error(e error) {
-	if s.errorChan != nil {
-		s.errorChan <- e
 	}
 }

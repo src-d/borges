@@ -63,11 +63,13 @@ func (d *deleteCmd) init() error {
 		d.Workers = runtime.NumCPU()
 	}
 
-	d.siva = tool.NewSiva(d.db, d.fs).
-		Dry(d.Dry).
-		Workers(d.Workers).
-		WriteQueue(os.Stdout).
-		DefaultErrors("error deleting siva", d.SkipErrors)
+	s := tool.NewSiva(d.db, d.fs)
+	s.Dry(d.Dry)
+	s.Workers(d.Workers)
+	s.WriteQueue(os.Stdout)
+	s.DefaultErrors("error deleting siva", d.SkipErrors)
+	d.siva = s
+
 	d.list, err = tool.LoadHashes(d.SivaList)
 	return err
 }
