@@ -70,6 +70,14 @@
   version = "v1.9.0"
 
 [[projects]]
+  branch = "master"
+  digest = "1:ccf70c3dec4b3b1601c904e0719cdc0bb24886d4d5e05829605f8b8879af4b5a"
+  name = "github.com/gluster/gogfapi"
+  packages = ["gfapi"]
+  pruneopts = "UT"
+  revision = "833cee3b4df21f9c12e03a0532f94c87d12c0523"
+
+[[projects]]
   digest = "1:8f13f978d35181fada0ea713c14a224f2b329fa91c13438b2811331ecd8b16e1"
   name = "github.com/gogo/protobuf"
   packages = [
@@ -474,6 +482,13 @@
   revision = "bed6b25004fcbc1b034608f01d478aca4135b865"
 
 [[projects]]
+  digest = "1:02f5069a2923ccfdeb5151a515eece48bb3186e4616114f72bacd122fa542c27"
+  name = "gopkg.in/src-d/go-billy-gluster.v0"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "a14b481441bb5ba7cba3c48cb3eb570f1c7fb5fd"
+
+[[projects]]
   digest = "1:c057dcdb0f2891f49cc48a6faa3d39efee510b040c6aaa6341e71a79a759ea12"
   name = "gopkg.in/src-d/go-billy-siva.v4"
   packages = ["."]
@@ -482,7 +497,7 @@
   version = "v4.2.1"
 
 [[projects]]
-  digest = "1:38a7affd09d9ae9111aa4e4406216b27ead3c798d38e11572757d7f37b92e631"
+  digest = "1:ce504b6c62f90c36eaa7a67613e867faa06acc5bd72569587dcb628c40f9d21f"
   name = "gopkg.in/src-d/go-billy.v4"
   packages = [
     ".",
@@ -494,9 +509,9 @@
     "util",
   ]
   pruneopts = "UT"
-  revision = "83cf655d40b15b427014d7875d10850f96edba14"
+  revision = "982626487c60a5252e7d0b695ca23fb0fa2fd670"
   source = "https://github.com/src-d/go-billy.git"
-  version = "v4.2.0"
+  version = "v4.3.0"
 
 [[projects]]
   branch = "master"
@@ -655,7 +670,9 @@
     "gopkg.in/src-d/core-retrieval.v0/repository",
     "gopkg.in/src-d/core-retrieval.v0/schema",
     "gopkg.in/src-d/core-retrieval.v0/test",
+    "gopkg.in/src-d/go-billy-gluster.v0",
     "gopkg.in/src-d/go-billy.v4",
+    "gopkg.in/src-d/go-billy.v4/helper/chroot",
     "gopkg.in/src-d/go-billy.v4/memfs",
     "gopkg.in/src-d/go-billy.v4/osfs",
     "gopkg.in/src-d/go-billy.v4/util",
