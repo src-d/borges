@@ -30,11 +30,12 @@ before_script:
   - make container
 
 script:
-  - GO_TAGS="norwfs gluster" make test-coverage
+  - make test-coverage-gluster
   - make codecov
   - make godep no-changes-in-commit
 
 before_deploy:
+  - make packages-tool
   - make packages
 
 deploy:
