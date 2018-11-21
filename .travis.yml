@@ -27,9 +27,10 @@ services:
 
 before_script:
   - psql -c 'create database testing;' -U postgres
+  - make container
 
 script:
-  - make test-coverage
+  - GO_TAGS="norwfs gluster" make test-coverage
   - make codecov
   - make godep no-changes-in-commit
 
