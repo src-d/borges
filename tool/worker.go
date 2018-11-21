@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	log "gopkg.in/src-d/go-log.v0"
+	"gopkg.in/src-d/go-log.v1"
 )
 
 type worker struct {
