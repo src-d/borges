@@ -2,11 +2,20 @@ language: go
 
 go:
   - 1.11.x
+go_import_path: github.com/src-d/borges
 
 matrix:
   fast_finish: true
   allow_failures:
     - go: tip
+
+dist: xenial
+addons:
+  postgresql: "9.6"
+  apt:
+    packages:
+      - rabbitmq-server
+      - glusterfs-common
 
 env:
   - DBUSER=postgres DBPASS=
@@ -15,9 +24,6 @@ services:
   - docker
   - postgresql
   - rabbitmq
-
-addons:
-  postgresql: "9.6"
 
 before_script:
   - psql -c 'create database testing;' -U postgres
