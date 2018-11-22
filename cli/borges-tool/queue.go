@@ -57,6 +57,18 @@ func (d *queueCmd) init() error {
 		d.Workers = runtime.NumCPU()
 	}
 
+	broker, err := queue.NewBroker(d.Broker)
+	if err != nil {
+		return err
+	}
+
+	queue, err := broker.Queue(d.Queue)
+	if err != nil {
+		return err
+	}
+
+	d.q = queue
+
 	r := tool.NewRepository(d.db, d.q)
 	r.Dry(d.Dry)
 	r.Workers(d.Workers)

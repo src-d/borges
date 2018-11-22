@@ -136,7 +136,11 @@ func (s *Siva) deleteDatabase(ctx context.Context, init string) error {
 		}
 	}
 
-	return s.db.DeleteReferences(ctx, init)
+	if !s.dry {
+		return s.db.DeleteReferences(ctx, init)
+	}
+
+	return nil
 }
 
 func (s *Siva) deleteFilesystem(ctx context.Context, init string) error {
