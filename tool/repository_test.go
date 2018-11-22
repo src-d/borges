@@ -36,7 +36,17 @@ func (s *RepositorySuite) TearDownTest() {
 }
 
 func (s *RepositorySuite) TestQueueAll() {
+	s.testQueue(false)
+}
+
+func (s *RepositorySuite) TestQueueDry() {
+	s.testQueue(true)
+}
+
+func (s *RepositorySuite) testQueue(dry bool) {
 	rep := NewRepository(s.database, s.queue)
+	rep.Dry(dry)
+
 	err := rep.Queue(context.TODO(), ulid)
 	s.NoError(err)
 
@@ -56,6 +66,11 @@ func (s *RepositorySuite) TestQueueAll() {
 		s.NoError(err)
 
 		ids = append(ids, job.RepositoryID.String())
+	}
+
+	if dry {
+		s.Len(ids, 0)
+		return
 	}
 
 	queueable := []string{

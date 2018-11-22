@@ -29,7 +29,6 @@ type Repository struct {
 	db *Database
 	q  queue.Queue
 
-	dry             bool
 	retries         int32
 	priority        queue.Priority
 	queueableStates []model.FetchStatus
@@ -40,7 +39,6 @@ func NewRepository(db *Database, q queue.Queue) *Repository {
 	return &Repository{
 		db:              db,
 		q:               q,
-		dry:             false,
 		retries:         defaultRetries,
 		priority:        defaultPriority,
 		queueableStates: queueableStates,
