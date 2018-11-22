@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"os"
 	"runtime"
+	"sort"
 
 	bcli "github.com/src-d/borges/cli"
 	"github.com/src-d/borges/tool"
@@ -79,6 +80,8 @@ func (d *deleteCmd) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
+
+	sort.Strings(d.list)
 
 	err = d.siva.Delete(context.Background(), d.list)
 	if err != nil {
