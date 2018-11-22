@@ -65,6 +65,7 @@ func (d *deleteCmd) init() error {
 	}
 
 	s := tool.NewSiva(d.db, d.fs)
+	s.Bucket(d.Bucket)
 	s.Dry(d.Dry)
 	s.Workers(d.Workers)
 	s.WriteQueue(os.Stdout)
