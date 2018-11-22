@@ -52,6 +52,18 @@ func (s *SivaSuite) TestSivaAll() {
 	s.testDelete(c)
 }
 
+func (s *SivaSuite) TestSivaDry() {
+	c := sivaCase{
+		err:   false,
+		dry:   true,
+		list:  inits,
+		sivas: inits,
+		queue: ulid,
+	}
+
+	s.testDelete(c)
+}
+
 func (s *SivaSuite) TestSivaRefInAllRepos() {
 	c := sivaCase{
 		err:   false,
@@ -91,6 +103,7 @@ func (s *SivaSuite) TestSivaError() {
 
 type sivaCase struct {
 	err   bool
+	dry   bool
 	list  []string
 	sivas []string
 	queue []string
@@ -103,6 +116,7 @@ func (s *SivaSuite) testDelete(c sivaCase) {
 	siva.WriteQueue(buffer)
 	siva.DefaultErrors("testing", false)
 	siva.Bucket(s.bucket)
+	siva.Dry(c.dry)
 
 	err := siva.Delete(context.TODO(), c.list)
 	if c.err {
@@ -117,10 +131,12 @@ func (s *SivaSuite) testDelete(c sivaCase) {
 	s.ElementsMatch(sivas, c.sivas)
 
 	// list of sivas files to delete
-	for _, f := range c.list {
-		name := fmt.Sprintf("%s.siva", bucketPath(f, s.bucket))
-		_, err = s.testFS.Stat(name)
-		s.Error(err)
+	if !c.dry {
+		for _, f := range c.list {
+			name := fmt.Sprintf("%s.siva", bucketPath(f, s.bucket))
+			_, err = s.testFS.Stat(name)
+			s.Error(err)
+		}
 	}
 
 	// rest of siva files
