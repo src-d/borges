@@ -79,7 +79,10 @@ func (s *Siva) Delete(ctx context.Context, list []string) error {
 
 	for i, h := range list {
 		if i != 0 && i%logDeleteCount == 0 {
-			log.With(log.Fields{"count": i}).Infof("deleting sivas")
+			log.With(log.Fields{
+				"count": i,
+				"siva":  h,
+			}).Infof("deleting sivas")
 		}
 
 		select {

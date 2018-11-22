@@ -76,7 +76,10 @@ func (r *Repository) Queue(ctx context.Context, list []string) error {
 
 	for i, h := range list {
 		if i != 0 && i%logDeleteCount == 0 {
-			log.With(log.Fields{"count": i}).Infof("queuing repositories")
+			log.With(log.Fields{
+				"count": i,
+				"repo":  h,
+			}).Infof("queuing repositories")
 		}
 
 		select {
@@ -116,7 +119,7 @@ func (r *Repository) QueueOne(id string) error {
 	}
 
 	l.With(log.Fields{"status": repo.Status}).
-		Debugf("repository not in a queueable status, skipping")
+		Debugf("queuing repository")
 
 	if !r.dry {
 		err = r.q.Publish(job)
