@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"io"
 	"os"
 	"runtime"
 	"sort"
@@ -27,12 +28,14 @@ type deleteCmd struct {
 	db   *tool.Database
 	siva *tool.Siva
 	list []string
+	out  io.WriteCloser
 
 	FSString   string `long:"fs" description:"filesystem connection string, ex: file:///mnt/rooted-repos, gluster://host/volume/rooted-repos"`
 	Bucket     int    `long:"bucket" description:"bucket level"`
 	Dry        bool   `long:"dry" description:"do not perform modifications in database or filesystem"`
 	SkipErrors bool   `long:"skip-errors" description:"do not stop on errors"`
 	Workers    int    `long:"workers" description:"specify the number of threads to use, 0 means all cores" default:"1"`
+	Output     string `long:"output" short:"o" description:"file where to save repositories to queue, if not specified the list will be output to stdout"`
 
 	deleteArgs `positional-args:"true" required:"yes"`
 }
@@ -64,11 +67,19 @@ func (d *deleteCmd) init() error {
 		d.Workers = runtime.NumCPU()
 	}
 
+	d.out = os.Stdout
+	if d.Output != "" {
+		d.out, err = os.Create(d.Output)
+		if err != nil {
+			return err
+		}
+	}
+
 	s := tool.NewSiva(d.db, d.fs)
 	s.Bucket(d.Bucket)
 	s.Dry(d.Dry)
 	s.Workers(d.Workers)
-	s.WriteQueue(os.Stdout)
+	s.WriteQueue(d.out)
 	s.DefaultErrors("error deleting siva", d.SkipErrors)
 	d.siva = s
 
@@ -81,6 +92,8 @@ func (d *deleteCmd) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
+
+	defer d.out.Close()
 
 	sort.Strings(d.list)
 
