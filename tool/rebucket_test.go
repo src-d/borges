@@ -1,6 +1,7 @@
 package tool
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -59,24 +60,33 @@ func (s *RebucketSuite) TearDownTest() {
 func (s *RebucketSuite) TestRebucket() {
 	var err error
 
+	siva := NewSiva(nil, s.testFS)
+	siva.Bucket(0)
+	ctx := context.TODO()
+
 	s.checkBucket(s.testFS, 0, true)
 
 	// dry run should not change anything
-	err = Rebucket(s.testFS, inits, 0, 2, true)
+	siva.Dry(true)
+	err = siva.Rebucket(ctx, inits, 2)
 	s.NoError(err)
 	s.checkBucket(s.testFS, 0, true)
 
-	err = Rebucket(s.testFS, inits, 0, 2, false)
+	siva.Dry(false)
+
+	err = siva.Rebucket(ctx, inits, 2)
 	s.NoError(err)
 	s.checkBucket(s.testFS, 0, false)
 	s.checkBucket(s.testFS, 2, true)
 
-	err = Rebucket(s.testFS, inits, 2, 4, false)
+	siva.Bucket(2)
+	err = siva.Rebucket(ctx, inits, 4)
 	s.NoError(err)
 	s.checkBucket(s.testFS, 2, false)
 	s.checkBucket(s.testFS, 4, true)
 
-	err = Rebucket(s.testFS, inits, 4, 0, false)
+	siva.Bucket(4)
+	err = siva.Rebucket(ctx, inits, 0)
 	s.NoError(err)
 	s.checkBucket(s.testFS, 4, false)
 	s.checkBucket(s.testFS, 0, true)
@@ -87,7 +97,7 @@ func (s *RebucketSuite) checkBucket(fs billy.Basic, bucket int, exist bool) {
 		name := fmt.Sprintf("%s.siva", bucketPath(i, bucket))
 		f, err := s.testFS.Stat(name)
 		if exist {
-			s.NoError(err)
+			s.Require().NoError(err)
 			s.False(f.IsDir())
 		} else {
 			s.Error(err)

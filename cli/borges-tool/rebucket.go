@@ -1,6 +1,12 @@
 package main
 
 import (
+	"context"
+	"io"
+	"os"
+	"runtime"
+	"sort"
+
 	"github.com/src-d/borges/tool"
 
 	billy "gopkg.in/src-d/go-billy.v4"
@@ -15,9 +21,14 @@ func init() {
 type rebucketCmd struct {
 	cli.Command `name:"rebucket" short-description:"change siva bucket level"`
 	fs          billy.Basic
+	siva        *tool.Siva
 	list        []string
+	out         io.WriteCloser
 
-	Dry bool `long:"dry" description:"do not perform modifications in database or filesystem"`
+	Dry        bool   `long:"dry" description:"do not perform modifications to filesystem"`
+	SkipErrors bool   `long:"skip-errors" description:"do not stop on errors"`
+	Workers    int    `long:"workers" description:"specify the number of threads to use, 0 means all cores" default:"1"`
+	Output     string `long:"output" short:"o" description:"file where to save siva files with error, if not specified the list will be output to stdout"`
 
 	rebucketArgs `positional-args:"true" required:"yes"`
 }
@@ -29,14 +40,34 @@ type rebucketArgs struct {
 	SivaList string `positional-arg-name:"list" description:"file with the list of sivas to change bucketing" required:"yes"`
 }
 
-func (d *rebucketCmd) init() error {
+func (r *rebucketCmd) init() error {
 	var err error
-	d.fs, err = tool.OpenFS(d.FSString)
+	r.fs, err = tool.OpenFS(r.FSString)
 	if err != nil {
 		return err
 	}
 
-	d.list, err = tool.LoadHashes(d.SivaList)
+	if r.Workers == 0 {
+		r.Workers = runtime.NumCPU()
+	}
+
+	r.out = os.Stdout
+	if r.Output != "" {
+		r.out, err = os.Create(r.Output)
+		if err != nil {
+			return err
+		}
+	}
+
+	s := tool.NewSiva(nil, r.fs)
+	s.Bucket(r.From)
+	s.Dry(r.Dry)
+	s.Workers(r.Workers)
+	s.WriteFailed(r.out)
+	s.DefaultErrors("error rebucketing siva", r.SkipErrors)
+	r.siva = s
+
+	r.list, err = tool.LoadHashes(r.SivaList)
 	return err
 }
 
@@ -46,7 +77,9 @@ func (d *rebucketCmd) Execute(args []string) error {
 		return err
 	}
 
-	err = tool.Rebucket(d.fs, d.list, d.From, d.To, d.Dry)
+	sort.Strings(d.list)
+
+	err = d.siva.Rebucket(context.Background(), d.list, d.To)
 	if err != nil {
 		return err
 	}
