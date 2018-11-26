@@ -72,7 +72,7 @@ func (d *queueCmd) init() error {
 	r := tool.NewRepository(d.db, d.q)
 	r.Dry(d.Dry)
 	r.Workers(d.Workers)
-	r.DefaultErrors("error deleting siva", d.SkipErrors)
+	r.DefaultErrors("error queuing repository", d.SkipErrors)
 	d.r = r
 
 	d.list, err = tool.LoadList(d.RepoList)
