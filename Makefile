@@ -5,6 +5,8 @@ COMMANDS ?= cli/borges
 GO_BUILD_ENV ?= CGO_ENABLED=0
 GO_TAGS ?= norwfs
 
+DOCKERFILES = Dockerfile:$(PROJECT) Dockerfile.tool:$(PROJECT)-tool
+
 # Including ci Makefile
 CI_REPOSITORY ?= https://github.com/src-d/ci.git
 CI_BRANCH ?= v1
