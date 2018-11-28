@@ -8,7 +8,7 @@
 
 [[constraint]]
   name = "gopkg.in/src-d/core-retrieval.v0"
-  revision = "5252fe35bfba3e0635a06ff5633758b53127c588"
+  revision = "27a526a7da6f3e90812e390157c33c2dce445829"
   source = "https://github.com/src-d/core-retrieval.git"
 
 [[constraint]]
@@ -27,7 +27,7 @@
 [[constraint]]
   name = "gopkg.in/src-d/go-git.v4"
   source = "https://github.com/src-d/go-git.git"
-  revision = "005d5dc961a7053d88da53536f4a5eb4c305529b"
+  version = "4.8.1"
 
 [[constraint]]
   name = "gopkg.in/src-d/go-kallax.v1"

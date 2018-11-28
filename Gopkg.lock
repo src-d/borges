@@ -451,7 +451,7 @@
   revision = "20d25e2804050c1cd24a7eea1e7a6447dd0e74ec"
 
 [[projects]]
-  digest = "1:db14b97a08ebfe2c5c29487a66cb815b8db0c2babb9853f695c1450f89692c43"
+  digest = "1:458ceb08904e030f12082cc7af3f1070d201dba0c6674cfb488e77c5f3cafd66"
   name = "gopkg.in/src-d/core-retrieval.v0"
   packages = [
     "model",
@@ -460,7 +460,7 @@
     "test",
   ]
   pruneopts = "UT"
-  revision = "5252fe35bfba3e0635a06ff5633758b53127c588"
+  revision = "27a526a7da6f3e90812e390157c33c2dce445829"
   source = "https://github.com/src-d/core-retrieval.git"
 
 [[projects]]
@@ -531,7 +531,7 @@
   version = "v3.1.0"
 
 [[projects]]
-  digest = "1:0cc25cb6ca8fdefde9106e5ea12b2531ffdd7fadedebc19f2e2a365c830bf2a7"
+  digest = "1:1ea7acba0f88007ecacda272a1414bffb529c2da8dbdac647139d2d1590d8354"
   name = "gopkg.in/src-d/go-git.v4"
   packages = [
     ".",
@@ -576,8 +576,9 @@
     "utils/merkletrie/noder",
   ]
   pruneopts = "UT"
-  revision = "005d5dc961a7053d88da53536f4a5eb4c305529b"
+  revision = "3dbfb89e0f5bce0008724e547b999fe3af9f60db"
   source = "https://github.com/src-d/go-git.git"
+  version = "v4.8.1"
 
 [[projects]]
   digest = "1:14b7aed41e3af4188cba97fa03d01cedc15c5a4c1aff19ef72def0baed5b8b73"
@@ -665,6 +666,7 @@
     "gopkg.in/src-d/go-git.v4",
     "gopkg.in/src-d/go-git.v4/config",
     "gopkg.in/src-d/go-git.v4/plumbing",
+    "gopkg.in/src-d/go-git.v4/plumbing/cache",
     "gopkg.in/src-d/go-git.v4/plumbing/object",
     "gopkg.in/src-d/go-git.v4/plumbing/storer",
     "gopkg.in/src-d/go-git.v4/plumbing/transport",
