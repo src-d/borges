@@ -10,3 +10,4 @@
 * [Configuration](using-borges/configuration.md)
 * [Dashboard](using-borges/dashboard.md)
 * [Development](using-borges/development.md)
+* [Fix tool](using-borges/fix-tool.md)
