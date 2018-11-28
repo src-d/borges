@@ -8,6 +8,7 @@ import (
 	"gopkg.in/src-d/go-git-fixtures.v3"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
+	"gopkg.in/src-d/go-git.v4/plumbing/cache"
 	"gopkg.in/src-d/go-git.v4/storage/filesystem"
 	"gopkg.in/src-d/go-git.v4/storage/memory"
 	"gopkg.in/src-d/go-kallax.v1"
@@ -265,11 +266,7 @@ func (f *ChangesFixture) deleteReferences(r *git.Repository) error {
 
 func defaultRepository() (*git.Repository, error) {
 	srcFs := fixtures.ByTag("root-reference").One().DotGit()
-	sto, err := filesystem.NewStorage(srcFs)
-	if err != nil {
-		return nil, err
-	}
-
+	sto := filesystem.NewStorage(srcFs, cache.NewObjectLRUDefault())
 	return git.Open(sto, memfs.New())
 }
 
