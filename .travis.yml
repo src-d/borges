@@ -9,6 +9,14 @@ matrix:
   allow_failures:
     - go: tip
 
+dist: xenial
+addons:
+  postgresql: "9.6"
+  apt:
+    packages:
+      - rabbitmq-server
+      - glusterfs-common
+
 env:
   - DBUSER=postgres DBPASS=
 
@@ -17,18 +25,17 @@ services:
   - postgresql
   - rabbitmq
 
-addons:
-  postgresql: "9.6"
-
 before_script:
   - psql -c 'create database testing;' -U postgres
+  - make container
 
 script:
-  - make test-coverage
+  - make test-coverage-gluster
   - make codecov
   - make godep no-changes-in-commit
 
 before_deploy:
+  - make packages-tool
   - make packages
 
 deploy:

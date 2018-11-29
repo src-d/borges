@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/src-d/borges"
+	bcli "github.com/src-d/borges/cli"
 
 	"github.com/jessevdk/go-flags"
 	"gopkg.in/src-d/go-cli.v0"
@@ -22,9 +23,9 @@ type producerCmd struct {
 }
 
 type producerOpts struct {
-	queueOpts
-	databaseOpts
-	metricsOpts
+	bcli.QueueOpts
+	bcli.DatabaseOpts
+	bcli.MetricsOpts
 
 	database *sql.DB
 	broker   queue.Broker
@@ -50,12 +51,12 @@ func (c *producerOpts) init() error {
 		return err
 	}
 
-	c.database, err = c.openDatabase()
+	c.database, err = c.OpenDatabase()
 	if err != nil {
 		return err
 	}
 
-	c.metricsOpts.maybeStartMetrics()
+	c.MetricsOpts.MaybeStartMetrics()
 
 	return nil
 }
