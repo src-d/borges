@@ -73,7 +73,7 @@ borges-tool queue --database="postgres://testing:testing@localhost:5432/testing"
 Move siva files from one bucketing level to another. This movement must be done in the same filesystem. It outputs the list of siva files that had an error renaming. The positional parameters are `filesystemp`, `from`, `to` and siva list. `from` and `to` are the original and the desired bucketing levels. For example, to move siva files without bucketing to bucket level 2 in a glusterfs volume the command would be:
 
 ```
-borges-tool --skip-errors --output=errors.txt --workers=8 \
+borges-tool rebucket --skip-errors --output=errors.txt --workers=8 \
     gluster://gfs.host.com/volume/directory 0 2 list.txt
 ```
 
