@@ -22,11 +22,7 @@ func LoadHashes(file string) ([]string, error) {
 	return LoadListFilter(file, func(s string) string {
 		t := strings.ToLower(s)
 		t = strings.TrimSuffix(t, ".siva")
-		p := strings.Split(t, "/")
-
-		if len(p) > 1 {
-			t = p[len(p)-1]
-		}
+		t = filepath.Base(t)
 
 		return t
 	})
