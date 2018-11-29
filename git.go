@@ -17,6 +17,7 @@ import (
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/config"
 	"gopkg.in/src-d/go-git.v4/plumbing"
+	"gopkg.in/src-d/go-git.v4/plumbing/cache"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
 	"gopkg.in/src-d/go-git.v4/plumbing/storer"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport"
@@ -272,7 +273,7 @@ func (b *temporaryRepositoryBuilder) Clone(
 		return nil, err
 	}
 
-	s, err := filesystem.NewStorage(tmpFs)
+	s := filesystem.NewStorage(tmpFs, cache.NewObjectLRUDefault())
 	if err != nil {
 		return nil, err
 	}

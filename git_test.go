@@ -6,15 +6,16 @@ import (
 	"os"
 	"testing"
 
-	"gopkg.in/src-d/go-git-fixtures.v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"gopkg.in/src-d/core-retrieval.v0/model"
 	"gopkg.in/src-d/go-billy.v4/memfs"
 	"gopkg.in/src-d/go-billy.v4/osfs"
+	"gopkg.in/src-d/go-git-fixtures.v3"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
+	"gopkg.in/src-d/go-git.v4/plumbing/cache"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport"
 	"gopkg.in/src-d/go-git.v4/storage/filesystem"
 	"gopkg.in/src-d/go-git.v4/storage/memory"
@@ -56,9 +57,7 @@ func TestNewGitReferencer_ReferenceToTagObject(t *testing.T) {
 	require := require.New(t)
 
 	srcFs := fixtures.ByTag("tags").One().DotGit()
-	sto, err := filesystem.NewStorage(srcFs)
-	require.NoError(err)
-
+	sto := filesystem.NewStorage(srcFs, cache.NewObjectLRUDefault())
 	r, err := git.Open(sto, memfs.New())
 	require.NoError(err)
 

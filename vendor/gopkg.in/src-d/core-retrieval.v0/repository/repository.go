@@ -13,6 +13,7 @@ import (
 	"gopkg.in/src-d/go-billy.v4/util"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
+	"gopkg.in/src-d/go-git.v4/plumbing/cache"
 	"gopkg.in/src-d/go-git.v4/storage"
 	"gopkg.in/src-d/go-git.v4/storage/filesystem"
 )
@@ -37,6 +38,7 @@ type Tx interface {
 
 type sivaRootedTransactioner struct {
 	copier *Copier
+	cache  cache.Object
 }
 
 // NewSivaRootedTransactioner returns a RootedTransactioner for repositories
@@ -48,7 +50,16 @@ type sivaRootedTransactioner struct {
 // Commit operation fails, the state of the first filesystem is unknown and can
 // be invalid.
 func NewSivaRootedTransactioner(copier *Copier) RootedTransactioner {
-	return &sivaRootedTransactioner{copier}
+	return NewSivaRootedTransactionerWithCache(copier, nil)
+}
+
+// NewSivaRootedTransactionerWithCache creates a new RootedTransactioner where
+// you can specify its cache.
+func NewSivaRootedTransactionerWithCache(
+	copier *Copier,
+	c cache.Object,
+) RootedTransactioner {
+	return &sivaRootedTransactioner{copier, c}
 }
 
 func (s *sivaRootedTransactioner) Begin(ctx context.Context, h plumbing.Hash) (Tx, error) {
@@ -76,11 +87,12 @@ func (s *sivaRootedTransactioner) Begin(ctx context.Context, h plumbing.Hash) (T
 		return nil, err
 	}
 
-	sto, err := filesystem.NewStorage(fs)
-	if err != nil {
-		return nil, err
+	c := s.cache
+	if c == nil {
+		c = cache.NewObjectLRUDefault()
 	}
 
+	sto := filesystem.NewStorage(fs, c)
 	if _, err := git.Open(sto, nil); err == git.ErrRepositoryNotExists {
 		if _, err := git.Init(sto, nil); err != nil {
 			return nil, err

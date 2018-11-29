@@ -2,6 +2,7 @@ language: go
 
 go:
   - 1.11.x
+go_import_path: github.com/src-d/borges
 
 matrix:
   fast_finish: true
