@@ -1,5 +1,5 @@
 FROM debian:stretch-slim
-MAINTAINER jfontan
+MAINTAINER source{d}
 
 RUN apt-get update && \
     apt-get install -y glusterfs-common && \
