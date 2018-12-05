@@ -190,8 +190,10 @@ func (s *LocalSuite) TestGetByInitCommit() {
 	r, err = s.store.GetRefsByInit(h1)
 	require.NoError(err)
 	require.Len(r, 2)
-	require.Equal(r1.ID, r[0].Repository.ID)
-	require.Equal(r2.ID, r[1].Repository.ID)
+
+	e := []kallax.ULID{r1.ID, r2.ID}
+	g := []kallax.ULID{r[0].Repository.ID, r[1].Repository.ID}
+	require.ElementsMatch(e, g)
 
 	ok, err = s.store.InitHasRefs(h1)
 	require.NoError(err)
