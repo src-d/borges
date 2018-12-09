@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -20,27 +18,6 @@ func TestRebucket(t *testing.T) {
 
 	fs := osfs.New(tmp)
 	suite.Run(t, &RebucketSuite{FS: fs})
-}
-
-func TestOpenFS(t *testing.T) {
-	require := require.New(t)
-
-	tmp, err := ioutil.TempDir("", "borges")
-	require.NoError(err)
-	defer os.RemoveAll(tmp)
-
-	_, err = OpenFS("invalid:///some/path")
-	require.Error(err)
-
-	fs, err := OpenFS(fmt.Sprintf("file://%s", tmp))
-	require.NoError(err)
-
-	testFile := filepath.Join(tmp, "test")
-	err = ioutil.WriteFile(testFile, []byte("data"), 0660)
-	require.NoError(err)
-
-	_, err = fs.Stat("test")
-	require.NoError(err)
 }
 
 type RebucketSuite struct {
