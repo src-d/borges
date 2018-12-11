@@ -20,7 +20,12 @@ import (
 // n lexicographic order.
 func LoadHashes(file string) ([]string, error) {
 	return LoadListFilter(file, func(s string) string {
-		t := strings.ToLower(s)
+		t := strings.TrimSpace(s)
+		if t == "" {
+			return ""
+		}
+
+		t = strings.ToLower(t)
 		t = strings.TrimSuffix(t, ".siva")
 		t = filepath.Base(t)
 
