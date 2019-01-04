@@ -131,7 +131,7 @@ func (a *Archiver) do(
 	}
 
 	defer a.reportMetrics(r, now)
-	defer a.recoverDo(logger, r, &now, err)
+	defer a.recoverDo(logger, r, &now, &err)
 	defer func() {
 		logger.With(log.Fields{"status": r.Status}).Debugf("repository processed")
 	}()
@@ -259,18 +259,17 @@ func (a *Archiver) reportMetrics(r *model.Repository, now time.Time) {
 	}
 }
 
-func (a *Archiver) recoverDo(logger log.Logger, r *model.Repository, now *time.Time, err error) {
-	return
+func (a *Archiver) recoverDo(logger log.Logger, r *model.Repository, now *time.Time, err *error) {
 	rcv := recover()
 	if rcv == nil {
 		return
 	}
 
-	logger.Errorf(err, "panic while processing repository")
+	logger.Errorf(*err, "panic while processing repository")
 
 	r.FetchErrorAt = now
 	a.updateFailed(r, model.Pending)
-	err = ErrFatal.New(rcv, debug.Stack())
+	*err = ErrFatal.New(rcv, debug.Stack())
 }
 
 func (a *Archiver) isProcessableRepository(r *model.Repository, now *time.Time) error {
