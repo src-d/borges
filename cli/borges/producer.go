@@ -93,7 +93,7 @@ func setPrioritySettings(c *flags.Command) {
 
 func checkPriority(prio uint8) error {
 	if prio > uint8(queue.PriorityUrgent) {
-		return fmt.Errorf("Priority must be between 0 and %d", queue.PriorityUrgent)
+		return fmt.Errorf("priority must be between 0 and %d", queue.PriorityUrgent)
 	}
 
 	return nil

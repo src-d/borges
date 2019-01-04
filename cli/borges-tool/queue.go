@@ -9,7 +9,6 @@ import (
 	bcli "github.com/src-d/borges/cli"
 	"github.com/src-d/borges/tool"
 
-	billy "gopkg.in/src-d/go-billy.v4"
 	"gopkg.in/src-d/go-cli.v0"
 	queue "gopkg.in/src-d/go-queue.v1"
 	_ "gopkg.in/src-d/go-queue.v1/amqp"
@@ -24,7 +23,6 @@ type queueCmd struct {
 	bcli.DatabaseOpts
 	bcli.QueueOpts
 
-	fs   billy.Basic
 	db   *tool.Database
 	r    *tool.Repository
 	q    queue.Queue

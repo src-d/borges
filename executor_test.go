@@ -17,7 +17,6 @@ import (
 
 type ExecutorSuite struct {
 	test.Suite
-	p     *Executor
 	store RepositoryStore
 }
 

@@ -85,11 +85,11 @@ func (s *LineJobIterSuite) TestNonAbsoluteURL() {
 
 	iter := NewLineJobIter(r, storer)
 
-	j, err := iter.Next()
+	_, err := iter.Next()
 	s.Error(err)
 	s.NotEqual(io.EOF, err)
 
-	j, err = iter.Next()
+	j, err := iter.Next()
 	s.Equal(io.EOF, err)
 	s.Nil(j)
 
@@ -106,11 +106,11 @@ func (s *LineJobIterSuite) TestBadURL() {
 
 	iter := NewLineJobIter(r, storer)
 
-	j, err := iter.Next()
+	_, err := iter.Next()
 	s.Error(err)
 	s.NotEqual(io.EOF, err)
 
-	j, err = iter.Next()
+	j, err := iter.Next()
 	s.Equal(io.EOF, err)
 	s.Nil(j)
 
