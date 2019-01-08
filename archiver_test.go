@@ -203,10 +203,12 @@ func (s *ArchiverSuite) TestFixtures() {
 			require := require.New(t)
 			var hash model.SHA1
 
-			or, _ := ct.OldRepository()
+			or, err := ct.OldRepository()
+			require.NoError(err)
+
 			var rid kallax.ULID
 			// emulate initial status of a repository
-			err := withInProcRepository(hash, or, func(url string) error {
+			err = withInProcRepository(hash, or, func(url string) error {
 				rid = s.newRepositoryModel(url)
 				return s.a.Do(context.TODO(), &Job{RepositoryID: uuid.UUID(rid)})
 			})
