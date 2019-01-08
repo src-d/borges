@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"gopkg.in/src-d/go-queue.v1"
+	queue "gopkg.in/src-d/go-queue.v1"
 )
 
 // Consumer consumes jobs from a queue and uses multiple workers to process
@@ -16,11 +16,10 @@ type Consumer struct {
 	WorkerPool *WorkerPool
 	Queue      queue.Queue
 
-	running bool
-	quit    chan struct{}
-	done    chan struct{}
-	iter    queue.JobIter
-	m       *sync.Mutex
+	quit chan struct{}
+	done chan struct{}
+	iter queue.JobIter
+	m    *sync.Mutex
 }
 
 // NewConsumer creates a new consumer.

@@ -17,9 +17,9 @@ type Action string
 
 const (
 	Create  Action = "create"
-	Update         = "update"
-	Delete         = "delete"
-	Invalid        = "invalid"
+	Update  Action = "update"
+	Delete  Action = "delete"
+	Invalid Action = "invalid"
 )
 
 // Command is the way to represent a change into a reference. It could be:

@@ -37,7 +37,7 @@ func (s *DatabaseSuite) TestGet() {
 	require.Equal(expected.Endpoints, repo.Endpoints)
 	require.Equal(expected.Status, repo.Status)
 
-	repo, err = s.store.Get(kallax.NewULID())
+	_, err = s.store.Get(kallax.NewULID())
 	require.Equal(kallax.ErrNotFound, err)
 }
 

@@ -33,7 +33,7 @@ func (s *LocalSuite) TestGet() {
 	require.NoError(err)
 	require.Equal(expected.toRepo(), repo)
 
-	repo, err = s.store.Get(kallax.NewULID())
+	_, err = s.store.Get(kallax.NewULID())
 	require.Equal(kallax.ErrNotFound, err)
 }
 

@@ -204,6 +204,8 @@ func (s *ArchiverSuite) TestFixtures() {
 			var hash model.SHA1
 
 			or, err := ct.OldRepository()
+			require.NoError(err)
+
 			var rid kallax.ULID
 			// emulate initial status of a repository
 			err = withInProcRepository(hash, or, func(url string) error {
