@@ -14,14 +14,14 @@ import (
 	"github.com/jpillora/backoff"
 	"gopkg.in/src-d/core-retrieval.v0/model"
 	"gopkg.in/src-d/core-retrieval.v0/repository"
-	"gopkg.in/src-d/go-errors.v1"
-	"gopkg.in/src-d/go-git.v4"
+	errors "gopkg.in/src-d/go-errors.v1"
+	git "gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/config"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport"
 	"gopkg.in/src-d/go-git.v4/storage"
-	"gopkg.in/src-d/go-kallax.v1"
-	"gopkg.in/src-d/go-log.v1"
+	kallax "gopkg.in/src-d/go-kallax.v1"
+	log "gopkg.in/src-d/go-log.v1"
 )
 
 var (
@@ -63,6 +63,9 @@ type Archiver struct {
 	// LockSession is a locker service to prevent concurrent access to the same
 	// rooted reporitories.
 	LockSession lock.Session
+	// Copier has the same copier struct as RootedTransactioner. Used to
+	// directly copy sivas to remote.
+	Copier *repository.Copier
 }
 
 func NewArchiver(
@@ -70,6 +73,7 @@ func NewArchiver(
 	tx repository.RootedTransactioner,
 	tc TemporaryCloner,
 	ls lock.Session, timeout time.Duration,
+	cp *repository.Copier,
 ) *Archiver {
 	return &Archiver{
 		backoff:             newBackoff(),
@@ -78,6 +82,7 @@ func NewArchiver(
 		Store:               r,
 		RootedTransactioner: tx,
 		LockSession:         ls,
+		Copier:              cp,
 	}
 }
 
@@ -186,7 +191,6 @@ func (a *Archiver) doClone(
 	ctx context.Context, logger log.Logger, now *time.Time,
 	j *Job, r *model.Repository, endpoint string,
 ) (tr TemporaryRepository, err error) {
-
 	tr, err = a.TemporaryCloner.Clone(ctx, j.RepositoryID.String(), endpoint)
 	if err == nil {
 		return
@@ -319,6 +323,11 @@ func (a *Archiver) pushChangesToRootedRepositories(
 	changes Changes,
 	now *time.Time,
 ) error {
+	fp, err := a.useFastpath(logger, changes, tr)
+	if err != nil {
+		return err
+	}
+
 	var failedInits []model.SHA1
 	for ic, cs := range changes {
 		done := make(chan struct{})
@@ -336,7 +345,16 @@ func (a *Archiver) pushChangesToRootedRepositories(
 			}
 
 			logger.Debugf("push changes to rooted repository started")
-			if err := a.pushChangesToRootedRepository(ctx, logger, r, tr, ic, cs); err != nil {
+
+			if fp {
+				err = a.fastpathRootedRepository(ctx, logger, r, tr, ic)
+			} else {
+				err = a.pushChangesToRootedRepository(ctx, logger, r, tr, ic, cs)
+			}
+
+			if err != nil {
+				println("err", err.Error())
+
 				err = ErrPushToRootedRepository.Wrap(err, ic.String())
 				logger.Errorf(err, "error pushing changes to rooted repository")
 
@@ -428,22 +446,22 @@ func (a *Archiver) checkEmptySiva(
 	return nil
 }
 
-func (a *Archiver) pushChangesToRootedRepository(ctx context.Context, logger log.Logger, r *model.Repository, tr TemporaryRepository, ic model.SHA1, changes []*Command) error {
-	var rootedRepoCpStart = time.Now()
+func (a *Archiver) pushChangesToRootedRepository(
+	ctx context.Context,
+	logger log.Logger,
+	r *model.Repository,
+	tr TemporaryRepository,
+	ic model.SHA1,
+	changes []*Command,
+) error {
 	tx, err := a.beginTxWithRetries(ctx, logger, plumbing.Hash(ic), maxRetries)
+	if err != nil {
+		return err
+	}
 
 	logger = logger.With(log.Fields{
 		"rooted-repository": ic.String(),
 	})
-
-	sivaCpFromDuration := time.Since(rootedRepoCpStart)
-	logger.With(log.Fields{
-		"duration": sivaCpFromDuration,
-	}).Debugf("copy siva file from FS")
-
-	if err != nil {
-		return err
-	}
 
 	rr, err := a.openGitWithRetries(tx.Storer(), logger, maxRetries)
 	if err != nil {
@@ -478,19 +496,6 @@ func (a *Archiver) pushChangesToRootedRepository(ctx context.Context, logger log
 			"duration": onlyPushDurationSec,
 		}).Debugf("one change pushed")
 
-		var rootedRepoCpStart = time.Now()
-		err = a.commitTxWithRetries(ctx, logger, ic, tx, maxRetries)
-		if err != nil {
-			logger.With(log.Fields{
-				"duration": time.Since(rootedRepoCpStart),
-			}).Errorf(err, "could not copy siva file to FS")
-			return err
-		}
-
-		logger.With(log.Fields{
-			"duration": time.Since(rootedRepoCpStart),
-		}).Debugf("copy siva file to FS")
-
 		return nil
 	})
 
@@ -499,9 +504,11 @@ func (a *Archiver) pushChangesToRootedRepository(ctx context.Context, logger log
 		if e != nil {
 			logger.Errorf(err, StrRemoveTmpFiles)
 		}
+
+		return err
 	}
 
-	return err
+	return a.commitTxWithRetries(ctx, logger, ic, tx, maxRetries)
 }
 
 func (a *Archiver) beginTxWithRetries(
@@ -510,6 +517,8 @@ func (a *Archiver) beginTxWithRetries(
 	initCommit plumbing.Hash,
 	numRetries float64,
 ) (tx repository.Tx, err error) {
+	rootedRepoCpStart := time.Now()
+
 	for a.backoff.Attempt() < numRetries {
 		tx, err = a.RootedTransactioner.Begin(ctx, initCommit)
 		if err == nil || !repository.HDFSNamenodeError.Is(err) {
@@ -526,6 +535,12 @@ func (a *Archiver) beginTxWithRetries(
 	}
 
 	a.backoff.Reset()
+
+	sivaCpFromDuration := time.Since(rootedRepoCpStart)
+	logger.With(log.Fields{
+		"duration": sivaCpFromDuration,
+	}).Debugf("copy siva file from FS")
+
 	return
 }
 
@@ -535,7 +550,10 @@ func (a *Archiver) commitTxWithRetries(
 	initCommit model.SHA1,
 	tx repository.Tx,
 	numRetries float64,
-) (err error) {
+) error {
+	rootedRepoCpStart := time.Now()
+
+	var err error
 	for a.backoff.Attempt() < numRetries {
 		err = tx.Commit(ctx)
 		if err == nil || !repository.HDFSNamenodeError.Is(err) {
@@ -552,7 +570,19 @@ func (a *Archiver) commitTxWithRetries(
 	}
 
 	a.backoff.Reset()
-	return
+
+	if err != nil {
+		logger.With(log.Fields{
+			"duration": time.Since(rootedRepoCpStart),
+		}).Errorf(err, "could not copy siva file to FS")
+		return err
+	}
+
+	logger.With(log.Fields{
+		"duration": time.Since(rootedRepoCpStart),
+	}).Debugf("copy siva file to FS")
+
+	return nil
 }
 
 func (a *Archiver) openGitWithRetries(storage storage.Storer, logger log.Logger, numRetries float64) (*git.Repository, error) {
@@ -653,6 +683,7 @@ func NewArchiverWorkerPool(
 	ls lock.Service,
 	timeout time.Duration,
 	lockingTimeout time.Duration,
+	copier *repository.Copier,
 ) *WorkerPool {
 
 	do := func(ctx context.Context, logger log.Logger, j *Job) error {
@@ -671,7 +702,7 @@ func NewArchiverWorkerPool(
 			}
 		}()
 
-		a := NewArchiver(r, tx, tc, lsess, timeout)
+		a := NewArchiver(r, tx, tc, lsess, timeout, copier)
 		return a.Do(ctx, j)
 	}
 

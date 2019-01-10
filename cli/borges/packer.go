@@ -10,7 +10,7 @@ import (
 	"github.com/src-d/borges/lock"
 	"github.com/src-d/borges/storage"
 
-	"gopkg.in/src-d/go-cli.v0"
+	cli "gopkg.in/src-d/go-cli.v0"
 	"gopkg.in/src-d/go-queue.v1/memory"
 )
 
@@ -49,7 +49,7 @@ func (c *packerCmd) Execute(args []string) error {
 		return fmt.Errorf("invalid format in the given `--timeout` flag: %s", err)
 	}
 
-	transactioner, err := c.newRootedTransactioner(tmp)
+	transactioner, copier, err := c.newRootedTransactioner(tmp)
 	if err != nil {
 		return fmt.Errorf("unable to initialize rooted transactioner: %s", err)
 	}
@@ -61,6 +61,7 @@ func (c *packerCmd) Execute(args []string) error {
 		locking,
 		timeout,
 		0,
+		copier,
 	)
 
 	if c.Workers <= 0 {
