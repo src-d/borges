@@ -186,7 +186,7 @@ func copySivaToRemote(
 		return err
 	}
 
-	err = RecursiveCopy(t.TempPath, t.TempFilesystem, "/", fs)
+	err = RecursiveCopy("/", fs, t.TempPath, t.TempFilesystem)
 	if err != nil {
 		return err
 	}
@@ -202,10 +202,10 @@ func copySivaToRemote(
 // RecursiveCopy copies a directory to a destination path. It creates all
 // needed directories if destination path does not exist.
 func RecursiveCopy(
-	src string,
-	srcFS billy.Filesystem,
 	dst string,
 	dstFS billy.Filesystem,
+	src string,
+	srcFS billy.Filesystem,
 ) error {
 	stat, err := srcFS.Stat(src)
 	if err != nil {
@@ -227,13 +227,13 @@ func RecursiveCopy(
 			srcPath := filepath.Join(src, file.Name())
 			dstPath := filepath.Join(dst, file.Name())
 
-			err = RecursiveCopy(srcPath, srcFS, dstPath, dstFS)
+			err = RecursiveCopy(dstPath, dstFS, srcPath, srcFS)
 			if err != nil {
 				return err
 			}
 		}
 	} else {
-		err = CopyFile(src, srcFS, dst, dstFS, stat.Mode())
+		err = CopyFile(dst, dstFS, src, srcFS, stat.Mode())
 		if err != nil {
 			return err
 		}
@@ -244,10 +244,10 @@ func RecursiveCopy(
 
 // CopyFile makes a file copy with the specified permission.
 func CopyFile(
-	src string,
-	srcFS billy.Filesystem,
 	dst string,
 	dstFS billy.Filesystem,
+	src string,
+	srcFS billy.Filesystem,
 	mode os.FileMode,
 ) error {
 	_, err := srcFS.Stat(src)
