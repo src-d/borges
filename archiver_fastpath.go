@@ -111,6 +111,7 @@ func renameReferences(repo *git.Repository, id kallax.ULID) error {
 	if err != nil {
 		return err
 	}
+	defer it.Close()
 
 	var add []*plumbing.Reference
 	var del []plumbing.ReferenceName
