@@ -353,8 +353,6 @@ func (a *Archiver) pushChangesToRootedRepositories(
 			}
 
 			if err != nil {
-				println("err", err.Error())
-
 				err = ErrPushToRootedRepository.Wrap(err, ic.String())
 				logger.Errorf(err, "error pushing changes to rooted repository")
 

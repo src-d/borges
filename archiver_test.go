@@ -20,12 +20,14 @@ import (
 	"gopkg.in/src-d/core-retrieval.v0/model"
 	"gopkg.in/src-d/core-retrieval.v0/repository"
 	"gopkg.in/src-d/core-retrieval.v0/test"
+	"gopkg.in/src-d/go-billy-siva.v4"
 	billy "gopkg.in/src-d/go-billy.v4"
 	"gopkg.in/src-d/go-billy.v4/osfs"
 	fixtures "gopkg.in/src-d/go-git-fixtures.v3"
 	git "gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
+	"gopkg.in/src-d/go-git.v4/storage/filesystem"
 	"gopkg.in/src-d/go-git.v4/storage/memory"
 	kallax "gopkg.in/src-d/go-kallax.v1"
 )
@@ -509,8 +511,36 @@ func TestDeleteTmpOnError(t *testing.T) {
 	tmpFs, err := fs.Chroot("tmp")
 	require.NoError(err)
 
-	r, a, _ := customArchiver(t, rootedFs, NewBrokenFS(txFs), tmpFs)
+	bfs := NewBrokenFS(txFs)
+	r, a, store := customArchiver(t, rootedFs, bfs, tmpFs)
 
+	// first time error because of BrokenFS, uses fastpath
+	err = a.Do(context.TODO(), &Job{RepositoryID: uuid.UUID(r.ID)})
+	require.Error(err)
+
+	// deactivate BrokenFS to let it push changes
+	bfs.MaxCount = -1
+	err = a.Do(context.TODO(), &Job{RepositoryID: uuid.UUID(r.ID)})
+	require.NoError(err)
+
+	// delete references so it needs to push
+	err = deleteReferences(
+		rootedFs,
+		r.ID.String(),
+		"b029517f6300c2da0f4b651b8642506cd6aaf45d")
+	require.NoError(err)
+
+	// delete one reference from database so push is done
+	r, err = store.Get(r.ID)
+	require.NoError(err)
+	require.Len(r.References, 2)
+
+	r.References = r.References[1:]
+	err = store.UpdateFetched(r, time.Now())
+	require.NoError(err)
+
+	// activate BrokenFS, test push
+	bfs.MaxCount = 4
 	err = a.Do(context.TODO(), &Job{RepositoryID: uuid.UUID(r.ID)})
 	require.Error(err)
 
@@ -518,6 +548,36 @@ func TestDeleteTmpOnError(t *testing.T) {
 	files, err := tmpFs.ReadDir("/local_repos")
 	require.NoError(err)
 	require.Len(files, 0)
+}
+
+func deleteReferences(fs billy.Filesystem, id, root string) error {
+	path := fmt.Sprintf("%s.siva", root)
+	siva, err := sivafs.NewFilesystem(fs, path, nil)
+	if err != nil {
+		return err
+	}
+
+	storage := filesystem.NewStorage(siva, nil)
+	repo, err := git.Open(storage, nil)
+	if err != nil {
+		return err
+	}
+
+	it, err := repo.References()
+	if err != nil {
+		return err
+	}
+	defer it.Close()
+
+	err = it.ForEach(func(r *plumbing.Reference) error {
+		if strings.HasSuffix(r.Name().String(), id) {
+			return repo.Storer.RemoveReference(r.Name())
+		}
+
+		return nil
+	})
+
+	return err
 }
 
 func TestMissingSivaFile(t *testing.T) {
@@ -608,14 +668,16 @@ func TestMissingSivaFile(t *testing.T) {
 	require.NoError(err)
 }
 
-func NewBrokenFS(fs billy.Filesystem) billy.Filesystem {
+func NewBrokenFS(fs billy.Filesystem) *BrokenFS {
 	return &BrokenFS{
 		Filesystem: fs,
+		MaxCount:   2,
 	}
 }
 
 type BrokenFS struct {
 	billy.Filesystem
+	MaxCount int
 }
 
 func (fs *BrokenFS) OpenFile(
@@ -629,18 +691,19 @@ func (fs *BrokenFS) OpenFile(
 	}
 
 	return &BrokenFile{
-		File: file,
+		File:     file,
+		MaxCount: fs.MaxCount,
 	}, nil
 }
 
 type BrokenFile struct {
 	billy.File
-	count int
+	count    int
+	MaxCount int
 }
 
 func (fs *BrokenFile) Write(p []byte) (int, error) {
-	// A siva copy takes less than 2 writes to complete, it should be a push.
-	if fs.count > 2 {
+	if fs.MaxCount >= 0 && fs.count >= fs.MaxCount {
 		return 0, fmt.Errorf("could not write to broken file")
 	}
 
