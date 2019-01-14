@@ -15,11 +15,11 @@ import (
 	"github.com/src-d/borges/storage"
 
 	"gopkg.in/src-d/core-retrieval.v0/repository"
-	"gopkg.in/src-d/go-billy.v4"
+	billy "gopkg.in/src-d/go-billy.v4"
 	"gopkg.in/src-d/go-billy.v4/osfs"
-	"gopkg.in/src-d/go-cli.v0"
-	"gopkg.in/src-d/go-log.v1"
-	"gopkg.in/src-d/go-queue.v1"
+	cli "gopkg.in/src-d/go-cli.v0"
+	log "gopkg.in/src-d/go-log.v1"
+	queue "gopkg.in/src-d/go-queue.v1"
 	_ "gopkg.in/src-d/go-queue.v1/amqp"
 )
 
@@ -47,7 +47,7 @@ func (c *consumerCmd) Execute(args []string) error {
 		return err
 	}
 
-	txer, err := c.newRootedTransactioner(tmp)
+	txer, copier, err := c.newRootedTransactioner(tmp)
 	if err != nil {
 		return err
 	}
@@ -85,6 +85,7 @@ func (c *consumerCmd) Execute(args []string) error {
 		locking,
 		timeout,
 		lockingTimeout,
+		copier,
 	)
 	wp.SetWorkerCount(c.Workers)
 
@@ -142,18 +143,19 @@ func (c *consumerOpts) newTemporaryFilesystem() (billy.Filesystem, error) {
 	return osfs.New(dir), nil
 }
 
-func (c *consumerOpts) newRootedTransactioner(tmp billy.Filesystem) (
-	repository.RootedTransactioner, error) {
+func (c *consumerOpts) newRootedTransactioner(
+	tmp billy.Filesystem,
+) (repository.RootedTransactioner, *repository.Copier, error) {
 	tmp, err := tmp.Chroot("transactioner")
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	var remote repository.Fs
 	if strings.HasPrefix(c.RootRepositoriesDir, "hdfs://") {
 		u, err := url.Parse(c.RootRepositoriesDir)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		path := u.Path
@@ -167,13 +169,13 @@ func (c *consumerOpts) newRootedTransactioner(tmp billy.Filesystem) (
 		remote = repository.NewLocalFs(osfs.New(c.RootRepositoriesDir))
 	}
 
-	txer := repository.NewSivaRootedTransactioner(
-		repository.NewCopier(
-			tmp,
-			remote,
-			c.BucketSize,
-		),
+	copier := repository.NewCopier(
+		tmp,
+		remote,
+		c.BucketSize,
 	)
 
-	return txer, nil
+	txer := repository.NewSivaRootedTransactioner(copier)
+
+	return txer, copier, nil
 }

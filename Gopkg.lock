@@ -672,6 +672,7 @@
     "gopkg.in/src-d/core-retrieval.v0/schema",
     "gopkg.in/src-d/core-retrieval.v0/test",
     "gopkg.in/src-d/go-billy-gluster.v0",
+    "gopkg.in/src-d/go-billy-siva.v4",
     "gopkg.in/src-d/go-billy.v4",
     "gopkg.in/src-d/go-billy.v4/helper/chroot",
     "gopkg.in/src-d/go-billy.v4/memfs",

@@ -14,19 +14,22 @@ import (
 	"github.com/src-d/borges/lock"
 	"github.com/src-d/borges/storage"
 
-	"github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"gopkg.in/src-d/core-retrieval.v0/model"
 	"gopkg.in/src-d/core-retrieval.v0/repository"
 	"gopkg.in/src-d/core-retrieval.v0/test"
-	"gopkg.in/src-d/go-billy.v4"
+	"gopkg.in/src-d/go-billy-siva.v4"
+	billy "gopkg.in/src-d/go-billy.v4"
 	"gopkg.in/src-d/go-billy.v4/osfs"
-	"gopkg.in/src-d/go-git-fixtures.v3"
-	"gopkg.in/src-d/go-git.v4"
+	fixtures "gopkg.in/src-d/go-git-fixtures.v3"
+	git "gopkg.in/src-d/go-git.v4"
+	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
+	"gopkg.in/src-d/go-git.v4/storage/filesystem"
 	"gopkg.in/src-d/go-git.v4/storage/memory"
-	"gopkg.in/src-d/go-kallax.v1"
+	kallax "gopkg.in/src-d/go-kallax.v1"
 )
 
 func TestArchiver(t *testing.T) {
@@ -41,6 +44,7 @@ type ArchiverSuite struct {
 	store    RepositoryStore
 	tmpPath  string
 	tx       repository.RootedTransactioner
+	copier   *repository.Copier
 	txFs     billy.Filesystem
 	tmpFs    billy.Filesystem
 	rootedFs billy.Filesystem
@@ -71,18 +75,19 @@ func (s *ArchiverSuite) SetupTest() {
 	s.tmpFs, err = fs.Chroot("tmp")
 	s.NoError(err)
 
-	copier := repository.NewCopier(
+	s.copier = repository.NewCopier(
 		s.txFs,
 		repository.NewLocalFs(s.rootedFs),
 		s.bucket)
-	s.tx = repository.NewSivaRootedTransactioner(copier)
+	s.tx = repository.NewSivaRootedTransactioner(s.copier)
 
 	ls, err := lock.NewLocal().NewSession(&lock.SessionConfig{
 		Timeout: defaultTimeout,
 	})
 	s.NoError(err)
 
-	s.a = NewArchiver(s.store, s.tx, NewTemporaryCloner(s.tmpFs), ls, defaultTimeout)
+	s.a = NewArchiver(s.store, s.tx, NewTemporaryCloner(s.tmpFs),
+		ls, defaultTimeout, s.copier)
 }
 
 func (s *ArchiverSuite) TearDownTest() {
@@ -147,7 +152,8 @@ func (s *ArchiverSuite) TestLockTimeout() {
 	start := time.Now()
 
 	job := &Job{RepositoryID: uuid.UUID(repoUUID)}
-	a := NewArchiver(s.store, s.tx, NewTemporaryCloner(s.tmpFs), session, 10*time.Second)
+	a := NewArchiver(s.store, s.tx, NewTemporaryCloner(s.tmpFs),
+		session, 10*time.Second, s.copier)
 
 	ctx := context.TODO()
 	err = a.Do(ctx, job)
@@ -174,7 +180,7 @@ func (s *ArchiverSuite) TestReferenceUpdate() {
 }
 
 func (s *ArchiverSuite) getFileNames(p string) ([]string, error) {
-	files := make([]string, 10)
+	var files []string
 
 	dirents, err := s.rootedFs.ReadDir(p)
 	if err != nil {
@@ -243,21 +249,67 @@ func (s *ArchiverSuite) TestFixtures() {
 			}
 			checkReferencesInDB(t, mr, ct.NewReferences)
 
-			// check references in siva files
+			type references map[plumbing.ReferenceName]bool
+
 			fis, err := s.getFileNames(".")
 			if len(ct.NewReferences) != 0 {
 				require.NoError(err)
-				initHashesInStorage := make(map[string]bool)
+				initHashesInStorage := make(map[string]references)
 
 				for _, fi := range fis {
-					initHashesInStorage[strings.Replace(fi, ".siva", "", -1)] = true
+					hashStr := strings.Replace(fi, ".siva", "", -1)
+					hash := plumbing.NewHash(hashStr)
+
+					// get siva file and open it
+					tx, err := s.a.RootedTransactioner.Begin(context.TODO(), hash)
+					require.NoError(err)
+
+					repo, err := git.Open(tx.Storer(), nil)
+					require.NoError(err)
+
+					// gather references for later check
+					it, err := repo.References()
+					require.NoError(err)
+
+					refs := make(references)
+					err = it.ForEach(func(r *plumbing.Reference) error {
+						refs[r.Name()] = true
+						return nil
+					})
+					require.NoError(err)
+
+					initHashesInStorage[hashStr] = refs
+
+					remotes, err := repo.Remotes()
+					require.NoError(err)
+
+					// check that "origin" remote does not exist and that
+					// the one downloaded is configured
+					var found bool
+					for _, r := range remotes {
+						require.NotEqual("origin", r.Config().Name)
+						if r.Config().Name == rid.String() {
+							found = true
+						}
+					}
+					require.True(found)
+
+					// delete previously copied siva file
+					err = tx.Rollback()
+					require.NoError(err)
 				}
 
-				// we check that all the references that we have into the database exists as a rooted repository
+				// check that all the references that we have into the
+				// database exists as a rooted repository
 				for _, ref := range mr.References {
-					_, ok := initHashesInStorage[ref.Init.String()]
+					r, ok := initHashesInStorage[ref.Init.String()]
+					require.True(ok)
+
+					name := rootedRefName(ref.GitReference().Name(), mr.ID)
+					_, ok = r[name]
 					require.True(ok)
 				}
+
 			}
 		})
 	}
@@ -423,7 +475,8 @@ func customArchiver(
 	})
 	require.NoError(err)
 
-	a := NewArchiver(store, tx, NewTemporaryCloner(tmpFs), ls, defaultTimeout)
+	a := NewArchiver(store, tx, NewTemporaryCloner(tmpFs),
+		ls, defaultTimeout, copier)
 
 	repoFixture := fixtures.ByTag("worktree").One()
 	repoPath := repoFixture.Worktree().Root()
@@ -458,8 +511,36 @@ func TestDeleteTmpOnError(t *testing.T) {
 	tmpFs, err := fs.Chroot("tmp")
 	require.NoError(err)
 
-	r, a, _ := customArchiver(t, rootedFs, NewBrokenFS(txFs), tmpFs)
+	bfs := NewBrokenFS(txFs)
+	r, a, store := customArchiver(t, rootedFs, bfs, tmpFs)
 
+	// first time error because of BrokenFS, uses fastpath
+	err = a.Do(context.TODO(), &Job{RepositoryID: uuid.UUID(r.ID)})
+	require.Error(err)
+
+	// deactivate BrokenFS to let it push changes
+	bfs.MaxCount = -1
+	err = a.Do(context.TODO(), &Job{RepositoryID: uuid.UUID(r.ID)})
+	require.NoError(err)
+
+	// delete references so it needs to push
+	err = deleteReferences(
+		rootedFs,
+		r.ID.String(),
+		"b029517f6300c2da0f4b651b8642506cd6aaf45d")
+	require.NoError(err)
+
+	// delete one reference from database so push is done
+	r, err = store.Get(r.ID)
+	require.NoError(err)
+	require.Len(r.References, 2)
+
+	r.References = r.References[1:]
+	err = store.UpdateFetched(r, time.Now())
+	require.NoError(err)
+
+	// activate BrokenFS, test push
+	bfs.MaxCount = 4
 	err = a.Do(context.TODO(), &Job{RepositoryID: uuid.UUID(r.ID)})
 	require.Error(err)
 
@@ -467,6 +548,36 @@ func TestDeleteTmpOnError(t *testing.T) {
 	files, err := tmpFs.ReadDir("/local_repos")
 	require.NoError(err)
 	require.Len(files, 0)
+}
+
+func deleteReferences(fs billy.Filesystem, id, root string) error {
+	path := fmt.Sprintf("%s.siva", root)
+	siva, err := sivafs.NewFilesystem(fs, path, nil)
+	if err != nil {
+		return err
+	}
+
+	storage := filesystem.NewStorage(siva, nil)
+	repo, err := git.Open(storage, nil)
+	if err != nil {
+		return err
+	}
+
+	it, err := repo.References()
+	if err != nil {
+		return err
+	}
+	defer it.Close()
+
+	err = it.ForEach(func(r *plumbing.Reference) error {
+		if strings.HasSuffix(r.Name().String(), id) {
+			return repo.Storer.RemoveReference(r.Name())
+		}
+
+		return nil
+	})
+
+	return err
 }
 
 func TestMissingSivaFile(t *testing.T) {
@@ -557,14 +668,16 @@ func TestMissingSivaFile(t *testing.T) {
 	require.NoError(err)
 }
 
-func NewBrokenFS(fs billy.Filesystem) billy.Filesystem {
+func NewBrokenFS(fs billy.Filesystem) *BrokenFS {
 	return &BrokenFS{
 		Filesystem: fs,
+		MaxCount:   2,
 	}
 }
 
 type BrokenFS struct {
 	billy.Filesystem
+	MaxCount int
 }
 
 func (fs *BrokenFS) OpenFile(
@@ -578,18 +691,19 @@ func (fs *BrokenFS) OpenFile(
 	}
 
 	return &BrokenFile{
-		File: file,
+		File:     file,
+		MaxCount: fs.MaxCount,
 	}, nil
 }
 
 type BrokenFile struct {
 	billy.File
-	count int
+	count    int
+	MaxCount int
 }
 
 func (fs *BrokenFile) Write(p []byte) (int, error) {
-	// A siva copy takes less than 10 writes to complete, it should be a push.
-	if fs.count > 10 {
+	if fs.MaxCount >= 0 && fs.count >= fs.MaxCount {
 		return 0, fmt.Errorf("could not write to broken file")
 	}
 

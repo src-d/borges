@@ -6,7 +6,7 @@ import (
 	"github.com/src-d/borges"
 	"github.com/src-d/borges/storage"
 
-	"gopkg.in/src-d/go-cli.v0"
+	cli "gopkg.in/src-d/go-cli.v0"
 )
 
 func init() {
