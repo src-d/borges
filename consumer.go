@@ -102,6 +102,9 @@ func (c *Consumer) consumeJobIter(iter queue.JobIter) error {
 		}
 
 		if err != nil {
+			if err := iter.Close(); err != nil {
+				c.notifyQueueError(err)
+			}
 			return err
 		}
 

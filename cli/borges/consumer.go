@@ -90,6 +90,12 @@ func (c *consumerCmd) Execute(args []string) error {
 	wp.SetWorkerCount(c.Workers)
 
 	ac := borges.NewConsumer(q, wp)
+	ac.Notifiers.QueueError = func(err error) {
+		log.With(log.Fields{
+			"queue":  c.Queue,
+			"broker": c.Broker,
+		}).Errorf(err, "queue error")
+	}
 
 	var term = make(chan os.Signal)
 	var done = make(chan struct{})
