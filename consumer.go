@@ -102,6 +102,7 @@ func (c *Consumer) consumeJobIter(iter queue.JobIter) error {
 		}
 
 		if err != nil {
+			iter.Close()
 			return err
 		}
 
