@@ -5,6 +5,7 @@ import (
 	"time"
 
 	queue "gopkg.in/src-d/go-queue.v1"
+	amqp "gopkg.in/src-d/go-queue.v1/amqp"
 )
 
 // Consumer consumes jobs from a queue and uses multiple workers to process
@@ -92,7 +93,7 @@ func (c *Consumer) consumeQueue(q queue.Queue) error {
 func (c *Consumer) consumeJobIter(iter queue.JobIter) error {
 	for {
 		j, err := iter.Next()
-		if queue.ErrEmptyJob.Is(err) {
+		if queue.ErrEmptyJob.Is(err) || amqp.ErrRetrievingHeader.Is(err) {
 			c.notifyQueueError(err)
 			continue
 		}
