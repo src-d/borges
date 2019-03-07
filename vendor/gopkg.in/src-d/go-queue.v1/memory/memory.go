@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"io"
 	"sync"
 	"time"
 
@@ -11,22 +12,39 @@ func init() {
 	queue.Register("memory", func(uri string) (queue.Broker, error) {
 		return New(), nil
 	})
+
+	queue.Register("memoryfinite", func(uri string) (queue.Broker, error) {
+		return NewFinite(true), nil
+	})
 }
 
-// Broker is a in-memory implementation of brocker.
+// Broker is a in-memory implementation of Broker.
 type Broker struct {
 	queues map[string]queue.Queue
+	finite bool
 }
 
 // New creates a new Broker for an in-memory queue.
 func New() queue.Broker {
-	return &Broker{make(map[string]queue.Queue)}
+	return NewFinite(false)
+}
+
+// NewFinite creates a new Broker for an in-memory queue. The argument
+// specifies if the JobIter stops on EOF or not.
+func NewFinite(finite bool) queue.Broker {
+	return &Broker{
+		queues: make(map[string]queue.Queue),
+		finite: finite,
+	}
 }
 
 // Queue returns the queue with the given name.
 func (b *Broker) Queue(name string) (queue.Queue, error) {
 	if _, ok := b.queues[name]; !ok {
-		b.queues[name] = &Queue{jobs: make([]*queue.Job, 0, 10)}
+		b.queues[name] = &Queue{
+			jobs:   make([]*queue.Job, 0, 10),
+			finite: b.finite,
+		}
 	}
 
 	return b.queues[name], nil
@@ -44,6 +62,7 @@ type Queue struct {
 	sync.RWMutex
 	idx                int
 	publishImmediately bool
+	finite             bool
 }
 
 // Publish publishes a Job to the queue.
@@ -74,7 +93,7 @@ func (q *Queue) PublishDelayed(j *queue.Job, delay time.Duration) error {
 	return nil
 }
 
-// RepublishBuried implement the Queue interface.
+// RepublishBuried implements the Queue interface.
 func (q *Queue) RepublishBuried(conditions ...queue.RepublishConditionFunc) error {
 	for _, job := range q.buriedJobs {
 		if queue.RepublishConditions(conditions).Comply(job) {
@@ -98,26 +117,41 @@ func (q *Queue) Transaction(txcb queue.TxCallback) error {
 	return nil
 }
 
-// Consume implements Queue.  MemoryQueues have infinite advertised window.
-func (q *Queue) Consume(_ int) (queue.JobIter, error) {
-	return &JobIter{q: q, RWMutex: &q.RWMutex}, nil
+// Consume implements Queue. The advertisedWindow value is the maximum number of
+// unacknowledged jobs. Use 0 for an infinite window.
+func (q *Queue) Consume(advertisedWindow int) (queue.JobIter, error) {
+	jobIter := JobIter{
+		q:       q,
+		RWMutex: &q.RWMutex,
+		finite:  q.finite,
+	}
+
+	if advertisedWindow > 0 {
+		jobIter.chn = make(chan struct{}, advertisedWindow)
+	}
+
+	return &jobIter, nil
 }
 
 // JobIter implements a queue.JobIter interface.
 type JobIter struct {
 	q      *Queue
 	closed bool
+	finite bool
+	chn    chan struct{}
 	*sync.RWMutex
 }
 
 // Acknowledger implements a queue.Acknowledger interface.
 type Acknowledger struct {
-	q *Queue
-	j *queue.Job
+	q   *Queue
+	j   *queue.Job
+	chn chan struct{}
 }
 
 // Ack is called when the Job has finished.
-func (*Acknowledger) Ack() error {
+func (a *Acknowledger) Ack() error {
+	a.release()
 	return nil
 }
 
@@ -125,6 +159,8 @@ func (*Acknowledger) Ack() error {
 // should be put back in queue or not.  If requeue is false, the job will go to the buried
 // queue until Queue.RepublishBuried() is called.
 func (a *Acknowledger) Reject(requeue bool) error {
+	defer a.release()
+
 	if !requeue {
 		// Send to the buried queue for later republishing
 		a.q.buriedJobs = append(a.q.buriedJobs, a.j)
@@ -132,6 +168,12 @@ func (a *Acknowledger) Reject(requeue bool) error {
 	}
 
 	return a.q.Publish(a.j)
+}
+
+func (a *Acknowledger) release() {
+	if a.chn != nil {
+		<-a.chn
+	}
 }
 
 func (i *JobIter) isClosed() bool {
@@ -142,18 +184,24 @@ func (i *JobIter) isClosed() bool {
 
 // Next returns the next job in the iter.
 func (i *JobIter) Next() (*queue.Job, error) {
+	i.acquire()
 	for {
 		if i.isClosed() {
+			i.release()
 			return nil, queue.ErrAlreadyClosed.New()
 		}
 
 		j, err := i.next()
-		if err != nil {
-			time.Sleep(1 * time.Second)
-			continue
+		if err == nil {
+			return j, nil
 		}
 
-		return j, nil
+		if err == io.EOF && i.finite {
+			i.release()
+			return nil, err
+		}
+
+		time.Sleep(1 * time.Second)
 	}
 }
 
@@ -161,11 +209,11 @@ func (i *JobIter) next() (*queue.Job, error) {
 	i.Lock()
 	defer i.Unlock()
 	if len(i.q.jobs) <= i.q.idx {
-		return nil, nil
+		return nil, io.EOF
 	}
 
 	j := i.q.jobs[i.q.idx]
-	j.Acknowledger = &Acknowledger{j: j, q: i.q}
+	j.Acknowledger = &Acknowledger{j: j, q: i.q, chn: i.chn}
 	i.q.idx++
 
 	return j, nil
@@ -177,4 +225,16 @@ func (i *JobIter) Close() error {
 	defer i.Unlock()
 	i.closed = true
 	return nil
+}
+
+func (i *JobIter) acquire() {
+	if i.chn != nil {
+		i.chn <- struct{}{}
+	}
+}
+
+func (i *JobIter) release() {
+	if i.chn != nil {
+		<-i.chn
+	}
 }

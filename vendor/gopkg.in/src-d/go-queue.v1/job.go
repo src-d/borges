@@ -22,7 +22,7 @@ type Job struct {
 	Timestamp time.Time
 	// Retries is the number of times this job can be processed before being rejected.
 	Retries int32
-	// ErrorType is the kind of error that made the job failing.
+	// ErrorType is the kind of error that made the job fail.
 	ErrorType string
 	// ContentType of the job
 	ContentType string
@@ -81,6 +81,7 @@ func (j *Job) Decode(payload interface{}) error {
 	return decode(msgpackContentType, j.Raw, &payload)
 }
 
+// ErrCantAck is the error returned when the Job does not come from a queue
 var ErrCantAck = errors.NewKind("can't acknowledge this message, it does not come from a queue")
 
 // Ack is called when the job is finished.

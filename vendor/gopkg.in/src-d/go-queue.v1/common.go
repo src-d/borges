@@ -32,7 +32,7 @@ var (
 
 // Broker represents a message broker.
 type Broker interface {
-	// Queue returns a Queue from the with the given name.
+	// Queue returns a Queue from the Broker with the given name.
 	Queue(string) (Queue, error)
 	// Close closes the connection of the Broker.
 	Close() error
@@ -47,7 +47,7 @@ type RepublishConditionFunc func(job *Job) bool
 // RepublishConditions alias of a list RepublishConditionFunc
 type RepublishConditions []RepublishConditionFunc
 
-// Comply checks if the Job fit in any of the defined conditions.
+// Comply checks if the Job matches any of the defined conditions.
 func (c RepublishConditions) Comply(job *Job) bool {
 	if len(c) == 0 {
 		return true
@@ -66,15 +66,15 @@ func (c RepublishConditions) Comply(job *Job) bool {
 type Queue interface {
 	// Publish publishes the given Job to the queue.
 	Publish(*Job) error
-	// Publish publishes the given Job to the queue with a given delay.
+	// PublishDelayed publishes the given Job to the queue with a given delay.
 	PublishDelayed(*Job, time.Duration) error
 	// Transaction executes the passed TxCallback inside a transaction.
 	Transaction(TxCallback) error
-	// Consume returns a JobIter for the queue.  Ir receives the minimum
-	// number of undelivered jobs the iterator will allow at any given
+	// Consume returns a JobIter for the queue.  It receives the maximum
+	// number of unacknowledged jobs the iterator will allow at any given
 	// time (see the Acknowledger interface).
 	Consume(advertisedWindow int) (JobIter, error)
-	// RepublishBuried republish to the main queue those jobs complying
+	// RepublishBuried republishes to the main queue those jobs complying
 	// one of the conditions, leaving the rest of them in the buried queue.
 	RepublishBuried(conditions ...RepublishConditionFunc) error
 }
@@ -82,7 +82,7 @@ type Queue interface {
 // JobIter represents an iterator over a set of Jobs.
 type JobIter interface {
 	// Next returns the next Job in the iterator. It should block until
-	// the job becomes available or while too many undelivered jobs has
+	// a new job becomes available or while too many undelivered jobs have
 	// been already returned (see the argument to Queue.Consume). Returns
 	// ErrAlreadyClosed if the iterator is closed.
 	Next() (*Job, error)
