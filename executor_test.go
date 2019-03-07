@@ -52,7 +52,7 @@ func (s *ExecutorSuite) assertRepo(endpoint string, job *Job) {
 
 func (s *ExecutorSuite) runExecutor(repos ...string) ([]*Job, error) {
 	require := s.Require()
-	q, err := memory.New().Queue(kallax.NewULID().String())
+	q, err := memory.NewFinite(true).Queue(kallax.NewULID().String())
 	require.NoError(err)
 
 	r := ioutil.NopCloser(strings.NewReader(strings.Join(repos, "\n")))
