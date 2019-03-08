@@ -37,7 +37,7 @@ func (c *packerCmd) Execute(args []string) error {
 		return err
 	}
 
-	broker := memory.New()
+	broker := memory.NewFinite(true)
 	q, err := broker.Queue("jobs")
 	if err != nil {
 		return fmt.Errorf("unable to start an in-memory queue: %s", err)

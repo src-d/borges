@@ -25,7 +25,7 @@ func (s *RepositorySuite) SetupTest() {
 	s.ToolSuite.SetupTest()
 	s.database = NewDatabase(s.DB)
 
-	broker := memory.New()
+	broker := memory.NewFinite(true)
 	var err error
 	s.queue, err = broker.Queue("test")
 	s.NoError(err)
