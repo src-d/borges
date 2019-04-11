@@ -391,9 +391,16 @@ func (a *Archiver) pushChangesToRootedRepositories(
 		cancel()
 	}
 
-	if err := a.Store.UpdateFetched(r, *now); err != nil {
-		logger.Errorf(err, "error updating repository in database")
+	logger.Debugf("update repository references started")
+
+	if len(failedInits) == 0 {
+		if err := a.Store.UpdateFetched(r, *now); err != nil {
+			logger.Errorf(err, "error updating repository in database")
+			return err
+		}
 	}
+
+	logger.Debugf("update repository references finished")
 
 	return checkFailedInits(changes, failedInits)
 }
