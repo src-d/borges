@@ -364,19 +364,10 @@ func (a *Archiver) pushChangesToRootedRepositories(
 			}
 
 			logger.Debugf("push changes to rooted repository finished")
-			logger.Debugf("update repository references started")
 			r.References = updateRepositoryReferences(r.References, cs, ic)
 			for _, ref := range r.References {
 				ref.Repository = r
 			}
-
-			if err := a.Store.UpdateFetched(r, *now); err != nil {
-				err = ErrPushToRootedRepository.Wrap(err, ic.String())
-				logger.Errorf(err, "error updating repository in database")
-				failedInits = append(failedInits, ic)
-			}
-
-			logger.Debugf("update repository references finished")
 
 			select {
 			case <-ch:
@@ -400,10 +391,8 @@ func (a *Archiver) pushChangesToRootedRepositories(
 		cancel()
 	}
 
-	if len(changes) == 0 {
-		if err := a.Store.UpdateFetched(r, *now); err != nil {
-			logger.Errorf(err, "error updating repository in database")
-		}
+	if err := a.Store.UpdateFetched(r, *now); err != nil {
+		logger.Errorf(err, "error updating repository in database")
 	}
 
 	return checkFailedInits(changes, failedInits)
