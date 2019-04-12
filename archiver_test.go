@@ -20,7 +20,7 @@ import (
 	"gopkg.in/src-d/core-retrieval.v0/model"
 	"gopkg.in/src-d/core-retrieval.v0/repository"
 	"gopkg.in/src-d/core-retrieval.v0/test"
-	"gopkg.in/src-d/go-billy-siva.v4"
+	sivafs "gopkg.in/src-d/go-billy-siva.v4"
 	billy "gopkg.in/src-d/go-billy.v4"
 	"gopkg.in/src-d/go-billy.v4/osfs"
 	fixtures "gopkg.in/src-d/go-git-fixtures.v3"
@@ -556,6 +556,7 @@ func deleteReferences(fs billy.Filesystem, id, root string) error {
 	if err != nil {
 		return err
 	}
+	defer siva.Sync()
 
 	storage := filesystem.NewStorage(siva, nil)
 	repo, err := git.Open(storage, nil)
