@@ -477,7 +477,9 @@ func (a *Archiver) pushChangesToRootedRepository(
 
 		refspecs := a.changesToPushRefSpec(r.ID, changes)
 		pushStart := time.Now()
-		if err := tr.Push(ctx, url, refspecs); err != nil {
+
+		err := tr.Push(ctx, url, refspecs)
+		if err != nil && err != git.NoErrAlreadyUpToDate {
 			onlyPushDurationSec := int64(time.Since(pushStart) / time.Second)
 			logger.With(log.Fields{
 				"refs":     refspecs,
