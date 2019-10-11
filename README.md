@@ -1,3 +1,6 @@
+# This project is unmaintained and will be archived soon. For an alternative you can use:
+
+https://github.com/src-d/gitcollector
 
 borges [![Build Status](https://travis-ci.org/src-d/borges.svg?branch=master)](https://travis-ci.org/src-d/borges) [![codecov.io](https://codecov.io/gh/src-d/borges/branch/master/graph/badge.svg?token=ETL49e3u1L)](https://codecov.io/gh/src-d/borges) [![GitHub version](https://badge.fury.io/gh/src-d%2Fborges.svg)](https://github.com/src-d/borges/releases)
 ======
